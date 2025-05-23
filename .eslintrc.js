@@ -5,7 +5,6 @@ module.exports = {
   },
   plugins: ["@typescript-eslint/eslint-plugin"],
   root: true,
-  extends: ["custom"],
   rules: {
     "@typescript-eslint/no-misused-promises": "error",
     "@typescript-eslint/require-await": "error",
