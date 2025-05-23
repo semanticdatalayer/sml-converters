@@ -42,7 +42,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: "NPM :: Login"
         run: echo "//registry.npmjs.org/:_authToken=${SML_CONVERTERS_TOKEN}" > ~/.npmrc
