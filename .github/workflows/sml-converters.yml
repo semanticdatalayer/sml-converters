@@ -42,7 +42,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: "NPM :: Login"
         run: echo "//registry.npmjs.org/:_authToken=${SML_CONVERTERS_TOKEN}" > ~/.npmrc
@@ -72,10 +71,10 @@ jobs:
           else
             if [[ -n "$TAG_INPUT" ]]; then
               echo "Publishing $PACKAGE_NAME@$PACKAGE_VERSION with tag '$TAG_INPUT'"
-              npm publish --access public --tag "$TAG_INPUT" --dry-run
+              npm publish --access public --tag "$TAG_INPUT"
             else
               echo "Publishing $PACKAGE_NAME@$PACKAGE_VERSION with default tag"
-              npm publish --access public --dry-run
+              npm publish --access public
             fi
           fi
         env:
