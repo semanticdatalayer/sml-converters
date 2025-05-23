@@ -1,12 +1,11 @@
 {
   "name": "sml-converters",
-  "description": "SML converters",
+  "description": "Semantic Modeling Language converters",
   "version": "0.0.0",
   "author": "AtScale",
   "bin": {
     "sml-converters": "./bin/run.js"
   },
-  "bugs": "https://github.com/AtScale/sml-converters/issues",
   "dependencies": {
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
@@ -52,8 +51,8 @@
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
     "lint": "eslint --ext ts src",
+    "test": "echo \"No tests found\"",
     "postpack": "shx rm -f oclif.manifest.json",
-    "posttest": "pnpm run lint",
     "prepack": "oclif manifest && oclif readme",
     "version": "oclif readme && git add README.md"
   },

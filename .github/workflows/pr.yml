@@ -1,0 +1,19 @@
+name: "PR :: Workflow"
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: "Test"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - run: npm install
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build

@@ -1,6 +1,6 @@
 # sml-converters
 
-SML converters
+Semantic Modeling Language converters
 
 [![Version](https://img.shields.io/npm/v/sml-converters.svg)](https://npmjs.org/package/sml-converters)
 [![Downloads/week](https://img.shields.io/npm/dw/sml-converters.svg)](https://npmjs.org/package/sml-converters)
