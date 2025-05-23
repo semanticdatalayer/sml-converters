@@ -1,0 +1,82 @@
+name: "Publish :: SML-Converters"
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: "Source branch (e.g.: main, develop, release/2025.1.0)"
+        type: string
+        required: true
+
+      npm_version:
+        description: "Version to be published on npm (e.g.: 1.0.0, 2025.1.0)"
+        type: string
+        required: true
+
+      npm_tag:
+        description: "NPM tag (e.g.: latest, beta, stable, rc)."
+        type: string
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish-sml-converters:
+    name: "Promote :: SML-Converters"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Setup :: Dependencies"
+        run: |
+          sudo apt update
+          sudo apt-get install git moreutils file jq -y
+
+      - name: "Git :: Checkout"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.source_branch }}
+
+      - name: "Setup :: Node"
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: "NPM :: Login"
+        run: echo "//registry.npmjs.org/:_authToken=${SML_CONVERTERS_TOKEN}" > ~/.npmrc
+        env:
+          SML_CONVERTERS_TOKEN: ${{ secrets.SML_CONVERTERS_TOKEN }}
+
+      - name: "NPM :: Build CLI"
+        run: |
+          npm install
+          jq --arg ver "${{ inputs.npm_version }}" '.version = $ver' package.json > package.tmp.json
+          mv package.tmp.json package.json
+          cat package.json
+          npm run lint
+          npm run test
+          npm run build
+
+      - name: "NPM :: Check and Publish"
+        run: |
+          PACKAGE_NAME=$(jq -r .name package.json)
+          PACKAGE_VERSION=$(jq -r .version package.json)
+          TAG_INPUT="${{ inputs.npm_tag }}"
+
+          echo "Checking if $PACKAGE_NAME@$PACKAGE_VERSION is already published..."
+
+          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" > /dev/null 2>&1; then
+            echo "Already published. Skipping npm publish."
+          else
+            if [[ -n "$TAG_INPUT" ]]; then
+              echo "Publishing $PACKAGE_NAME@$PACKAGE_VERSION with tag '$TAG_INPUT'"
+              npm publish --access public --tag "$TAG_INPUT" --dry-run
+            else
+              echo "Publishing $PACKAGE_NAME@$PACKAGE_VERSION with default tag"
+              npm publish --access public --dry-run
+            fi
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.SML_CONVERTERS_TOKEN }}
