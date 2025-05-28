@@ -59,7 +59,7 @@ export class DbtToSmlCommand extends Command {
     }),
     atscaleConnectionId: Flags.string({
       description:
-        "Atscale connection id. The connection id fo the data warehouse in atscale",
+        "AtScale connection id. The connection id of the data warehouse in AtScale.",
       required: false,
       default: "con1",
     }),
