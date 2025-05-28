@@ -31,6 +31,8 @@ import { IDbtConverterInput, IDbtIndex } from "../model";
 import { DbtCalculations } from "./dbt-calculations";
 import { DbtConstants } from "./dbt-constants";
 import { DbtTools } from "./dbt-tools";
+import { SmlConverterQuery } from "../../../shared/sml-converter-queries";
+import { SmlUniqueNameGenerator } from "../../../shared/sml-unique-name-generator";
 
 interface ISchemaMetadataService {
   getMetadata: (
@@ -48,16 +50,19 @@ export interface DbtConverterDependencies {
 
 export class DbtConverter {
   private logger: Logger;
+  private result = new SmlConvertResultBuilder();
+  private smlQuery: SmlConverterQuery = SmlConverterQuery.for(this.result);
+  private smlUniqueNameGenerator = SmlUniqueNameGenerator.fromQuery(
+    this.smlQuery,
+  );
 
   constructor(dependencies: DbtConverterDependencies) {
     this.logger = dependencies.logger;
   }
 
   convert(dbtIndex: IDbtIndex, input: IDbtConverterInput): SmlConverterResult {
-    const result = new SmlConvertResultBuilder();
-
-    result.catalog = this.convertCatalog(dbtIndex);
-    result.addModel(DbtConstants.createSimpleModel(result));
+    this.result.catalog = this.convertCatalog(dbtIndex);
+    this.result.addModel(DbtConstants.createSimpleModel(this.result));
 
     const dbType: DWType = input.dbType;
     if (!["bigquery", "snowflake"].includes(dbType))
@@ -77,29 +82,29 @@ export class DbtConverter {
       schemaNameUpper,
     );
 
-    result.addConnection(connection);
+    this.result.addConnection(connection);
 
     const datasetsToCreate: Set<string> = listUsedDatasets(dbtIndex);
     datasetsToCreate.forEach((tbl) =>
-      result.addDatasets(this.convertDataset(tbl, connection, dbtIndex)),
+      this.result.addDatasets(this.convertDataset(tbl, connection, dbtIndex)),
     );
 
-    result.addDatasets(
+    this.result.addDatasets(
       DbtConstants.timeDataset(connection, dbType, identifiersNameUpper),
     ); // connection.unique_name, connection.database, connection.schema,
     // DbtTools.connectionTypeFromId(connection.as_connection, connection.label )));
-    this.addColumns(dbtIndex, result, this.logger, dbType);
+    this.addColumns(dbtIndex, this.result, this.logger, dbType);
 
-    result.addDimension(DbtConstants.timeDimension());
-    this.addRelationshipsAndDimensions(dbtIndex, result);
-    this.addSameTableRelationships(dbtIndex, result);
-    this.addTimeRelationships(dbtIndex, result, this.logger);
-    this.addDegenerateDimensions(dbtIndex, result);
+    this.result.addDimension(DbtConstants.timeDimension());
+    this.addRelationshipsAndDimensions(dbtIndex);
+    this.addSameTableRelationships(dbtIndex);
+    this.addTimeRelationships(dbtIndex);
+    this.addDegenerateDimensions(dbtIndex);
 
     for (const dbtSemanticModel of dbtIndex.properties.semantic_models) {
       const datasetName = datasetFromSM(
         dbtSemanticModel.model,
-        result,
+        this.result,
       ).unique_name;
       // Add measures
       dbtSemanticModel.measures?.forEach((m) => {
@@ -108,13 +113,16 @@ export class DbtConverter {
             `Skipping metric '${m.name}' because percentile metrics are not yet supported`,
           );
         } else {
-          result.addMeasures(this.convertMeasure(m, datasetName));
+          const newMetric = this.convertMeasure(m, datasetName);
+          this.result.addMeasures(newMetric);
           if (
-            !result.models[0].metrics.find((m2) => m2.unique_name === m.name)
+            !this.result.models[0].metrics.find(
+              (m2) => m2.unique_name === newMetric.unique_name,
+            )
           ) {
-            result.models[0].metrics.push(
+            this.result.models[0].metrics.push(
               DbtConverter.createReference(
-                m.name,
+                newMetric.unique_name,
                 DbtTools.initCap(DbtTools.noPreOrSuffix(datasetName)),
               ),
             );
@@ -128,7 +136,7 @@ export class DbtConverter {
       // Need to find the referenced measure first then use its dataset
       const smlMetric = DbtCalculations.convertCalc(
         m,
-        result,
+        this.result,
         dbtIndex,
         removedMetrics,
         this.logger,
@@ -136,22 +144,24 @@ export class DbtConverter {
       if (smlMetric != null) {
         if (
           DbtTools.isCalculated(smlMetric) &&
-          !result.measuresCalculated.find(
+          !this.result.measuresCalculated.find(
             (m) => m.unique_name === smlMetric.unique_name,
           )
         ) {
-          result.addMeasuresCalc(smlMetric as SMLMetricCalculated);
+          this.result.addMeasuresCalc(smlMetric as SMLMetricCalculated);
         } else if (
-          !result.measures.find((m) => m.unique_name === smlMetric.unique_name)
+          !this.result.measures.find(
+            (m) => m.unique_name === smlMetric.unique_name,
+          )
         ) {
-          result.addMeasures(smlMetric as SMLMetric);
+          this.result.addMeasures(smlMetric as SMLMetric);
         }
         if (
-          !result.models[0].metrics.find(
+          !this.result.models[0].metrics.find(
             (m2) => m2.unique_name == smlMetric.unique_name,
           )
         ) {
-          result.models[0].metrics.push(
+          this.result.models[0].metrics.push(
             DbtConverter.createReference(
               smlMetric.unique_name,
               "Other Calculations",
@@ -160,43 +170,44 @@ export class DbtConverter {
         }
       }
     });
-    metricRemoval(result, removedMetrics, this.logger);
+    metricRemoval(this.result, removedMetrics, this.logger);
 
-    applyCaseSensitivity(result, identifiersNameUpper);
+    applyCaseSensitivity(this.result, identifiersNameUpper);
 
-    return result.getResult();
+    return this.result.getResult();
   }
 
-  addDegenerateDimensions(
-    dbtIndex: IDbtIndex,
-    result: SmlConvertResultBuilder,
-  ) {
+  addDegenerateDimensions(dbtIndex: IDbtIndex) {
     for (const semanticModel of dbtIndex.properties.semantic_models) {
       if (semanticModel.dimensions && semanticModel.measures) {
         // If only dimensions and no relationship to it, won't create
         if (
-          !result.dimensions.find(
+          !this.result.dimensions.find(
             (dim) =>
               dim.unique_name ===
-              `Dim ${DbtTools.refOnly(DbtTools.makeStringValue(semanticModel.model))}`,
+              `Dim ${DbtTools.refOnly(
+                DbtTools.makeStringValue(semanticModel.model),
+              )}`,
           )
         ) {
           const datasetName = datasetFromSM(
             semanticModel.model,
-            result,
+            this.result,
           ).unique_name;
           for (const dim of semanticModel.dimensions) {
             if (dim.type != "time") {
-              result.addDimension(
+              this.result.addDimension(
                 this.convertDegenerateDim(
                   dim,
                   datasetName,
                   DbtTools.initCap(datasetName),
                 ),
               );
-              if (!result.models[0].dimensions)
-                result.models[0].dimensions = [];
-              result.models[0].dimensions?.push(DbtTools.dimName(dim.name));
+              if (!this.result.models[0].dimensions)
+                this.result.models[0].dimensions = [];
+              this.result.models[0].dimensions?.push(
+                DbtTools.dimName(dim.name),
+              );
             }
           }
         }
@@ -212,18 +223,14 @@ export class DbtConverter {
     return modelMetric;
   }
 
-  addTimeRelationships(
-    dbtIndex: IDbtIndex,
-    result: SmlConvertResultBuilder,
-    logger: Logger,
-  ) {
+  addTimeRelationships(dbtIndex: IDbtIndex) {
     for (const leftSemanticModel of dbtIndex.properties.semantic_models) {
       if (leftSemanticModel.dimensions && leftSemanticModel.measures) {
         // Only create from fact datasets for now
         leftSemanticModel.dimensions.forEach((dimCol) => {
           if (dimCol.type === "time") {
             // Create fact relationship
-            const model = result.models[0];
+            const model = this.result.models[0];
             const leftDatasetUniqueName = DbtTools.dsName(
               DbtTools.refOnly(
                 DbtTools.makeStringValue(leftSemanticModel.model),
@@ -235,7 +242,7 @@ export class DbtConverter {
               dimCol.type_params.time_granularity &&
               !(dimCol.type_params.time_granularity === "day")
             ) {
-              logger.warn(
+              this.logger.warn(
                 `Time granularity value of '${dimCol.type_params.time_granularity}' found but only 'day' is supported at present for dimension '${dimCol.name}' so relationship to Date Dimension will not be created for dim '${dimCol.name}' on dataset '${leftDatasetUniqueName}'`,
               );
             } else {
@@ -259,10 +266,7 @@ export class DbtConverter {
     }
   }
 
-  addRelationshipsAndDimensions(
-    dbtIndex: IDbtIndex,
-    result: SmlConvertResultBuilder,
-  ) {
+  addRelationshipsAndDimensions(dbtIndex: IDbtIndex) {
     for (const leftSemanticModel of dbtIndex.properties.semantic_models) {
       if (leftSemanticModel.entities) {
         for (const leftEntity of leftSemanticModel.entities) {
@@ -282,7 +286,7 @@ export class DbtConverter {
                     // Create and add dimension, first getting the column
                     const uniqueDimName = DbtTools.dimName(rightModelName);
                     if (
-                      result.dimensions.find(
+                      this.result.dimensions.find(
                         (dim) => dim.unique_name === uniqueDimName,
                       )
                     )
@@ -292,9 +296,13 @@ export class DbtConverter {
                       rightEntity.expr,
                       defaultDataTypeFromColName(rightEntity.name),
                       rightModelName,
-                      result,
+                      this.result,
                     );
 
+                    const level_unique_name =
+                      this.smlUniqueNameGenerator.getNewUniqueNameForLevel(
+                        rightEntity.name,
+                      );
                     const newDim: SMLDimension = {
                       object_type: SMLObjectType.Dimension,
                       unique_name: uniqueDimName,
@@ -304,7 +312,7 @@ export class DbtConverter {
                         `This dimension was generated from a relationship to dbt model '${rightModelName}'`,
                       level_attributes: [
                         {
-                          unique_name: rightEntity.name,
+                          unique_name: level_unique_name,
                           label: rightEntity.name,
                           dataset: DbtTools.dsName(rightModelName),
                           key_columns: [DbtTools.makeStringValue(colName)],
@@ -322,11 +330,12 @@ export class DbtConverter {
                           ),
                           levels: [
                             {
-                              unique_name: rightEntity.name,
+                              unique_name: level_unique_name,
                               secondary_attributes: createOthers(
                                 rightSemanticModel.dimensions,
                                 DbtTools.dsName(rightModelName),
-                                rightEntity.name,
+                                level_unique_name,
+                                this.smlUniqueNameGenerator,
                               ),
                             },
                           ],
@@ -335,10 +344,10 @@ export class DbtConverter {
                     };
 
                     // addSecondaryAttributes(newDim, )
-                    result.addDimension(newDim);
+                    this.result.addDimension(newDim);
 
                     // Create fact relationship
-                    const model = result.models[0];
+                    const model = this.result.models[0];
                     const leftDatasetUniqueName = DbtTools.dsName(
                       DbtTools.refOnly(
                         DbtTools.makeStringValue(leftSemanticModel.model),
@@ -354,13 +363,13 @@ export class DbtConverter {
                             leftEntity.expr,
                             leftEntity.type,
                             leftDatasetUniqueName,
-                            result,
+                            this.result,
                           ),
                         ],
                       },
                       to: {
                         dimension: uniqueDimName,
-                        level: rightEntity.name,
+                        level: level_unique_name,
                       },
                     };
                     model.relationships.push(newRelationship);
@@ -374,7 +383,7 @@ export class DbtConverter {
     }
     // Gather attribute names for lookup
     const attrSet = new Set<string>();
-    result.dimensions.forEach((dim) => {
+    this.result.dimensions.forEach((dim) => {
       const leafLevel: SMLDimensionLevel =
         dim.hierarchies[0].levels[dim.hierarchies[0].levels.length - 1];
       attrSet.add(leafLevel.unique_name);
@@ -384,7 +393,7 @@ export class DbtConverter {
     });
 
     // Now add secondary attributes if they don't already exist
-    result.dimensions.forEach((dim) => {
+    this.result.dimensions.forEach((dim) => {
       for (const rightSemanticModel of dbtIndex.properties.semantic_models) {
         if (DbtTools.dimName(rightSemanticModel.model) === dim.unique_name) {
           const rightModelName = DbtTools.refOnly(
@@ -402,7 +411,7 @@ export class DbtConverter {
               );
             } else {
               leafLevel.secondary_attributes.push(
-                createSecondary(d, rightModelName),
+                createSecondary(d, rightModelName, this.smlUniqueNameGenerator),
               );
             }
           });
@@ -411,13 +420,10 @@ export class DbtConverter {
     });
   }
 
-  addSameTableRelationships(
-    dbtIndex: IDbtIndex,
-    result: SmlConvertResultBuilder,
-  ) {
+  addSameTableRelationships(dbtIndex: IDbtIndex) {
     // If the same dataset already exists as a fact dataset, create a relationship to it
-    const factDatasets = listFactDatasets(result, dbtIndex);
-    for (const dim of result.dimensions) {
+    const factDatasets = listFactDatasets(this.result, dbtIndex);
+    for (const dim of this.result.dimensions) {
       if (
         dim.level_attributes?.length > 0 &&
         dim.hierarchies?.length > 0 &&
@@ -443,7 +449,7 @@ export class DbtConverter {
               level: joinLevel.unique_name,
             },
           };
-          result.models[0].relationships.push(newRelationship);
+          this.result.models[0].relationships.push(newRelationship);
         }
       }
     }
@@ -465,6 +471,8 @@ export class DbtConverter {
     datasetName: string,
     folder: string,
   ): SMLDimension {
+    const level_unique_name =
+      this.smlUniqueNameGenerator.getNewUniqueNameForLevel(d.name);
     const degen: SMLDimension = {
       object_type: SMLObjectType.Dimension,
       unique_name: DbtTools.dimName(d.name),
@@ -473,7 +481,7 @@ export class DbtConverter {
       is_degenerate: true,
       level_attributes: [
         {
-          unique_name: d.name,
+          unique_name: level_unique_name,
           label: d.name,
           description: d.description,
           dataset: DbtTools.dsName(datasetName),
@@ -486,7 +494,7 @@ export class DbtConverter {
           unique_name: `${d.name}_Hierarchy`,
           label: `${d.name}_Hierarchy`,
           folder: DbtTools.noPreOrSuffix(folder),
-          levels: [{ unique_name: d.name }],
+          levels: [{ unique_name: level_unique_name }],
         },
       ],
     };
@@ -805,9 +813,12 @@ function columnFound(
 function createSecondary(
   d: DbtYamlDimension,
   ds: string,
+  smlUniqueNameGenerator: SmlUniqueNameGenerator,
 ): SMLDimensionSecondaryAttribute {
   const secondary: SMLDimensionSecondaryAttribute = {
-    unique_name: d.name,
+    unique_name: smlUniqueNameGenerator.getNewUniqueNameForSecondaryAttribute(
+      d.name,
+    ),
     label: d.name,
     dataset: ds,
     name_column: d.name,
@@ -1018,12 +1029,15 @@ function createOthers(
   dimensions: DbtYamlDimension[] | undefined,
   datasetName: string,
   levelName: string,
+  smlUniqueNameGenerator: SmlUniqueNameGenerator,
 ): SMLDimensionSecondaryAttribute[] | undefined {
   if (!dimensions) return undefined;
   const list: SMLDimensionSecondaryAttribute[] = [];
   // Create a secondary attribute for all but the level attribute
   dimensions
     .filter((d) => d.name.localeCompare(levelName) != 0)
-    .forEach((d) => list.push(createSecondary(d, datasetName)));
+    .forEach((d) =>
+      list.push(createSecondary(d, datasetName, smlUniqueNameGenerator)),
+    );
   return list;
 }
