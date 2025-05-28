@@ -313,7 +313,7 @@ export class DbtConverter {
                       level_attributes: [
                         {
                           unique_name: level_unique_name,
-                          label: rightEntity.name,
+                          label: level_unique_name,
                           dataset: DbtTools.dsName(rightModelName),
                           key_columns: [DbtTools.makeStringValue(colName)],
                           name_column: colName,
@@ -482,7 +482,7 @@ export class DbtConverter {
       level_attributes: [
         {
           unique_name: level_unique_name,
-          label: d.name,
+          label: level_unique_name,
           description: d.description,
           dataset: DbtTools.dsName(datasetName),
           name_column: DbtTools.hasStringValue(d.expr) ? d.expr : d.name,
@@ -815,11 +815,11 @@ function createSecondary(
   ds: string,
   smlUniqueNameGenerator: SmlUniqueNameGenerator,
 ): SMLDimensionSecondaryAttribute {
+  const unique_name =
+    smlUniqueNameGenerator.getNewUniqueNameForSecondaryAttribute(d.name);
   const secondary: SMLDimensionSecondaryAttribute = {
-    unique_name: smlUniqueNameGenerator.getNewUniqueNameForSecondaryAttribute(
-      d.name,
-    ),
-    label: d.name,
+    unique_name,
+    label: unique_name,
     dataset: ds,
     name_column: d.name,
     key_columns: [d.name],
