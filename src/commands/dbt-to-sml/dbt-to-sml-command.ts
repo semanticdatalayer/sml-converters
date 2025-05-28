@@ -9,8 +9,19 @@ import { SmlResultWriter } from "../../shared/sml-result-writer";
 import { fileSystemUtil } from "../../shared/file-system-util";
 import Guard from "../../shared/guard";
 import { SmlConverterResult } from "../../shared/sml-convert-result";
+import { enumUtil } from "../../shared/enum-util";
+import { IDbtConverterInput } from "./model";
 
-type ConvertInput = { sourcePath: string; outputPath: string };
+type ConvertInput = {
+  sourcePath: string;
+  outputPath: string;
+} & IDbtConverterInput;
+
+interface DbtToSmlFlags {
+  source: string;
+  output: string;
+  dbType: DWType; // This will be string but restricted to enum values
+}
 
 export class DbtToSmlCommand extends Command {
   static summary = "Converts DBT to SML";
@@ -30,6 +41,28 @@ export class DbtToSmlCommand extends Command {
       default: "./sml_output",
       aliases: ["o"],
     }),
+    dbType: Flags.string({
+      description: "Data Warehouse type",
+      required: false,
+      options: enumUtil.getAllValues(DWType, "string"),
+      default: DWType.Snowflake,
+    }),
+    database: Flags.string({
+      description: "Database name",
+      required: false,
+      default: "sample-db",
+    }),
+    schema: Flags.string({
+      description: "Schema name",
+      required: false,
+      default: "sample-schema",
+    }),
+    atscaleConnectionId: Flags.string({
+      description:
+        "Atscale connection id. The connection id fo the data warehouse in atscale",
+      required: false,
+      default: "con1",
+    }),
   };
 
   static examples = [
@@ -43,6 +76,11 @@ export class DbtToSmlCommand extends Command {
     await this.convert({
       sourcePath: flags.source,
       outputPath: flags.output,
+
+      atscaleConnectionId: flags.atscaleConnectionId,
+      database: flags.database,
+      dbType: flags.dbType as DWType,
+      schema: flags.schema,
     });
   }
 
@@ -51,8 +89,9 @@ export class DbtToSmlCommand extends Command {
     absoluteOutputPath: string;
   }> {
     const absoluteSourcePath = path.resolve(input.sourcePath);
-    const inputFolderExists =
-      await fileSystemUtil.folderExists(absoluteSourcePath);
+    const inputFolderExists = await fileSystemUtil.folderExists(
+      absoluteSourcePath,
+    );
     Guard.should(
       inputFolderExists,
       `The source folder (${absoluteSourcePath}) does not exists`,
@@ -62,8 +101,9 @@ export class DbtToSmlCommand extends Command {
     //clear out the folder if user confirms
     const absoluteOutputPath = path.resolve(input.outputPath);
 
-    const outputPathExists =
-      await fileSystemUtil.folderExists(absoluteOutputPath);
+    const outputPathExists = await fileSystemUtil.folderExists(
+      absoluteOutputPath,
+    );
 
     if (outputPathExists) {
       const outputSubItems = await fs.readdir(absoluteOutputPath);
@@ -82,25 +122,22 @@ export class DbtToSmlCommand extends Command {
   }
 
   protected async convert(input: ConvertInput) {
-    const { absoluteOutputPath, absoluteSourcePath } =
-      await this.parseInput(input);
+    const { absoluteOutputPath, absoluteSourcePath } = await this.parseInput(
+      input,
+    );
     const logger = CommandLogger.for(this);
 
     logger.info(`Reading dbt from ${absoluteSourcePath}`);
 
-    const dbtParsedIndex =
-      await DbtParser.create(logger).parseFolder(absoluteSourcePath);
+    const dbtParsedIndex = await DbtParser.create(logger).parseFolder(
+      absoluteSourcePath,
+    );
 
     logger.info(`Dbt files are parsed.`);
 
     const dbtConverter = new DbtConverter({ logger });
 
-    const smlResult = await dbtConverter.convert(dbtParsedIndex, {
-      atscaleConnectionId: "con1",
-      database: "sample-db",
-      dbType: DWType.Snowflake,
-      schema: "test-schema",
-    });
+    const smlResult = await dbtConverter.convert(dbtParsedIndex, input);
 
     logger.info(`SML objects are prepared`);
     await SmlResultWriter.create(logger).persist(absoluteOutputPath, smlResult);
