@@ -479,7 +479,10 @@ export class DbtCalculations {
       DbtTools.makeLower(referenceMeasure.calculation_method).includes("count")
     )
       dataType = "integer";
-    const newSql = `CASE WHEN ${dbtMetric.filter.replace(fullRef, dimExpr || colRef)} THEN ${dimExpr || referenceMeasure.unique_name} ELSE NULL END`;
+    const newSql = `CASE WHEN ${dbtMetric.filter.replace(
+      fullRef,
+      dimExpr || colRef,
+    )} THEN ${dimExpr || referenceMeasure.unique_name} ELSE NULL END`;
     const col: string = columnFromCalc(
       referencedDataset,
       colRef,

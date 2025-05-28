@@ -113,15 +113,16 @@ export class DbtConverter {
             `Skipping metric '${m.name}' because percentile metrics are not yet supported`,
           );
         } else {
-          this.result.addMeasures(this.convertMeasure(m, datasetName));
+          const newMetric = this.convertMeasure(m, datasetName);
+          this.result.addMeasures(newMetric);
           if (
             !this.result.models[0].metrics.find(
-              (m2) => m2.unique_name === m.name,
+              (m2) => m2.unique_name === newMetric.unique_name,
             )
           ) {
             this.result.models[0].metrics.push(
               DbtConverter.createReference(
-                m.name,
+                newMetric.unique_name,
                 DbtTools.initCap(DbtTools.noPreOrSuffix(datasetName)),
               ),
             );
@@ -368,7 +369,7 @@ export class DbtConverter {
                       },
                       to: {
                         dimension: uniqueDimName,
-                        level: rightEntity.name,
+                        level: level_unique_name,
                       },
                     };
                     model.relationships.push(newRelationship);
@@ -470,6 +471,8 @@ export class DbtConverter {
     datasetName: string,
     folder: string,
   ): SMLDimension {
+    const level_unique_name =
+      this.smlUniqueNameGenerator.getNewUniqueNameForLevel(d.name);
     const degen: SMLDimension = {
       object_type: SMLObjectType.Dimension,
       unique_name: DbtTools.dimName(d.name),
@@ -478,7 +481,7 @@ export class DbtConverter {
       is_degenerate: true,
       level_attributes: [
         {
-          unique_name: d.name,
+          unique_name: level_unique_name,
           label: d.name,
           description: d.description,
           dataset: DbtTools.dsName(datasetName),
@@ -491,7 +494,7 @@ export class DbtConverter {
           unique_name: `${d.name}_Hierarchy`,
           label: `${d.name}_Hierarchy`,
           folder: DbtTools.noPreOrSuffix(folder),
-          levels: [{ unique_name: d.name }],
+          levels: [{ unique_name: level_unique_name }],
         },
       ],
     };
