@@ -40,11 +40,20 @@ Converts DBT to SML
 
 ```
 USAGE
-  $ sml-converters dbt-to-sml [--source <value>] [--output <value>]
+  $ sml-converters dbt-to-sml [--source <value>] [--output <value>] [--dbType
+    bigquery|snowflake|postgresql|databricks|iris] [--database <value>] [--schema <value>] [--atscaleConnectionId
+    <value>] [--clean]
 
 FLAGS
-  --output=<value>  [default: ./sml_output] Output folder
-  --source=<value>  [default: ./] Source folder
+  --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in
+                                 AtScale.
+  --clean                        Clean the output folder contents without the .git folder
+  --database=<value>             [default: sample-db] Database name
+  --dbType=<option>              [default: snowflake] Data Warehouse type
+                                 <options: bigquery|snowflake|postgresql|databricks|iris>
+  --output=<value>               [default: ./sml_output] Output folder
+  --schema=<value>               [default: sample-schema] Schema name
+  --source=<value>               [default: ./] Source folder
 
 DESCRIPTION
   Converts DBT to SML
@@ -55,9 +64,13 @@ DESCRIPTION
 EXAMPLES
   $ sml-converters dbt-to-sml
 
+  $ sml-converters dbt-to-sml --clean
+
   $ sml-converters dbt-to-sml -source ./dbt-source-path -output ./sml-output-path
 
   $ sml-converters dbt-to-sml -s ./dbt-source-path -o ./sml-output-path
+
+  $ sml-converters dbt-to-sml -s ./dbt-source-path -o ./sml-output-path --clean
 ```
 
 ## `sml-converters help [COMMAND]`
