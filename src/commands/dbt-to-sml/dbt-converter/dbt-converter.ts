@@ -179,35 +179,42 @@ export class DbtConverter {
 
   addDegenerateDimensions(dbtIndex: IDbtIndex) {
     for (const semanticModel of dbtIndex.properties.semantic_models) {
-      if (semanticModel.dimensions && semanticModel.measures) {
-        // If only dimensions and no relationship to it, won't create
-        if (
-          !this.result.dimensions.find(
-            (dim) =>
-              dim.unique_name ===
-              `Dim ${DbtTools.refOnly(
-                DbtTools.makeStringValue(semanticModel.model),
-              )}`,
-          )
-        ) {
-          const datasetName = datasetFromSM(
-            semanticModel.model,
-            this.result,
-          ).unique_name;
-          for (const dim of semanticModel.dimensions) {
-            if (dim.type != "time") {
-              this.result.addDimension(
-                this.convertDegenerateDim(
-                  dim,
-                  datasetName,
-                  DbtTools.initCap(datasetName),
-                ),
-              );
-              if (!this.result.models[0].dimensions)
-                this.result.models[0].dimensions = [];
-              this.result.models[0].dimensions?.push(
-                DbtTools.dimName(dim.name),
-              );
+      // Check if dimension has already been created from sementic model
+      if (
+        !this.result.dimensions.find(
+          (dim) => dim.unique_name === DbtTools.dimName(semanticModel.name),
+        )
+      ) {
+        if (semanticModel.dimensions && semanticModel.measures) {
+          // If only dimensions and no relationship to it, won't create
+          if (
+            !this.result.dimensions.find(
+              (dim) =>
+                dim.unique_name ===
+                `Dim ${DbtTools.refOnly(
+                  DbtTools.makeStringValue(semanticModel.model),
+                )}`,
+            )
+          ) {
+            const datasetName = datasetFromSM(
+              semanticModel.model,
+              this.result,
+            ).unique_name;
+            for (const dim of semanticModel.dimensions) {
+              if (dim.type != "time") {
+                this.result.addDimension(
+                  this.convertDegenerateDim(
+                    dim,
+                    datasetName,
+                    DbtTools.initCap(datasetName),
+                  ),
+                );
+                if (!this.result.models[0].dimensions)
+                  this.result.models[0].dimensions = [];
+                this.result.models[0].dimensions?.push(
+                  DbtTools.dimName(dim.name),
+                );
+              }
             }
           }
         }
