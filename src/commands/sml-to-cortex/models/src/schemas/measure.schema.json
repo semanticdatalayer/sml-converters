@@ -1,0 +1,121 @@
+{
+  "$id": "https://www.atscale.com/ml/measure.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Measure",
+  "type": "object",
+  "required": ["unique_name", "object_type", "label", "dataset", "column", "calculation_method"],
+  "properties": {
+    "unique_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63
+    },
+    "object_type": {
+      "const": "metric"
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "dataset": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "column": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "calculation_method": {
+      "type": "string",
+      "enum": [
+        "sum",
+        "average",
+        "minimum",
+        "maximum",
+        "count distinct",
+        "sum distinct",
+        "estimated count distinct",
+        "count non-null",
+        "stddev_samp",
+        "stddev_pop",
+        "var_samp",
+        "var_pop",
+        "percentile"
+      ],
+      "errorMessage": "Type must be: sum, average, minimum, maximum, count distinct, sum distinct, estimated count distinct, count non-null, stddev_samp, stddev_pop, var_samp, var_pop or percentile"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "format": {
+      "type": "string",
+      "minLength": 1
+    },
+    "unrelated_dimensions_handling": {
+      "enum": ["error", "repeat", "empty"],
+      "errorMessage": "Type must be: 'error', 'repeat', 'empty'"
+    },
+    "semi_additive": {
+      "type": "object",
+      "required": ["position"],
+      "anyOf": [
+        {
+          "required": ["relationships"],
+          "errorMessage": "There should be at least one attribute in the semi-additive. Please define either 'relationships' or 'degenerate_dimensions'."
+        },
+        {
+          "required": ["degenerate_dimensions"],
+          "errorMessage": "There should be at least one attribute in the semi-additive. Please define either 'relationships' or 'degenerate_dimensions'."
+        }
+      ],
+      "properties": {
+        "position": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "type": ["array", "string"],
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        },
+        "degenerate_dimensions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "level": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          }
+        }
+      }
+    },
+    "compression": {
+      "type": "number"
+    },
+    "named_quantiles": {
+      "type": "string",
+      "minLength": 1
+    },
+    "is_hidden": {
+      "type": "boolean"
+    }
+  }
+}

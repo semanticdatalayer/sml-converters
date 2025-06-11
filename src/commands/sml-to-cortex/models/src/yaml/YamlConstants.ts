@@ -1,0 +1,1 @@
+export const ROLE_PLAY_DIMENSION_NAME_PLACEHOLDER = "{0}";

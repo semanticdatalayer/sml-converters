@@ -1,0 +1,21 @@
+{
+  "$id": "https://www.atscale.com/ml/modelSettings.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ModelSettings",
+  "type": "object",
+  "required": ["object_type"],
+  "properties": {
+    "object_type": {
+      "const": "model_settings"
+    },
+    "overrides": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": ["string", "boolean", "number"]
+        }
+      }
+    }
+  }
+}

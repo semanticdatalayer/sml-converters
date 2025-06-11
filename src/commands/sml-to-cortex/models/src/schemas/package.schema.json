@@ -1,0 +1,57 @@
+{
+    "$id": "https://www.atscale.com/ml/package.schema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "package",
+    "type": "object",
+    "required": [
+        "version",
+        "packages"
+    ],
+    "properties": {
+        "version": {
+            "type": "number"
+        },
+        "packages": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "url",
+                    "branch",
+                    "version"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z-_]*$",
+                        "minLength": 3,
+                        "maxLength": 128,
+                        "errorMessage": {
+                            "pattern": "should contains only a-z, A-Z, - or _ no spaces are allowed"
+                        }
+                    },
+                    "url": {
+                        "type": "string",
+                        "pattern": "^(https?):\\/\\/[^\\s/$.?#].[^\\s]*$",
+                        "maxLength": 2048,
+                        "errorMessage": {
+                            "pattern": "should be valid with protocol http or https"
+                        }
+                    },
+                    "version": {
+                        "type": "string",
+                        "pattern": "^commit:[a-fA-F0-9]{8,40}$",
+                        "errorMessage": {
+                            "pattern": "should start with 'commit:', followed by 8 to 40 characters that can only be letters (a-f, A-F) or digits (0-9)"
+                        }
+                    },
+                    "branch": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,44 @@
+{
+  "$id": "https://www.atscale.com/ml/connection.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Connection",
+  "type": "object",
+  "required": [
+    "object_type",
+    "unique_name",
+    "label",
+    "database",
+    "schema",
+    "as_connection"
+  ],
+  "properties": {
+    "object_type": {
+      "const": "connection"
+    },
+    "unique_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "database": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema": {
+      "type": "string",
+      "minLength": 1
+    },
+    "as_connection": {
+      "type": "string",
+      "minLength": 1
+    },
+    "override": {
+      "type": "boolean"
+    }
+  }
+}

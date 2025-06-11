@@ -1,0 +1,18 @@
+{
+  "$id": "https://www.atscale.com/ml/globalSettings.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GlobalSettings",
+  "type": "object",
+  "required": ["object_type"],
+  "properties": {
+    "object_type": {
+      "const": "global_settings"
+    },
+    "overrides": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "boolean", "number"]
+      }
+    }
+  }
+}
