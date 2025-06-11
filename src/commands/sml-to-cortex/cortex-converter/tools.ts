@@ -78,3 +78,10 @@ export function isFiltered(val: string): boolean {
 export function noQuotes(field: string): string {
   return field.toString().replace(/["']/g, "");
 }
+
+export const sortAlphabetically = <T>(
+  array: T[],
+  selector: (el: T) => string
+): T[] => {
+  return [...array].sort((a, b) => selector(a).localeCompare(selector(b)));
+};

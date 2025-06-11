@@ -1,13 +1,15 @@
 import { FileType } from "./FileType";
 import { ICompilationOutput } from "./IFileCompilationOutput";
 import { IOriginType, OriginType } from "./SourceType";
-import { IYamlObject } from "./yaml/IYamlObject";
+// import { IYamlObject } from "./yaml/IYamlObject";
+
+import { SMLObject } from "sml-sdk";
 
 export interface IFile extends IOriginType {
   relativePath: string;
   compilationOutput: Array<ICompilationOutput>;
   type: FileType;
-  data?: Partial<IYamlObject> | EnvFileData;
+  data?: Partial<SMLObject> | EnvFileData;
   rawContent?: string;
 }
 

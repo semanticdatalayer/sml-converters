@@ -1,6 +1,8 @@
 import { ICommonAttributeProps, IFormatting } from "./ISharedProps";
 import { YamlColumnDataType } from "./IYamlDataset";
-import { IYamlObject } from "./IYamlObject";
+// import { IYamlObject } from "./IYamlObject"; overriden
+
+import {SMLObject} from "sml-sdk";
 
 export enum AggregationMethod {
   Sum = "SUM",
@@ -84,7 +86,7 @@ export interface IYamlMeasureSemiAdditive {
   degenerate_dimensions?: Array<IYamlMeasureSemiAdditiveDegenerateDimension>;
 }
 
-export interface IYamlMeasure extends IYamlObject, ICommonAttributeProps, IFormatting {
+export interface IYamlMeasure extends SMLObject, ICommonAttributeProps, IFormatting {
   dataset: string;
   column: string;
   calculation_method: CalculationMethod;
@@ -94,7 +96,7 @@ export interface IYamlMeasure extends IYamlObject, ICommonAttributeProps, IForma
   named_quantiles?: string;
 }
 
-export interface IYamlMeasureCalculated extends IYamlObject, ICommonAttributeProps, IFormatting {
+export interface IYamlMeasureCalculated extends SMLObject, ICommonAttributeProps, IFormatting {
   expression: string;
   mdx_aggregate_function?: AggregationMethod;
 }

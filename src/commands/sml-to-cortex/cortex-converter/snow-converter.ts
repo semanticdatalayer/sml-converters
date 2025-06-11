@@ -1,29 +1,58 @@
-import { mkdir, writeFile } from "fs";
-import path from "path";
-import yaml from "js-yaml";
-import { ConvertResult } from "models/src/ConvertResult";
-import { IConverterResult } from "models/src/IConvertResult";
-import { ILogger } from "models/src/ILogger";
-import { IYamlFile } from "models/src/IYamlFile";
-import { IYamlCatalog } from "models/src/yaml/IYamlCatalog";
-import { IYamlCompositeModel } from "models/src/yaml/IYamlCompositeModel";
-import { IYamlConnection } from "models/src/yaml/IYamlConnection";
-import { IYamlDataset, YamlColumnDataType } from "models/src/yaml/IYamlDataset";
+import { Logger } from "../../../shared/logger";
+
 import {
-  IYamlDimension,
-  IYamlDimensionLevel,
-  IYamlDimensionLevelAttribute,
-  IYamlDimensionMetric,
-  IYamlDimensionSecondaryAttribute,
-  IYamlEmbeddedRelationship,
-  IYamlLevelAliasAttribute,
-} from "models/src/yaml/IYamlDimension";
-import { CalculationMethod, IYamlMeasure, IYamlMeasureCalculated } from "models/src/yaml/IYamlMeasure";
-import { IYamlModel, IYamlModelRelationship } from "models/src/yaml/IYamlModel";
-import { IReferenceableYamlObject } from "models/src/yaml/IYamlObject";
-import { IYamlRowSecurity } from "models/src/yaml/IYamlRowSecurity";
-import { IRepoValidatorResult } from "validator/src/RepoValidator/IRepoValidator";
-import { sortAlphabetically } from "web/lib/array-util";
+  SmlConverterResult,
+  SmlConvertResultBuilder,
+} from "../../../shared/sml-convert-result";
+
+import { 
+  SMLReferenceableObjectWithLabel,
+  SMLModel,
+  SMLModelRelationship,
+  SMLCompositeModel,
+  SMLCatalog,
+  SMLConnection,
+  SMLDataset,
+  SMLColumnDataType,
+  SMLDimension,
+  SMLDimensionLevel,
+  SMLDimensionLevelAttribute,
+  SMLDimensionMetric,
+  SMLDimensionSecondaryAttribute,
+  SMLEmbeddedRelationship,
+  SMLLevelAliasAttribute,
+  SMLCalculationMethod,
+  SMLMetric,
+  SMLMetricCalculated,
+  SMLRowSecurity
+ } from "sml-sdk";
+
+import { mkdir, writeFile } from "fs";
+// import path from "path";
+import yaml from "js-yaml";
+// import { ConvertResult } from "../models/src/ConvertResult";  overriden
+// import { IConverterResult } from "models/src/IConvertResult"; overriden
+// import { ILogger } from "models/src/ILogger"; overriden
+import { IYamlFile } from "../models/src/IYamlFile";  //TODO WILL BE RENAMED
+// import { IYamlCatalog } from "../models/src/yaml/IYamlCatalog"; overriden
+// import { IYamlCompositeModel } from "../models/src/yaml/IYamlCompositeModel"; overriden
+// import { IYamlConnection } from "../models/src/yaml/IYamlConnection";
+// import { IYamlDataset, YamlColumnDataType } from "../models/src/yaml/IYamlDataset"; overriden
+// import {
+//   IYamlDimension,
+//   IYamlDimensionLevel,
+//   IYamlDimensionLevelAttribute,
+//   IYamlDimensionMetric,
+//   IYamlDimensionSecondaryAttribute,
+//   IYamlEmbeddedRelationship,
+//   IYamlLevelAliasAttribute,
+// } from "../models/src/yaml/IYamlDimension";  overriden
+// import { CalculationMethod, IYamlMeasure, IYamlMeasureCalculated } from "../models/src/yaml/IYamlMeasure"; overriden
+// import { IYamlModel, IYamlModelRelationship } from "../models/src/yaml/IYamlModel"; ovdeerriden
+// import { IReferenceableYamlObject } from "../models/src/yaml/IYamlObject"; overriden
+// import { IYamlRowSecurity } from "../models/src/yaml/IYamlRowSecurity"; overriden
+import { IRepoValidatorResult } from "../validator/src/RepoValidator/IRepoValidator";
+import { sortAlphabetically } from "./tools"; // all good
 
 import { ISnowDimension, ISnowMeasure, ISnowModel, ISnowTable, ISnowTimeDimension } from "./snow-model";
 
@@ -34,9 +63,9 @@ const DEBUG = true;
 const MAP_MEASURES_TO_DIMS = true;
 
 export async function Convert(
-  smlObjects: IConverterResult,
-  modelToConvert: IYamlModel,
-  logger: ILogger,
+  smlObjects: SmlConverterResult,
+  modelToConvert: SMLModel,
+  logger: Logger,
   doMapDatasetsToDims: boolean
 ): Promise<ISnowModel> {
   // The deployed catalog has the branch appended. If the branch is main the deployed will be like: sml-tpcds_main
@@ -48,7 +77,7 @@ export async function Convert(
 
   const asCatalog = smlObjects.catalog.unique_name;
   const rolePlays = new Set<string>();
-  const models: Array<IYamlModel> = listUsedModels(smlModel, smlObjects);
+  const models: Array<SMLModel> = listUsedModels(smlModel, smlObjects);
   const modelObjects = filterSMLForModel(smlObjects, models, rolePlays);
 
   let mapDatasetsToDims = new Map<string, Set<string>>();
@@ -78,15 +107,15 @@ export async function Convert(
   return snowModel;
 }
 
-function listTimeColumns(smlObjects: IConverterResult): Set<string> {
+function listTimeColumns(smlObjects: SmlConverterResult): Set<string> {
   const cols = new Set<string>();
   smlObjects.datasets.forEach((dataset) =>
     dataset.columns.forEach((column) => {
       if (
         "data_type" in column &&
-        (column.data_type === YamlColumnDataType.DateTime ||
-          column.data_type === YamlColumnDataType.TimeStamp ||
-          column.data_type === YamlColumnDataType.Date)
+        (column.data_type === SMLColumnDataType.DateTime ||
+          column.data_type === SMLColumnDataType.TimeStamp ||
+          column.data_type === SMLColumnDataType.Date)
       ) {
         cols.add(dataset.unique_name + "." + column.name);
       }
@@ -95,21 +124,21 @@ function listTimeColumns(smlObjects: IConverterResult): Set<string> {
   return cols;
 }
 
-function listNumericColumns(smlObjects: IConverterResult): Set<string> {
+function listNumericColumns(smlObjects: SmlConverterResult): Set<string> {
   const cols = new Set<string>();
   smlObjects.datasets.forEach((dataset) =>
     dataset.columns.forEach((column) => {
       if (
         "data_type" in column &&
-        (column.data_type === YamlColumnDataType.BigInt ||
-          column.data_type === YamlColumnDataType.Int ||
-          column.data_type === YamlColumnDataType.Decimal ||
-          column.data_type === YamlColumnDataType.Double ||
-          column.data_type === YamlColumnDataType.Float ||
-          column.data_type === YamlColumnDataType.Long ||
-          column.data_type === YamlColumnDataType.Number ||
-          column.data_type === YamlColumnDataType.Numeric ||
-          column.data_type === YamlColumnDataType.TinyInt)
+        (column.data_type === SMLColumnDataType.BigInt ||
+          column.data_type === SMLColumnDataType.Int ||
+          column.data_type === SMLColumnDataType.Decimal ||
+          column.data_type === SMLColumnDataType.Double ||
+          column.data_type === SMLColumnDataType.Float ||
+          column.data_type === SMLColumnDataType.Long ||
+          column.data_type === SMLColumnDataType.Number ||
+          column.data_type === SMLColumnDataType.Numeric ||
+          column.data_type === SMLColumnDataType.TinyInt)
       ) {
         cols.add(dataset.unique_name + "." + column.name);
       }
@@ -122,11 +151,11 @@ function listNumericColumns(smlObjects: IConverterResult): Set<string> {
 // Role-play requires using the prefix in identifying relationships as well as potentially including
 // multiple instances per attribute with the prefix applied
 function filterSMLForModel(
-  smlObjects: IConverterResult,
-  models: Array<IYamlModel>,
+  smlObjects: SmlConverterResult,
+  models: Array<SMLModel>,
   rolePlays: Set<string>
-): IConverterResult {
-  let result = new ConvertResult();
+): SmlConverterResult {
+  let result = new SmlConvertResultBuilder();
   models.forEach((smlModel) => {
     smlObjects.measures.forEach((smlObject) => {
       if (
@@ -185,7 +214,7 @@ function filterSMLForModel(
   return result;
 }
 
-function createMapDatasetsToDims(smlObjects: IConverterResult, models: Array<IYamlModel>): Map<string, Set<string>> {
+function createMapDatasetsToDims(smlObjects: SmlConverterResult, models: Array<SMLModel>): Map<string, Set<string>> {
   const mapResult = new Map<string, Set<string>>();
   const usedDatasets = new Set<string>();
   const rolePlays = new Set<string>();
@@ -226,7 +255,7 @@ function addToMapWithSet(map: Map<string, Set<string>>, key: string, value: stri
   map.set(key, temp);
 }
 
-function fmtDimRef(relationship: IYamlModelRelationship | IYamlEmbeddedRelationship, roleplay: string): string {
+function fmtDimRef(relationship: SMLModelRelationship | SMLEmbeddedRelationship, roleplay: string): string {
   if ("dimension" in relationship.to) {
     if ("role_play" in relationship && relationship.role_play) {
       if (roleplay) {
@@ -248,8 +277,8 @@ function dimNameOnly(reference: string): string {
 }
 
 function addDimRels(
-  smlObjects: IConverterResult,
-  dim: IYamlDimension | undefined,
+  smlObjects: SmlConverterResult,
+  dim: SMLDimension | undefined,
   dimList: Set<string>,
   roleplay: string
 ) {
@@ -270,11 +299,11 @@ function addDimRels(
 }
 
 function mapToSnowMeasure(
-  metric: IYamlMeasure | IYamlMeasureCalculated | IYamlDimensionMetric,
+  metric: SMLMetric | SMLMetricCalculated | SMLDimensionMetric,
   mapDatasetsToDims: Map<string, Set<string>>,
   unsupported_aggregation: Array<string>,
   attrUniqueNames: Set<string>,
-  logger: ILogger
+  logger: Logger
 ): ISnowMeasure {
   const updatedUniqueName = ensureUnique(namingRules(metric.unique_name), attrUniqueNames, logger);
   const newMeas: ISnowMeasure = {
@@ -301,13 +330,13 @@ function mapToSnowMeasure(
 }
 
 function addSnowDimsFromSmlDim(
-  dim: IYamlDimension,
+  dim: SMLDimension,
   dimsAndColsToPass: PassDimsAndCols,
   snowMeasures: ISnowMeasure[],
   rolePlays: Set<string>,
   mapDatasetsToDims: Map<string, Set<string>>,
   attrUniqueNames: Set<string>,
-  logger: ILogger
+  logger: Logger
 ) {
   const msgs = new Array<string>();
 
@@ -367,12 +396,12 @@ function addSnowDimsFromSmlDim(
 }
 
 function addIfNotHidden(
-  dimAttr: IYamlDimensionLevelAttribute | IYamlDimensionSecondaryAttribute,
+  dimAttr: SMLDimensionLevelAttribute | SMLDimensionSecondaryAttribute,
   dimsAndColsToPass: PassDimsAndCols,
   role: string,
   msgs: Array<string>,
   attrUniqueNames: Set<string>,
-  logger: ILogger
+  logger: Logger
 ) {
   if (role === "") role = "{0}";
   if (!dimAttr.is_hidden) {
@@ -388,16 +417,16 @@ function addIfNotHidden(
   }
 }
 
-function fmtForMsg(obj: IReferenceableYamlObject): string {
+function fmtForMsg(obj: SMLReferenceableObjectWithLabel): string {
   return obj.label == obj.unique_name ? `${obj.label}` : `${obj.label} (${obj.unique_name})`;
 }
 
 function mapToSnowDim(
-  attribute: IYamlDimensionLevelAttribute | IYamlDimensionSecondaryAttribute | IYamlLevelAliasAttribute,
+  attribute: SMLDimensionLevelAttribute | SMLDimensionSecondaryAttribute | SMLLevelAliasAttribute,
   roleplay: string,
   numericColumns: Set<string>,
   attrUniqueNames: Set<string>,
-  logger: ILogger
+  logger: Logger
 ): ISnowDimension {
   const updatedUniqueName = ensureUnique(
     namingRules(roleplay.replace("{0}", attribute.unique_name)),
@@ -416,10 +445,10 @@ function mapToSnowDim(
 }
 
 function mapToSnowTimeDim(
-  attribute: IYamlDimensionLevelAttribute | IYamlDimensionSecondaryAttribute | IYamlLevelAliasAttribute,
+  attribute: SMLDimensionLevelAttribute | SMLDimensionSecondaryAttribute | SMLLevelAliasAttribute,
   role: string,
   attrUniqueNames: Set<string>,
-  logger: ILogger
+  logger: Logger
 ): ISnowTimeDimension {
   const updatedUniqueName = ensureUnique(
     namingRules(role.replace("{0}", attribute.unique_name)),
@@ -436,7 +465,7 @@ function mapToSnowTimeDim(
   } as ISnowTimeDimension;
 }
 
-function processValidation(validationResult: IRepoValidatorResult, logger: ILogger): string {
+function processValidation(validationResult: IRepoValidatorResult, logger: Logger): string {
   let msgs = "";
   let warns = "";
   validationResult.filesOutput.forEach((validationMsg) =>
@@ -460,37 +489,37 @@ function processValidation(validationResult: IRepoValidatorResult, logger: ILogg
   return msgs;
 }
 
-export function makeResultFromFileList(smlFiles: Array<IYamlFile>, logger: ILogger): IConverterResult {
-  const result = new ConvertResult();
+export function makeResultFromFileList(smlFiles: Array<IYamlFile>, logger: Logger): SmlConverterResult {
+  const result = new SmlConvertResultBuilder;
   smlFiles.forEach((smlFile) => {
     switch (smlFile.type) {
       case "catalog":
-        result.catalog = smlFile.data as IYamlCatalog;
+        result.catalog = smlFile.data as SMLCatalog;
         break;
       case "model":
-        result.addModel(smlFile.data as IYamlModel);
+        result.addModel(smlFile.data as SMLModel);
         break;
       case "dataset":
-        result.addDatasets(smlFile.data as IYamlDataset);
+        result.addDatasets(smlFile.data as SMLDataset);
         break;
       case "dimension":
-        result.addDimension(smlFile.data as IYamlDimension);
+        result.addDimension(smlFile.data as SMLDimension);
         break;
       case "metric":
-        result.addMeasures(smlFile.data as IYamlMeasure);
+        result.addMeasures(smlFile.data as SMLMetric);
         break;
       case "metric_calc":
-        result.addMeasuresCalc(smlFile.data as IYamlMeasureCalculated);
+        result.addMeasuresCalc(smlFile.data as SMLMetricCalculated);
         break;
       case "connection":
-        result.addConnection(smlFile.data as IYamlConnection);
+        result.addConnection(smlFile.data as SMLConnection);
         break;
-      case "row_security":
-        result.addRowSecurity(smlFile.data as IYamlRowSecurity);
-        break;
-      case "composite_model":
-        result.addCompositeModel(smlFile.data as IYamlCompositeModel);
-        break;
+      // case "row_security":   //TODO sml-convert-result.ts does not have row_security or composite_model
+      //   result.addRowSecurity(smlFile.data as SMLRowSecurity);
+      //   break;
+      // case "composite_model":
+      //   result.addCompositeModel(smlFile.data as SMLCompositeModel);
+      //   break;
       default:
         logger.warn(`Object type of ${smlFile.type} not recognized so object will be skipped`);
         break;
@@ -499,7 +528,7 @@ export function makeResultFromFileList(smlFiles: Array<IYamlFile>, logger: ILogg
   return result;
 }
 
-// export function makeFileListFromResult(smlResult: IConverterResult, logger: ILogger): IYamlParsedFile<IYamlObject>[] {
+// export function makeFileListFromResult(smlResult: IConverterResult, logger: Logger): IYamlParsedFile<IYamlObject>[] {
 //   // const filesOutput = new Array<IYamlParsedFile<IYamlObject>>;
 //   const yamlParsedFiles: IYamlParsedFile<IYamlObject>[] = [smlResult.catalog, smlResult.models[0]];
 
@@ -543,7 +572,7 @@ export function makeResultFromFileList(smlFiles: Array<IYamlFile>, logger: ILogg
 //   return result;
 // }
 
-export function writeYamlToFile(snowModel: ISnowModel, exportFile: string, logger: ILogger) {
+export function writeYamlToFile(snowModel: ISnowModel, exportFile: string, logger: Logger) {
   // The expr property needs to be formatted with both single and double quotes but the marshaller
   // wraps it in 2 single quotes. This replaceAll corrects that
   const yamlString = yaml.dump(snowModel).replaceAll("'''", "'");
@@ -561,8 +590,8 @@ export function writeYamlToFile(snowModel: ISnowModel, exportFile: string, logge
   }
 }
 
-function listUsedModels(smlModel: IYamlModel | IYamlCompositeModel, smlObjects: IConverterResult): Array<IYamlModel> {
-  const models = new Array<IYamlModel>(); // To support composite models
+function listUsedModels(smlModel: SMLModel | SMLCompositeModel, smlObjects: SmlConverterResult): Array<SMLModel> {
+  const models = new Array<SMLModel>(); // To support composite models
   if ("models" in smlModel) {
     smlModel.models.forEach((model) => {
       const foundModel = smlObjects.models.find((findModel) => findModel.unique_name === model);
@@ -574,7 +603,7 @@ function listUsedModels(smlModel: IYamlModel | IYamlCompositeModel, smlObjects: 
   return models;
 }
 
-function listAttributesInDim(smlObjects: IConverterResult, rolePlay: string): string[] {
+function listAttributesInDim(smlObjects: SmlConverterResult, rolePlay: string): string[] {
   const attributes: string[] = [];
   const rpAry = rolePlay.split("|");
   let roleplay = "";
@@ -604,28 +633,29 @@ function listAttributesInDim(smlObjects: IConverterResult, rolePlay: string): st
   return attributes;
 }
 
-type modelType = IYamlModel | IYamlCompositeModel | undefined;
+type modelType = SMLModel | SMLCompositeModel | undefined;
 
-function createSMLModel(smlObjects: IConverterResult, modelToConvert: string, logger: ILogger): modelType {
+function createSMLModel(smlObjects: SmlConverterResult, modelToConvert: string, logger: Logger): modelType {
   let smlModel: modelType = smlObjects.models.find((model) => model.unique_name === modelToConvert);
-  if (!smlModel) {
-    smlModel = smlObjects.compositeModels.find((compositeModel) => compositeModel.unique_name == modelToConvert);
-    if (!smlModel) {
-      smlModel = getDefaultModel(smlObjects, modelToConvert, DEBUG, logger);
-    }
-  }
+  //TODO sml-convert-result.ts does not have compositeModels, see if I need to update it
+  // if (!smlModel) {
+  //   smlModel = smlObjects.compositeModels.find((compositeModel) => compositeModel.unique_name == modelToConvert);
+  //   if (!smlModel) {
+  //     smlModel = getDefaultModel(smlObjects, modelToConvert, DEBUG, logger);
+  //   }
+  // }
   if (!smlModel) {
     throw new Error(`No model with unique_name '${modelToConvert}' found in catalog`);
   }
   return smlModel;
 }
 
-function dimFromName(smlObjects: IConverterResult, dimRef: string): IYamlDimension | undefined {
+function dimFromName(smlObjects: SmlConverterResult, dimRef: string): SMLDimension | undefined {
   return smlObjects.dimensions.find((dim) => dim.unique_name === dimNameOnly(dimRef));
 }
 
 // Adds all the referenced dimensions (separately for role-played) to the new result
-function addReferencedDims(smlObjects: IConverterResult, rolePlays: Set<string>) {
+function addReferencedDims(smlObjects: SmlConverterResult, rolePlays: Set<string>) {
   smlObjects.dimensions.forEach((dim) => {
     if (Array.from(rolePlays).find((roleplay) => dimNameOnly(roleplay) === dim.unique_name)) {
       rolePlays.forEach((ref) => {
@@ -647,13 +677,13 @@ interface PassDimsAndCols {
 }
 
 function addDimensions(
-  smlObjects: IConverterResult,
-  modelObjects: IConverterResult,
+  smlObjects: SmlConverterResult,
+  modelObjects: SmlConverterResult,
   newTable: ISnowTable,
   rolePlays: Set<string>,
   mapDatasetsToDims: Map<string, Set<string>>,
   attrUniqueNames: Set<string>,
-  logger: ILogger
+  logger: Logger
 ) {
   const dimsAndColsToPass: PassDimsAndCols = {
     timeColumns: listTimeColumns(smlObjects),
@@ -677,8 +707,8 @@ function addDimensions(
   if (dimsAndColsToPass.snowTimeDims.length > 0) newTable.time_dimensions = dimsAndColsToPass.snowTimeDims;
 }
 
-function allLevels(dim: IYamlDimension): IYamlDimensionLevel[] {
-  const levels: IYamlDimensionLevel[] = [];
+function allLevels(dim: SMLDimension): SMLDimensionLevel[] {
+  const levels: SMLDimensionLevel[] = [];
   dim.hierarchies.forEach((hier) => {
     hier.levels.forEach((level) => levels.push(level));
   });
@@ -686,12 +716,12 @@ function allLevels(dim: IYamlDimension): IYamlDimensionLevel[] {
 }
 
 function getDefaultModel(
-  smlObjects: IConverterResult,
+  smlObjects: SmlConverterResult,
   modelToConvert: string,
   DEBUG: boolean,
-  logger: ILogger
+  logger: Logger
 ): modelType {
-  let smlModel: IYamlModel;
+  let smlModel: SMLModel;
   if (DEBUG) {
     smlModel = smlObjects.models[0];
     if (logger && modelToConvert) {
@@ -715,11 +745,11 @@ function getDefaultModel(
 }
 
 function addCalculations(
-  modelObjects: IConverterResult,
+  modelObjects: SmlConverterResult,
   newTable: ISnowTable,
   mapDatasetsToDims: Map<string, Set<string>>,
   attrUniqueNames: Set<string>,
-  logger: ILogger
+  logger: Logger
 ) {
   const calcMsgs = new Array<string>();
   modelObjects.measuresCalculated.forEach((calc) => {
@@ -740,11 +770,11 @@ function addCalculations(
 }
 
 function addMeasures(
-  modelObjects: IConverterResult,
+  modelObjects: SmlConverterResult,
   newTable: ISnowTable,
   mapDatasetsToDims: Map<string, Set<string>>,
   attrUniqueNames: Set<string>,
-  logger: ILogger
+  logger: Logger
 ) {
   const measMsgs = new Array<string>();
   let unsupported_aggregation = new Array<string>();
@@ -773,7 +803,7 @@ function addMeasures(
   }
 }
 
-function toCortexAggregation(smlCalcMethod: CalculationMethod): string {
+function toCortexAggregation(smlCalcMethod: SMLCalculationMethod): string {
   switch (smlCalcMethod) {
     case "sum":
       return smlCalcMethod;
@@ -809,7 +839,7 @@ function namingRules(str: string) {
   return str;
 }
 
-function ensureUnique(input: string, attrUniqueNames: Set<string>, logger: ILogger): string {
+function ensureUnique(input: string, attrUniqueNames: Set<string>, logger: Logger): string {
   if (!attrUniqueNames.has(input)) {
     attrUniqueNames.add(input);
     return input;

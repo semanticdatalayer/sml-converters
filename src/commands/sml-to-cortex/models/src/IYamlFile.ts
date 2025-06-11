@@ -1,12 +1,13 @@
 import { IFile } from "./IFile";
-import { IYamlObject } from "./yaml/IYamlObject";
+// import { IYamlObject } from "./yaml/IYamlObject";
+import { SMLObject } from "sml-sdk";
 
-export interface IYamlFile<T extends IYamlObject = IYamlObject> extends IFile {
+export interface IYamlFile<T extends SMLObject = SMLObject> extends IFile {
   data: T;
   rawContent: string;
 }
 
-export interface IYamlPartialFile<T extends Partial<IYamlObject> = Partial<IYamlObject>> extends IFile {
+export interface IYamlPartialFile<T extends Partial<SMLObject> = Partial<SMLObject>> extends IFile {
   data: T;
   rawContent: string;
 }
