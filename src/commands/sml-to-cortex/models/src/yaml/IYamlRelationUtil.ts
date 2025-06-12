@@ -1,11 +1,21 @@
 import YamlDimensionTypeGuard from "./guards/YamlDimensionTypeGuard";
+
 import {
-  IYamlDimensionRelationship,
-  IYamlEmbeddedRelationship,
-  IYamlSecurityRelationship,
-  YamlDimensionRelationType,
-} from "./IYamlDimension";
-import { IYamlModelRelationship, IYamlModelSecurityRelationship } from "./IYamlModel";
+  SMLDimensionRelationship,
+  SMLEmbeddedRelationship,
+  SMLSecurityRelationship,
+  SMLDimensionRelationType,
+  SMLModelRelationship,
+  SMLModelSecurityRelationship
+}from "sml-sdk"
+
+// import {
+//   IYamlDimensionRelationship,
+//   IYamlEmbeddedRelationship,
+//   IYamlSecurityRelationship,
+//   YamlDimensionRelationType,
+// } from "./IYamlDimension";
+// import { IYamlModelRelationship, IYamlModelSecurityRelationship } from "./IYamlModel";
 
 const emptyFrom = {
   dataset: "",
@@ -16,19 +26,19 @@ const emptyTo = {
   level: "",
 };
 
-const emptyRelation: IYamlModelRelationship = {
+const emptyRelation: SMLModelRelationship = {
   from: { ...emptyFrom },
   to: { ...emptyTo },
   unique_name: "",
 };
 
-const getEmptyRelation = (): IYamlModelRelationship => {
+const getEmptyRelation = (): SMLModelRelationship => {
   return { ...emptyRelation, to: { ...emptyRelation.to }, from: { ...emptyRelation.from } };
 };
 const compareArrays = (a: string[], b: string[]) =>
   a.length === b.length && a.every((element, index) => element === b[index]);
 
-export const buildEmptyRelationWithDataset = (datasetUniqueName: string): IYamlModelRelationship => {
+export const buildEmptyRelationWithDataset = (datasetUniqueName: string): SMLModelRelationship => {
   const result = Object.assign(getEmptyRelation(), {
     from: { ...emptyFrom, dataset: datasetUniqueName },
   });
@@ -36,13 +46,13 @@ export const buildEmptyRelationWithDataset = (datasetUniqueName: string): IYamlM
   return result;
 };
 
-export const buildEmptyRelationWithRowSecurity = (rowSecurityUniqueName: string): IYamlModelSecurityRelationship => {
-  const result: IYamlModelSecurityRelationship = { ...emptyRelation, to: { row_security: rowSecurityUniqueName } };
+export const buildEmptyRelationWithRowSecurity = (rowSecurityUniqueName: string): SMLModelSecurityRelationship => {
+  const result: SMLModelSecurityRelationship = { ...emptyRelation, to: { row_security: rowSecurityUniqueName } };
 
   return result;
 };
 
-export const buildEmptyRelationWithDimension = (dimensionUniqueName: string): IYamlModelRelationship => {
+export const buildEmptyRelationWithDimension = (dimensionUniqueName: string): SMLModelRelationship => {
   const result = Object.assign(getEmptyRelation(), {
     to: { ...emptyTo, dimension: dimensionUniqueName },
   });
@@ -50,8 +60,8 @@ export const buildEmptyRelationWithDimension = (dimensionUniqueName: string): IY
   return result;
 };
 
-export const buildEmptyEmbeddedRelationWithDimension = (dimensionUniqueName: string): IYamlEmbeddedRelationship => {
-  const result: IYamlEmbeddedRelationship = {
+export const buildEmptyEmbeddedRelationWithDimension = (dimensionUniqueName: string): SMLEmbeddedRelationship => {
+  const result: SMLEmbeddedRelationship = {
     unique_name: "",
     to: { ...emptyTo, dimension: dimensionUniqueName },
     from: {
@@ -60,14 +70,14 @@ export const buildEmptyEmbeddedRelationWithDimension = (dimensionUniqueName: str
       hierarchy: "",
       level: "",
     },
-    type: YamlDimensionRelationType.Embedded,
+    type: SMLDimensionRelationType.Embedded,
   };
 
   return result;
 };
 
-export const buildEmptyRowSecurityDimensionRelation = (rowSecurityUniqueName: string): IYamlSecurityRelationship => {
-  const result: IYamlSecurityRelationship = {
+export const buildEmptyRowSecurityDimensionRelation = (rowSecurityUniqueName: string): SMLSecurityRelationship => {
+  const result: SMLSecurityRelationship = {
     from: {
       dataset: "",
       join_columns: [],
@@ -75,18 +85,18 @@ export const buildEmptyRowSecurityDimensionRelation = (rowSecurityUniqueName: st
       level: "",
     },
     to: { row_security: rowSecurityUniqueName },
-    type: YamlDimensionRelationType.Embedded,
+    type: SMLDimensionRelationType.Embedded,
     unique_name: "",
   };
 
   return result;
 };
 
-export const hasRelationEmptyTo = (relation: IYamlModelRelationship | IYamlDimensionRelationship): boolean => {
+export const hasRelationEmptyTo = (relation: SMLModelRelationship | SMLDimensionRelationship): boolean => {
   // TODO: https://atscale.atlassian.net/browse/ATSCALE-18074
   if (YamlDimensionTypeGuard.isRegularRelation(relation)) {
     return (
-      relation.type !== YamlDimensionRelationType.Snowflake &&
+      relation.type !== SMLDimensionRelationType.Snowflake &&
       relation.to.dimension === emptyTo.dimension &&
       relation.to.level == emptyTo.level
     );
@@ -99,7 +109,7 @@ export const hasRelationEmptyTo = (relation: IYamlModelRelationship | IYamlDimen
   return false;
 };
 
-export const hasRelationEmptyFrom = (relation: IYamlModelRelationship | IYamlDimensionRelationship): boolean => {
+export const hasRelationEmptyFrom = (relation: SMLModelRelationship | SMLDimensionRelationship): boolean => {
   return (
     relation.from.dataset === emptyFrom.dataset && compareArrays(relation.from.join_columns, emptyFrom.join_columns)
   );

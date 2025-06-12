@@ -1,5 +1,5 @@
-import { ILogger } from "models/src/ILogger";
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { Logger } from "../../../../../shared/logger";
+import { AnyObjectBuilder } from "../../../utils/builders/AnyObjectBuilder";
 
 export default class LoggerServiceBuilder extends AnyObjectBuilder<ILogger> {
   static create() {

@@ -1,10 +1,12 @@
 import {
   SMLObject,
-  SMLMetricCalculated,
   SMLCalculationMethod,
-  SMLCatalog,
   SMLObjectType,
-  SMLColumnDataType
+  SMLColumnDataType,
+  SMLDimensionType,
+  SMLDimensionRelationType,
+  SMLDimensionTimeUnit,
+  SMLHierarchyEmptyField,
 } from 'sml-sdk'
 
 import YamlCalculatedMeasureBuilder from "../models/src/builders/YamlObjectBuilders/YamlCalculatedMeasureBuilder";
@@ -18,13 +20,13 @@ import YamlModelRelationBuilder from "../models/src/builders/YamlObjectBuilders/
 import IYamlParsedFile from "../models/src/IYamlParsedFile";
 // import { ObjectType } from "../models/src/ObjectType";
 // import { YamlColumnDataType } from "../models/src/yaml/IYamlDataset";
-import {
-  IYamlDimensionType,
-  YamlDimensionRelationType,
-  YamlDimensionTimeUnit,
-  YamlHierarchyEmptyField,
-} from "../models/src/yaml/IYamlDimension";
-import { CalculationMethod } from "../models/src/yaml/IYamlMeasure";
+// import {
+//   IYamlDimensionType,
+//   YamlDimensionRelationType,
+//   YamlDimensionTimeUnit,
+//   YamlHierarchyEmptyField,
+// } from "../models/src/yaml/IYamlDimension";
+// import { CalculationMethod } from "../models/src/yaml/IYamlMeasure";
 // import { IYamlObject } from "../../../models/src/yaml/IYamlObject";
 
 import { testConstants } from "./tools";
@@ -108,7 +110,7 @@ export default class StaticModelFiles {
       .with({
         label: "Date Dimension",
         description: "Date Dimension for ISO8601 calendar with 2 hierarchies",
-        type: IYamlDimensionType.Time,
+        type: SMLDimensionType.Time,
       })
       .addLevelAttribute({
         unique_name: "YearMonth",
@@ -117,7 +119,7 @@ export default class StaticModelFiles {
         dataset: "dim_time_dataset",
         name_column: "year_name",
         key_columns: ["year"],
-        time_unit: YamlDimensionTimeUnit.Year,
+        time_unit: SMLDimensionTimeUnit.Year,
       })
       .addLevelAttribute({
         unique_name: "Quarter",
@@ -126,7 +128,7 @@ export default class StaticModelFiles {
         name_column: "quarter_name",
         key_columns: ["quarter"],
         sort_column: "quarter",
-        time_unit: YamlDimensionTimeUnit.Quarter,
+        time_unit: SMLDimensionTimeUnit.Quarter,
       })
       .addLevelAttribute({
         unique_name: "Month1",
@@ -135,7 +137,7 @@ export default class StaticModelFiles {
         name_column: "month_name",
         key_columns: ["month"],
         sort_column: "month",
-        time_unit: YamlDimensionTimeUnit.Month,
+        time_unit: SMLDimensionTimeUnit.Month,
       })
       .addLevelAttribute({
         unique_name: "DayMonth",
@@ -147,7 +149,7 @@ export default class StaticModelFiles {
         key_columns: ["pk_date"],
         sort_column: "pk_date",
         allowed_calcs_for_dma: ["Siblings", "ParallelPeriod", "Ancestor", "Descendants", "PeriodsToDate"],
-        time_unit: YamlDimensionTimeUnit.Day,
+        time_unit: SMLDimensionTimeUnit.Day,
       })
       .addLevelAttribute({
         unique_name: "YearWeek",
@@ -156,7 +158,7 @@ export default class StaticModelFiles {
         name_column: "year_name",
         key_columns: ["year"],
         sort_column: "year",
-        time_unit: YamlDimensionTimeUnit.Year,
+        time_unit: SMLDimensionTimeUnit.Year,
       })
       .addLevelAttribute({
         unique_name: "Week",
@@ -165,7 +167,7 @@ export default class StaticModelFiles {
         name_column: "week_name",
         key_columns: ["week"],
         sort_column: "week",
-        time_unit: YamlDimensionTimeUnit.Week,
+        time_unit: SMLDimensionTimeUnit.Week,
       })
       .addLevelAttribute({
         unique_name: "DayWeek",
@@ -180,7 +182,7 @@ export default class StaticModelFiles {
         label: "Date Month Hierarchy",
         description: "A Gregorian Date Hierarchy.  Organizes time by Year, Quarter, Month, Day",
         folder: "Date Attributes",
-        filter_empty: YamlHierarchyEmptyField.Yes,
+        filter_empty: SMLHierarchyEmptyField.Yes,
         levels: [
           { unique_name: "YearMonth" },
           {
@@ -288,7 +290,7 @@ export default class StaticModelFiles {
         unique_name: "Date Week Hierarchy",
         label: "Date Week Hierarchy",
         folder: "Date Attributes",
-        filter_empty: YamlHierarchyEmptyField.Yes,
+        filter_empty: SMLHierarchyEmptyField.Yes,
         levels: [
           { unique_name: "YearWeek" },
           {
@@ -379,7 +381,7 @@ export default class StaticModelFiles {
           dimension: "Gender Dimension",
           level: "Gender",
         },
-        type: YamlDimensionRelationType.Embedded,
+        type: SMLDimensionRelationType.Embedded,
       })
       .buildYamlFile();
     result.push(customerDim);

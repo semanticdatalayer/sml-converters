@@ -1,47 +1,61 @@
-import { ObjectType } from "../../ObjectType";
-import { IYamlCatalog } from "../IYamlCatalog";
-import { IYamlCompositeModel } from "../IYamlCompositeModel";
-import { IYamlConnection } from "../IYamlConnection";
-import { IYamlDataset } from "../IYamlDataset";
-import { IYamlDimension } from "../IYamlDimension";
-import { IYamlGlobalSettings } from "../IYamlGlobalSettings";
-import { IYamlMeasure } from "../IYamlMeasure";
-import { IYamlModel } from "../IYamlModel";
-import { IYamlObject } from "../IYamlObject";
-import { IYamlMeasureCalculated } from "./../IYamlMeasure";
+import {
+  SMLCatalog,
+  SMLCompositeModel,
+  SMLConnection,
+  SMLDataset,
+  SMLDimension,
+  SMLGlobalSettings,
+  SMLMetric,
+  SMLMetricCalculated,
+  SMLObject,
+  SMLModel,
+  SMLObjectType
+} from 'sml-sdk'
 
-const isType = (input: IYamlObject, objType: ObjectType): boolean => {
+// import { SMLObjectType } from "../../SMLObjectType";
+// import { SMLCatalog } from "../SMLCatalog";
+// import { SMLCompositeModel } from "../SMLCompositeModel";
+// import { SMLConnection } from "../SMLConnection";
+// import { SMLDataset } from "../SMLDataset";
+// import { SMLDimension } from "../SMLDimension";
+// import { SMLGlobalSettings } from "../SMLGlobalSettings";
+// import { SMLMeasure } from "../SMLMeasure";
+// import { SMLModel } from "../SMLModel";
+// import { SMLObject } from "../SMLObject";
+// import { SMLMeasureCalculated } from "./../SMLMeasure";
+
+const isType = (input: SMLObject, objType: SMLObjectType): boolean => {
   return input.object_type === objType;
 };
 
-const YamlObjectTypeGuard = {
-  isConnection(input: IYamlObject): input is IYamlConnection {
-    return isType(input, ObjectType.Connection);
+const YamlSMLObjectTypeGuard = {
+  isConnection(input: SMLObject): input is SMLConnection {
+    return isType(input, SMLObjectType.Connection);
   },
-  isDataset(input: IYamlObject): input is IYamlDataset {
-    return isType(input, ObjectType.Dataset);
+  isDataset(input: SMLObject): input is SMLDataset {
+    return isType(input, SMLObjectType.Dataset);
   },
-  isDimension(input: IYamlObject): input is IYamlDimension {
-    return isType(input, ObjectType.Dimension);
+  isDimension(input: SMLObject): input is SMLDimension {
+    return isType(input, SMLObjectType.Dimension);
   },
-  isMeasure(input: IYamlObject): input is IYamlMeasure {
-    return isType(input, ObjectType.Measure);
+  isMeasure(input: SMLObject): input is SMLMetric {
+    return isType(input, SMLObjectType.Metric);
   },
-  isModel(input: IYamlObject): input is IYamlModel {
-    return isType(input, ObjectType.Model);
+  isModel(input: SMLObject): input is SMLModel {
+    return isType(input, SMLObjectType.Model);
   },
-  isCompositeModel(input: IYamlObject): input is IYamlCompositeModel {
-    return isType(input, ObjectType.CompositeModel);
+  isCompositeModel(input: SMLObject): input is SMLCompositeModel {
+    return isType(input, SMLObjectType.CompositeModel);
   },
-  isMeasureCalc(input: IYamlObject): input is IYamlMeasureCalculated {
-    return isType(input, ObjectType.MeasureCalc);
+  isMeasureCalc(input: SMLObject): input is SMLMetricCalculated {
+    return isType(input, SMLObjectType.MetricCalc);
   },
-  isCatalog(input: IYamlObject): input is IYamlCatalog {
-    return isType(input, ObjectType.Catalog);
+  isCatalog(input: SMLObject): input is SMLCatalog {
+    return isType(input, SMLObjectType.Catalog);
   },
-  isGlobalSettings(input: IYamlObject): input is IYamlGlobalSettings {
-    return isType(input, ObjectType.GlobalSettings);
+  isGlobalSettings(input: SMLObject): input is SMLGlobalSettings {
+    return isType(input, SMLObjectType.GlobalSettings);
   },
 };
 
-export default YamlObjectTypeGuard;
+export default YamlSMLObjectTypeGuard;

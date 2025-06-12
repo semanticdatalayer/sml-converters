@@ -1,10 +1,10 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
-import { IYamlModelPerspective } from "../../yaml/IYamlModel";
+import { SMLModelPerspective } from "sml-sdk";
 
-export default class YamlPerspectiveBuilder extends AnyObjectBuilder<IYamlModelPerspective> {
+export default class YamlPerspectiveBuilder extends AnyObjectBuilder<SMLModelPerspective> {
   public static create(): YamlPerspectiveBuilder {
-    const defaultPerspective: IYamlModelPerspective = {
+    const defaultPerspective: SMLModelPerspective = {
       unique_name: "unique_name",
       metrics: ["metric.customercount"],
       dimensions: [{ name: "product.dimension" }],

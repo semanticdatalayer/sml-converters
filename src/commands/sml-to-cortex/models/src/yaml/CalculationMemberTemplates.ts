@@ -1,9 +1,15 @@
-import { YamlFormatString } from "./IYamlDataset";
+//TODO: similar to SMLCalculationMemberTemplatesIds, doesn't have CalculationTemplate
+// CalculationTemplate is in calculation-group in sml-sdk
+// import { YamlFormatString } from "./IYamlDataset";
+
+import {
+  SMLFormatString
+} from "sml-sdk"
 
 export type CalculationTemplate = {
   description: string;
   expression: string;
-  defaultFormat?: YamlFormatString;
+  defaultFormat?: SMLFormatString;
   useInputMetricFormat?: boolean;
   validOnlyForTimeDim?: boolean;
 };
@@ -52,7 +58,7 @@ export const CalculationTemplates: Record<CalculationMembersTemplatesIds, Calcul
     description: `Current measure value minus the previous Member's measure value expressed as a percent of the Prev value.`,
     expression:
       "(([${Dim}].CurrentMember, [Measures].currentMember) - ([${Dim}].CurrentMember.prevMember, [Measures].currentMember)) / ([${Dim}].CurrentMember.prevMember, [Measures].currentMember)",
-    defaultFormat: YamlFormatString.Percent,
+    defaultFormat: SMLFormatString.Percent,
   },
   [CalculationMembersTemplatesIds.Next]: {
     description: "The measure value for the next dimension member relative to the current dimension member.",
@@ -69,18 +75,18 @@ export const CalculationTemplates: Record<CalculationMembersTemplatesIds, Calcul
     description: `Current measure value minus the Next Member's measure value expressed as a percent of the Next value.`,
     expression:
       "(([${Dim}].CurrentMember, [Measures].currentMember) - ([${Dim}].CurrentMember.nextMember, [Measures].currentMember)) / ([${Dim}].CurrentMember.nextMember, [Measures].currentMember)",
-    defaultFormat: YamlFormatString.Percent,
+    defaultFormat: SMLFormatString.Percent,
   },
   [CalculationMembersTemplatesIds.PctOfParent]: {
     description: `The measure's value as a percent of the dimension member's total value.`,
     expression:
       "([${Dim}].CurrentMember, [Measures].currentMember) / ([${Dim}].CurrentMember.parent, [Measures].currentMember)",
-    defaultFormat: YamlFormatString.Percent,
+    defaultFormat: SMLFormatString.Percent,
   },
   [CalculationMembersTemplatesIds.PctOfTotal]: {
     description: `The measure's value as a percent of the dimension's total value.`,
     expression: "([${Dim}].CurrentMember, [Measures].currentMember) / ([${Dim}].[All], [Measures].currentMember)",
-    defaultFormat: YamlFormatString.Percent,
+    defaultFormat: SMLFormatString.Percent,
   },
   [CalculationMembersTemplatesIds.LastYear]: {
     description: `Last Year's value for the current dimension member.`,
@@ -99,7 +105,7 @@ export const CalculationTemplates: Record<CalculationMembersTemplatesIds, Calcul
     description: `Current value minus Last Year's value for the given dimension member expressed as a percent of Last Year's value.`,
     expression:
       "(([${Dim}].CurrentMember, [Measures].currentMember) - (ParallelPeriod([${Dim}].TimeYears, 1, [${Dim}].CurrentMember), [Measures].currentMember )) / (ParallelPeriod([${Dim}].TimeYears, 1, [${Dim}].CurrentMember), [Measures].currentMember)",
-    defaultFormat: YamlFormatString.Percent,
+    defaultFormat: SMLFormatString.Percent,
     validOnlyForTimeDim: true,
   },
   [CalculationMembersTemplatesIds.YearToDate]: {

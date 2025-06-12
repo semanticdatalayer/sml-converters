@@ -2,11 +2,11 @@ import { ITestCase } from "utils/ObjectInvalidSchemaGenerator";
 
 import { YamlDimensionRelationBuilder } from "../../builders/YamlObjectBuilders/YamlDimensionRelationBuilder";
 import {
-  IYamlDimensionRelationship,
-  IYamlEmbeddedRelationship,
-  IYamlSecurityRelationship,
-  IYamlSnowflakeRelationship,
-} from "../IYamlDimension";
+  SMLDimensionRelationship,
+  SMLEmbeddedRelationship,
+  SMLSecurityRelationship,
+  SMLSnowflakeRelationship,
+} from 'sml-sdk';
 import YamlDimensionTypeGuard from "./YamlDimensionTypeGuard";
 
 const EMPTY_STRING = "";
@@ -19,29 +19,29 @@ const MOCKED_LEVEL = "MOCKED_LEVEL";
 
 const MOCKED_UNIQUE_NAME = "MOCKED_UNIQUE_NAME";
 
-const emptySecurityRelationshipFrom: Pick<IYamlSecurityRelationship, "from"> = {
+const emptySecurityRelationshipFrom: Pick<SMLSecurityRelationship, "from"> = {
   from: { dataset: EMPTY_STRING, hierarchy: EMPTY_STRING, join_columns: [], level: EMPTY_STRING },
 };
 
-const emptySecurityRelationshipTo: Pick<IYamlSecurityRelationship, "to"> = { to: { row_security: EMPTY_STRING } };
+const emptySecurityRelationshipTo: Pick<SMLSecurityRelationship, "to"> = { to: { row_security: EMPTY_STRING } };
 
 // Snowflake
-const emptySnowflakeRelationshipFrom: Pick<IYamlSnowflakeRelationship, "from"> = {
+const emptySnowflakeRelationshipFrom: Pick<SMLSnowflakeRelationship, "from"> = {
   from: { dataset: EMPTY_STRING, join_columns: [] },
 };
 
-const emptySnowflakeRelationshipTo: Pick<IYamlSnowflakeRelationship, "to"> = { to: { level: EMPTY_STRING } };
+const emptySnowflakeRelationshipTo: Pick<SMLSnowflakeRelationship, "to"> = { to: { level: EMPTY_STRING } };
 
 // Embedded
-const emptyEmbeddedRelationshipFrom: Pick<IYamlEmbeddedRelationship, "from"> = {
+const emptyEmbeddedRelationshipFrom: Pick<SMLEmbeddedRelationship, "from"> = {
   from: { dataset: EMPTY_STRING, hierarchy: EMPTY_STRING, join_columns: [], level: EMPTY_STRING },
 };
 
-const emptyEmbeddedRelationshipTo: Pick<IYamlEmbeddedRelationship, "to"> = {
+const emptyEmbeddedRelationshipTo: Pick<SMLEmbeddedRelationship, "to"> = {
   to: { level: EMPTY_STRING, dimension: EMPTY_STRING },
 };
 
-const ORPHAN_DIMENSION_RELATIONSHIP_TEST_CASES: ITestCase<IYamlDimensionRelationship>[] = [
+const ORPHAN_DIMENSION_RELATIONSHIP_TEST_CASES: ITestCase<SMLEmbeddedRelationship>[] = [
   {
     condition: "testing if emptySecurityTo results in an orphan",
     data: YamlDimensionRelationBuilder.create()
@@ -98,9 +98,9 @@ describe("Testing cases of Dimension relationships that can be orphans", () => {
   ORPHAN_DIMENSION_RELATIONSHIP_TEST_CASES.forEach(isRelationshipOrphanCallback);
 });
 
-function isRelationshipOrphanCallback(value: ITestCase<Partial<IYamlDimensionRelationship>>) {
+function isRelationshipOrphanCallback(value: ITestCase<Partial<SMLEmbeddedRelationship>>) {
   it(`${value.condition} should be orphan`, () => {
-    const result = YamlDimensionTypeGuard.isOrphanRelation(value.data as IYamlDimensionRelationship);
+    const result = YamlDimensionTypeGuard.isOrphanRelation(value.data as SMLEmbeddedRelationship);
 
     expect(result).toBe(true);
   });

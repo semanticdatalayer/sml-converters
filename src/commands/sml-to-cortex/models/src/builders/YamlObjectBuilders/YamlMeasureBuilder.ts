@@ -17,7 +17,7 @@ export default class YamlMeasureBuilder extends YamlObjectBuilder<SMLMetric, Yam
       object_type: SMLObjectType.Metric,
       column: "colum name",
       dataset: "dataset",
-      calculation_method: SMLCalculationMethod.Sum,
+      calculation_method: SMLCalculationMethod.Sum, // Default calculation method
     };
 
     return new YamlMeasureBuilder(defaults);

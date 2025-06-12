@@ -1,11 +1,12 @@
 import { 
   SMLObjectType,
-  SMLCompositeModel
+  SMLCompositeModel,
+  SMLModelMetricsAndCalc
 } from "sml-sdk";
 
-import { ObjectType } from "../../ObjectType";
-import { IYamlCompositeModel } from "../../yaml/IYamlCompositeModel";
-import { IYamlModelMetricsAndCalc } from "../../yaml/IYamlModel";
+// import { ObjectType } from "../../ObjectType";
+// import { IYamlCompositeModel } from "../../yaml/IYamlCompositeModel";
+// import { IYamlModelMetricsAndCalc } from "../../yaml/IYamlModel";
 import { YamlObjectBuilder } from "./YamlObjectBuilder";
 
 export default class YamlCompositeModelBuilder extends YamlObjectBuilder<
@@ -35,12 +36,12 @@ export default class YamlCompositeModelBuilder extends YamlObjectBuilder<
     return this.with({ metrics: [...(this.clonedData.metrics || []), { unique_name: meticUniqueName }] });
   }
 
-  addMetricsCollection(...metrics: Array<IYamlModelMetricsAndCalc>): YamlCompositeModelBuilder {
+  addMetricsCollection(...metrics: Array<SMLModelMetricsAndCalc>): YamlCompositeModelBuilder {
     return this.with({ metrics: [...(this.clonedData.metrics || []), ...metrics] });
   }
 
   addMetrics(...metricUniqueNames: Array<string>): YamlCompositeModelBuilder {
-    const addedMetrics: IYamlModelMetricsAndCalc[] = metricUniqueNames.map((m) => ({ unique_name: m }));
+    const addedMetrics: SMLModelMetricsAndCalc[] = metricUniqueNames.map((m) => ({ unique_name: m }));
     return this.with({ metrics: [...(this.clonedData.metrics || []), ...addedMetrics] });
   }
 

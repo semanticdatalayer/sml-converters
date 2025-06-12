@@ -1,33 +1,33 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
 import {
-  IYamlDatasetColumn,
-  IYamlDatasetColumnDerived,
-  IYamlDatasetColumnMap,
-  IYamlDatasetColumnMapDefinition,
-  IYamlDatasetColumnSimple,
-  YamlColumnDataType,
-} from "../../yaml/IYamlDataset";
+  SMLDatasetColumn,
+  SMLDatasetColumnDerived,
+  SMLDatasetColumnMap,
+  SMLDatasetColumnMapDefinition,
+  SMLDatasetColumnSimple,
+  SMLColumnDataType,
+} from "sml-sdk";
 
-class YamlDatasetColumnSimpleBuilder extends AnyObjectBuilder<IYamlDatasetColumnSimple> implements IYamlColumnBuilder {
-  static create(data: Partial<IYamlDatasetColumnSimple> = {}): YamlDatasetColumnSimpleBuilder {
-    const defaultData: IYamlDatasetColumnSimple = {
-      data_type: YamlColumnDataType.String,
+class YamlDatasetColumnSimpleBuilder extends AnyObjectBuilder<SMLDatasetColumnSimple> implements IYamlColumnBuilder {
+  static create(data: Partial<SMLDatasetColumnSimple> = {}): YamlDatasetColumnSimpleBuilder {
+    const defaultData: SMLDatasetColumnSimple = {
+      data_type: SMLColumnDataType.String,
       name: "name not set",
     };
     return new YamlDatasetColumnSimpleBuilder(Object.assign(defaultData, data));
   }
-  with(data: Partial<IYamlDatasetColumnSimple>): YamlDatasetColumnSimpleBuilder {
+  with(data: Partial<SMLDatasetColumnSimple>): YamlDatasetColumnSimpleBuilder {
     return super.with(data) as YamlDatasetColumnSimpleBuilder;
   }
-  withDataType(data_type: YamlColumnDataType) {
+  withDataType(data_type: SMLColumnDataType) {
     return this.with({ data_type });
   }
 }
 
-class YamlDatasetColumnMapBuilder extends AnyObjectBuilder<IYamlDatasetColumnMap> implements IYamlColumnBuilder {
-  static create(data: Partial<IYamlDatasetColumnMap> = {}): YamlDatasetColumnMapBuilder {
-    const defaultData: IYamlDatasetColumnMap = {
+class YamlDatasetColumnMapBuilder extends AnyObjectBuilder<SMLDatasetColumnMap> implements IYamlColumnBuilder {
+  static create(data: Partial<SMLDatasetColumnMap> = {}): YamlDatasetColumnMapBuilder {
+    const defaultData: SMLDatasetColumnMap = {
       name: "name not set",
       map: {
         field_terminator: ";",
@@ -39,46 +39,46 @@ class YamlDatasetColumnMapBuilder extends AnyObjectBuilder<IYamlDatasetColumnMap
     return new YamlDatasetColumnMapBuilder(Object.assign(defaultData, data));
   }
 
-  with(data: Partial<IYamlDatasetColumnMap>): YamlDatasetColumnMapBuilder {
+  with(data: Partial<SMLDatasetColumnMap>): YamlDatasetColumnMapBuilder {
     return super.with(data) as YamlDatasetColumnMapBuilder;
   }
 
-  withMapDefinition(data: IYamlDatasetColumnMapDefinition): YamlDatasetColumnMapBuilder {
+  withMapDefinition(data: SMLDatasetColumnMapDefinition): YamlDatasetColumnMapBuilder {
     return this.with({ map: data });
   }
 }
 
 class YamlDatasetColumnDerivedBuilder
-  extends AnyObjectBuilder<IYamlDatasetColumnDerived>
+  extends AnyObjectBuilder<SMLDatasetColumnDerived>
   implements IYamlColumnBuilder
 {
-  static create(data: Partial<IYamlDatasetColumnDerived> = {}): YamlDatasetColumnDerivedBuilder {
-    const defaultData: IYamlDatasetColumnDerived = {
-      data_type: YamlColumnDataType.String,
+  static create(data: Partial<SMLDatasetColumnDerived> = {}): YamlDatasetColumnDerivedBuilder {
+    const defaultData: SMLDatasetColumnDerived = {
+      data_type: SMLColumnDataType.String,
       name: "name not set",
       parent_column: "parent column not set",
     };
     return new YamlDatasetColumnDerivedBuilder(Object.assign(defaultData, data));
   }
-  with(data: Partial<IYamlDatasetColumnDerived>): YamlDatasetColumnDerivedBuilder {
+  with(data: Partial<SMLDatasetColumnDerived>): YamlDatasetColumnDerivedBuilder {
     return super.with(data) as YamlDatasetColumnDerivedBuilder;
   }
 }
 
 export interface IYamlColumnBuilder {
-  build: () => IYamlDatasetColumn;
+  build: () => SMLDatasetColumn;
 }
 
 export default class YamlDatasetColumnBuilder {
-  static simple(data: Partial<IYamlDatasetColumnSimple> = {}): YamlDatasetColumnSimpleBuilder {
+  static simple(data: Partial<SMLDatasetColumnSimple> = {}): YamlDatasetColumnSimpleBuilder {
     return YamlDatasetColumnSimpleBuilder.create(data);
   }
 
-  static mapColumn(data: Partial<IYamlDatasetColumnMap> = {}): YamlDatasetColumnMapBuilder {
+  static mapColumn(data: Partial<SMLDatasetColumnMap> = {}): YamlDatasetColumnMapBuilder {
     return YamlDatasetColumnMapBuilder.create(data);
   }
 
-  static derivedColumn(data: Partial<IYamlDatasetColumnDerived> = {}): YamlDatasetColumnDerivedBuilder {
+  static derivedColumn(data: Partial<SMLDatasetColumnDerived> = {}): YamlDatasetColumnDerivedBuilder {
     return YamlDatasetColumnDerivedBuilder.create(data);
   }
 }

@@ -1,43 +1,62 @@
-import Guard from "utils/Guard";
+import Guard from "../../../../../shared/guard";
+
+import {
+  SMLObjectType,
+  SMLCompositeModel,
+  SMLConnection,
+  SMLDataset,
+  SMLDimension,
+  SMLDimensionLevelAttribute,
+  SMLDimensionRelationship,
+  SMLEmbeddedRelationship,
+  SMLDimensionRelationType,
+  SMLMetric,
+  SMLMetricCalculated,
+  SMLModel, 
+  SMLModelMetricsAndCalc,
+  SMLModelRelationship,
+  SMLObject,
+  SMLRowSecurity
+} from "sml-sdk"
 
 import IYamlParsedFile from "../../src/IYamlParsedFile";
-import { ObjectType } from "../../src/ObjectType";
+// import { ObjectType } from "../../src/ObjectType";
 import ValidationError from "../ValidationError";
 import IXmlProject from "../xml/IXmlProject";
 import YamlDimensionTypeGuard from "./guards/YamlDimensionTypeGuard";
 import YamlModelTypeGuard from "./guards/YamlModelTypeGuard";
-import { IYamlCompositeModel } from "./IYamlCompositeModel";
-import { IYamlConnection } from "./IYamlConnection";
-import { IYamlDataset } from "./IYamlDataset";
-import {
-  IYamlDimension,
-  IYamlDimensionLevelAttribute,
-  IYamlDimensionRelationship,
-  IYamlEmbeddedRelationship,
-  YamlDimensionRelationType,
-} from "./IYamlDimension";
-import { IYamlMeasure, IYamlMeasureCalculated } from "./IYamlMeasure";
-import { IYamlModel, IYamlModelMetricsAndCalc, IYamlModelRelationship } from "./IYamlModel";
-import { IYamlObject } from "./IYamlObject";
+// import { IYamlCompositeModel } from "./IYamlCompositeModel";
+// import { IYamlConnection } from "./IYamlConnection";
+// import { IYamlDataset } from "./IYamlDataset";
+// import {
+//   IYamlDimension,
+//   IYamlDimensionLevelAttribute,
+//   IYamlDimensionRelationship,
+//   IYamlEmbeddedRelationship,
+//   YamlDimensionRelationType,
+// } from "./IYamlDimension";
+// import { IYamlMeasure, IYamlMeasureCalculated } from "./IYamlMeasure";
+// import { IYamlModel, IYamlModelMetricsAndCalc, IYamlModelRelationship } from "./IYamlModel";
+// import { IYamlObject } from "./IYamlObject";
 import IYamlQueries from "./IYamlQueries";
-import { IYamlRowSecurity } from "./IYamlRowSecurity";
+// import { IYamlRowSecurity } from "./IYamlRowSecurity";
 
-export type IndexedYamlMap<T extends IYamlObject> = Map<string, T>;
+export type IndexedYamlMap<T extends SMLObject> = Map<string, T>;
 
 export interface IRepoObjectsIndex {
-  models: IndexedYamlMap<IYamlModel>;
-  datasets: IndexedYamlMap<IYamlDataset>;
-  connections: IndexedYamlMap<IYamlConnection>;
-  dimensions: IndexedYamlMap<IYamlDimension>;
-  measures: IndexedYamlMap<IYamlMeasure>;
-  calculations: IndexedYamlMap<IYamlMeasureCalculated>;
-  rowSecurity: IndexedYamlMap<IYamlRowSecurity>;
-  compositeModels: IndexedYamlMap<IYamlCompositeModel>;
+  models: IndexedYamlMap<SMLModel>;
+  datasets: IndexedYamlMap<SMLDataset>;
+  connections: IndexedYamlMap<SMLConnection>;
+  dimensions: IndexedYamlMap<SMLDimension>;
+  measures: IndexedYamlMap<SMLMetric>;
+  calculations: IndexedYamlMap<SMLMetricCalculated>;
+  rowSecurity: IndexedYamlMap<SMLRowSecurity>;
+  compositeModels: IndexedYamlMap<SMLCompositeModel>;
 }
 
 const max_recursive_depth = 50;
 export class YamlQueries implements IYamlQueries {
-  sortYamlModels(yamlModels: IYamlParsedFile<IYamlObject>[]): IRepoObjectsIndex {
+  sortYamlModels(yamlModels: IYamlParsedFile<SMLObject>[]): IRepoObjectsIndex {
     const result: IRepoObjectsIndex = {
       connections: new Map(),
       datasets: new Map(),
@@ -56,7 +75,7 @@ export class YamlQueries implements IYamlQueries {
     return result;
   }
 
-  getModelDimensions(dimensions: Array<string>, yamlDimensions: IndexedYamlMap<IYamlDimension>): Array<IYamlDimension> {
+  getModelDimensions(dimensions: Array<string>, yamlDimensions: IndexedYamlMap<SMLDimension>): Array<SMLDimension> {
     const modelDimensions = this.getMapElementsByList(this.getUnique(dimensions), yamlDimensions);
     modelDimensions.forEach((dim) => {
       this.addEmbeddedDimensions(yamlDimensions, dim, modelDimensions);
@@ -67,15 +86,15 @@ export class YamlQueries implements IYamlQueries {
 
   getModelRowSecurityList(
     rowSecurityList: Array<string>,
-    yamlRowSecurityList: IndexedYamlMap<IYamlRowSecurity>
-  ): Array<IYamlRowSecurity> {
+    yamlRowSecurityList: IndexedYamlMap<SMLRowSecurity>
+  ): Array<SMLRowSecurity> {
     const modelDimensions = this.getMapElementsByList(this.getUnique(rowSecurityList), yamlRowSecurityList);
 
     return modelDimensions;
   }
 
-  getCatalogUsedDimensions(parsedFiles: Array<IYamlParsedFile<IYamlObject>>): Array<IYamlParsedFile<IYamlObject>> {
-    const usedDimensions: Array<IYamlDimension> = [];
+  getCatalogUsedDimensions(parsedFiles: Array<IYamlParsedFile<SMLObject>>): Array<IYamlParsedFile<SMLObject>> {
+    const usedDimensions: Array<SMLDimension> = [];
     const objectIndex = this.sortYamlModels(this.getYamlFilesWithoutDetachedRelationships(parsedFiles));
 
     objectIndex.models.forEach((yamlModel) => {
@@ -94,9 +113,9 @@ export class YamlQueries implements IYamlQueries {
   }
 
   addEmbeddedDimensions(
-    yamlDimensionsIndex: Map<string, IYamlDimension>,
-    currentDimension: IYamlDimension,
-    modelDimensions: Array<IYamlDimension>,
+    yamlDimensionsIndex: Map<string, SMLDimension>,
+    currentDimension: SMLDimension,
+    modelDimensions: Array<SMLDimension>,
     dimensionPath: Array<string> = [],
     currentDepth: number = 0
   ): void {
@@ -110,7 +129,7 @@ export class YamlQueries implements IYamlQueries {
     const children: Array<string> = [];
 
     currentDimension.relationships?.forEach((r) => {
-      if (r.type === YamlDimensionRelationType.Embedded && YamlDimensionTypeGuard.isRegularRelation(r)) {
+      if (r.type === SMLDimensionRelationType.Embedded && YamlDimensionTypeGuard.isRegularRelation(r)) {
         children.push(r.to.dimension);
       }
     });
@@ -154,7 +173,7 @@ export class YamlQueries implements IYamlQueries {
   }
 
   getMetricsByList<T>(
-    list: Array<IYamlModelMetricsAndCalc>,
+    list: Array<SMLModelMetricsAndCalc>,
     mapList: Map<string, T>,
     acceptMissingItems?: boolean
   ): Array<T> {
@@ -175,13 +194,13 @@ export class YamlQueries implements IYamlQueries {
   }
 
   getModelDatasets(
-    yamlDatasets: IndexedYamlMap<IYamlDataset>,
-    relatedDimensions: Array<IYamlDimension>,
-    relationships: Array<IYamlModelRelationship>,
-    metrics: Array<IYamlMeasure>
-  ): Array<IYamlDataset> {
+    yamlDatasets: IndexedYamlMap<SMLDataset>,
+    relatedDimensions: Array<SMLDimension>,
+    relationships: Array<SMLModelRelationship>,
+    metrics: Array<SMLMetric>
+  ): Array<SMLDataset> {
     const allAttributes = relatedDimensions.reduce(
-      (acc: Array<IYamlDimensionLevelAttribute>, dimFile: IYamlDimension) => [...acc, ...dimFile.level_attributes],
+      (acc: Array<SMLDimensionLevelAttribute>, dimFile: SMLDimension) => [...acc, ...dimFile.level_attributes],
       []
     );
 
@@ -206,15 +225,15 @@ export class YamlQueries implements IYamlQueries {
     return this.getMapElementsByList(uniqueNames, yamlDatasets);
   }
 
-  getAllDatasets(yamlDatasets: IndexedYamlMap<IYamlDataset>): Array<IYamlDataset> {
+  getAllDatasets(yamlDatasets: IndexedYamlMap<SMLDataset>): Array<SMLDataset> {
     return Array.from(yamlDatasets.values());
   }
 
   getYamlFilesWithoutDetachedRelationships(
-    parsedFiles: Array<IYamlParsedFile<IYamlObject>>
-  ): Array<IYamlParsedFile<IYamlObject>> {
+    parsedFiles: Array<IYamlParsedFile<SMLObject>>
+  ): Array<IYamlParsedFile<SMLObject>> {
     return parsedFiles.map((yamlFile) => {
-      const fileData = yamlFile.data as IYamlModel | IYamlDimension;
+      const fileData = yamlFile.data as SMLModel | SMLDimension;
 
       return !fileData.relationships || fileData.relationships.length === 0
         ? yamlFile
@@ -222,7 +241,7 @@ export class YamlQueries implements IYamlQueries {
             ...yamlFile,
             data: {
               ...fileData,
-              relationships: this.filterRelationships(fileData.relationships as Array<IYamlDimensionRelationship>),
+              relationships: this.filterRelationships(fileData.relationships as Array<SMLDimensionRelationship>),
             },
           };
     });
@@ -250,11 +269,11 @@ export class YamlQueries implements IYamlQueries {
           a.push(...b.embeddedRelationshipsMetadata);
         }
         return a;
-      }, [] as IYamlEmbeddedRelationship[]) ?? []
+      }, [] as SMLEmbeddedRelationship[]) ?? []
     );
   }
 
-  getModelDatasetsUniqueNamesUsedInAnyChildObject(model: IYamlModel, allObjects: IRepoObjectsIndex): Array<string> {
+  getModelDatasetsUniqueNamesUsedInAnyChildObject(model: SMLModel, allObjects: IRepoObjectsIndex): Array<string> {
     //Get direct datasets unique_names
     const allDatasets = model.relationships.map((r) => r.from.dataset);
 
@@ -274,23 +293,23 @@ export class YamlQueries implements IYamlQueries {
       .map((dim_unique_name) => {
         return allObjects.dimensions.get(dim_unique_name);
       })
-      .filter((dim): dim is IYamlDimension => dim !== undefined)
+      .filter((dim): dim is SMLDimension => dim !== undefined)
       .flatMap((dimension) => this.getDimensionDatasetUniqueNamesInAnyChildObject(dimension, allObjects));
 
     const modelRowSecurityDatasets = modelSecurityRelationships
       .map((rs_unique_name) => {
         return allObjects.rowSecurity.get(rs_unique_name);
       })
-      .filter((rs): rs is IYamlRowSecurity => rs !== undefined)
+      .filter((rs): rs is SMLRowSecurity => rs !== undefined)
       .flatMap((rowSecurity) => rowSecurity?.dataset);
 
     return this.getUnique([...allDatasets, ...dimensionsChildDatasets, ...modelRowSecurityDatasets]);
   }
 
-  private filterRelationships = <T extends IYamlDimensionRelationship>(relationships?: Array<T>): Array<T> => {
+  private filterRelationships = <T extends SMLDimensionRelationship>(relationships?: Array<T>): Array<T> => {
     return (
       relationships?.filter((r) => {
-        if (r.type === YamlDimensionRelationType.Snowflake) {
+        if (r.type === SMLDimensionRelationType.Snowflake) {
           return r.from.dataset.length > 0;
         }
         if (YamlDimensionTypeGuard.isRegularRelation(r)) {
@@ -303,7 +322,7 @@ export class YamlQueries implements IYamlQueries {
     );
   };
 
-  private setYamlFileToRepoObjects(result: IRepoObjectsIndex, yamlFile: IYamlParsedFile<IYamlObject>): void {
+  private setYamlFileToRepoObjects(result: IRepoObjectsIndex, yamlFile: IYamlParsedFile<SMLObject>): void {
     const uniqueName = yamlFile.data.unique_name;
     Guard.ensure(
       !result.models.has(uniqueName),
@@ -311,37 +330,37 @@ export class YamlQueries implements IYamlQueries {
     );
 
     switch (yamlFile.data.object_type) {
-      case ObjectType.Connection:
-        result.connections.set(uniqueName, yamlFile.data as IYamlConnection);
+      case SMLObjectType.Connection:
+        result.connections.set(uniqueName, yamlFile.data as SMLConnection);
         break;
-      case ObjectType.Dataset:
-        result.datasets.set(uniqueName, yamlFile.data as IYamlDataset);
+      case SMLObjectType.Dataset:
+        result.datasets.set(uniqueName, yamlFile.data as SMLDataset);
         break;
-      case ObjectType.Dimension:
-        result.dimensions.set(uniqueName, yamlFile.data as IYamlDimension);
+      case SMLObjectType.Dimension:
+        result.dimensions.set(uniqueName, yamlFile.data as SMLDimension);
         break;
-      case ObjectType.RowSecurity:
-        result.rowSecurity.set(uniqueName, yamlFile.data as IYamlRowSecurity);
+      case SMLObjectType.RowSecurity:
+        result.rowSecurity.set(uniqueName, yamlFile.data as SMLRowSecurity);
         break;
-      case ObjectType.Measure:
-        result.measures.set(uniqueName, yamlFile.data as IYamlMeasure);
+      case SMLObjectType.Metric:
+        result.measures.set(uniqueName, yamlFile.data as SMLMetric);
         break;
-      case ObjectType.MeasureCalc:
-        result.calculations.set(uniqueName, yamlFile.data as IYamlMeasureCalculated);
+      case SMLObjectType.MetricCalc:
+        result.calculations.set(uniqueName, yamlFile.data as SMLMetricCalculated);
         break;
-      case ObjectType.Model:
-        result.models.set(uniqueName, yamlFile.data as IYamlModel);
+      case SMLObjectType.Model:
+        result.models.set(uniqueName, yamlFile.data as SMLModel);
         break;
-      case ObjectType.CompositeModel:
-        result.compositeModels.set(uniqueName, yamlFile.data as IYamlCompositeModel);
+      case SMLObjectType.CompositeModel:
+        result.compositeModels.set(uniqueName, yamlFile.data as SMLCompositeModel);
         break;
     }
   }
 
   private getDimensionDatasetUniqueNamesInAnyChildObject(
-    dimension: IYamlDimension,
+    dimension: SMLDimension,
     allObjects: IRepoObjectsIndex,
-    fileChain: Array<IYamlDimension> = [],
+    fileChain: Array<SMLDimension> = [],
     depth = 1
   ): Array<string> {
     if (fileChain.some((dim) => dim.unique_name === dimension.unique_name)) {
@@ -414,7 +433,7 @@ export class YamlQueries implements IYamlQueries {
     ]);
   }
 
-  private getAllConnectionUniqueNamesUsedInModel(model: IYamlModel, allObjects: IRepoObjectsIndex): Array<string> {
+  private getAllConnectionUniqueNamesUsedInModel(model: SMLModel, allObjects: IRepoObjectsIndex): Array<string> {
     return this.getUnique(
       this.getModelDatasetsUniqueNamesUsedInAnyChildObject(model, allObjects)
         .map((dataset_unique_name) => allObjects.datasets.get(dataset_unique_name))

@@ -1,10 +1,10 @@
-import { IYamlMeasure, IYamlMeasureCalculated } from "../IYamlMeasure";
+import { SMLMetric, SMLMetricCalculated } from 'sml-sdk';
 import TypeGuardUtil from "./type-guard-util";
 
 export default class YamlMeasureTypeGuard {
-  static isCalcMeasure = (input: IYamlMeasure | IYamlMeasureCalculated): input is IYamlMeasureCalculated =>
+  static isCalcMeasure = (input: SMLMetric | SMLMetricCalculated): input is SMLMetricCalculated =>
     TypeGuardUtil.hasProps(input, "expression") && TypeGuardUtil.hasNoProps(input, "dataset", "column");
 
-  static isRegularMeasure = (input: IYamlMeasure | IYamlMeasureCalculated): input is IYamlMeasure =>
+  static isRegularMeasure = (input: SMLMetric | SMLMetricCalculated): input is SMLMetric =>
     TypeGuardUtil.hasProps(input, "dataset", "column") && TypeGuardUtil.hasNoProps(input, "expression");
 }

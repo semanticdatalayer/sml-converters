@@ -1,11 +1,16 @@
 import yaml from "js-yaml";
 
-import { IYamlObject } from "../yaml/IYamlObject";
-import { IYamlPackageFile } from "../yaml/IYamlPackageFile";
+import {
+  SMLObject,
+  SMLPackageFile
+} from "sml-sdk";
+
+// import { IYamlObject } from "../yaml/IYamlObject";
+// import { IYamlPackageFile } from "../yaml/IYamlPackageFile";
 import { IYamlSerializer } from "./IYamlSerializer";
 
-type YamlObjectProp = keyof IYamlObject;
-type YamlPackageProps = keyof IYamlPackageFile;
+type YamlObjectProp = keyof SMLObject;
+type YamlPackageProps = keyof SMLPackageFile;
 
 const commonObjectPropsOrdered: Array<YamlObjectProp | YamlPackageProps> = [
   "version",

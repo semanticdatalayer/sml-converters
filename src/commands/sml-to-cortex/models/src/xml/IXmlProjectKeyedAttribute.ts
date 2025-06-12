@@ -1,4 +1,5 @@
-import { CustomEmptyMemberInput } from "../yaml/IYamlDimension";
+import {SMLCustomEmptyMemberInput} from 'sml-sdk'
+// import { CustomEmptyMemberInput } from "../yaml/IYamlDimension";
 import {
   IXmlCountDistinct,
   IXmlCountType,
@@ -26,7 +27,7 @@ interface IXmlAllowCalculationType {
 }
 
 interface IXmlEmptyValue {
-  value: CustomEmptyMemberInput | Array<CustomEmptyMemberInput>;
+  value: SMLCustomEmptyMemberInput | Array<SMLCustomEmptyMemberInput>;
 }
 
 export interface IXmlAttributeFormatting {

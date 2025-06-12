@@ -1,4 +1,4 @@
-import { IYamlEmbeddedRelationship } from "../yaml/IYamlDimension";
+import { SMLEmbeddedRelationship } from "sml-sdk";
 import { IXmlCalculationGroup } from "./IXmlCalculationGroup";
 import { IXmlCommonVisibleProperties, IXmlSimpleKeyReference } from "./IXmlCommonProjectProperties";
 import { IXmlHierarchy } from "./IXmlHierarchy";
@@ -29,7 +29,7 @@ export interface IXmlDimension {
   hierarchies: Array<IXmlHierarchy>;
   calculationGroup?: Array<IXmlCalculationGroup>;
   modelerMetadata?: IModelerMetadata;
-  embeddedRelationshipsMetadata?: Array<IYamlEmbeddedRelationship>;
+  embeddedRelationshipsMetadata?: Array<SMLEmbeddedRelationship>;
 }
 
 export interface IXMLProjectDimensions {

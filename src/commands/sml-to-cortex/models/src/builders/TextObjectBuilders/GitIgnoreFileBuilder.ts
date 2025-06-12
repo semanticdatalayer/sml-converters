@@ -1,4 +1,4 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
 import { FILE_TYPE } from "../../FileType";
 import { FileWithContent, IFile } from "../../IFile";

@@ -1,5 +1,5 @@
-import { IYamlObject } from "../yaml/IYamlObject";
+import { SMLObject } from "sml-sdk";
 
 export interface IYamlSerializer {
-  serialize: (input: IYamlObject) => string;
+  serialize: (input: SMLObject) => string;
 }

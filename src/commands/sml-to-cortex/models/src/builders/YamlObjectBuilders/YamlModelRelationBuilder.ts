@@ -1,11 +1,11 @@
 import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
-import { IYamlModelRelationship } from "../../yaml/IYamlModel";
+import { SMLModelRelationship } from "sml-sdk";
 
 const generateRandomString = () => (Math.random() + 1).toString(36).substring(7);
-export default class YamlModelRelationBuilder extends AnyObjectBuilder<IYamlModelRelationship> {
+export default class YamlModelRelationBuilder extends AnyObjectBuilder<SMLModelRelationship> {
   static create(): YamlModelRelationBuilder {
-    const defaultValues: IYamlModelRelationship = {
+    const defaultValues: SMLModelRelationship = {
       from: {
         dataset: "no dataset",
         join_columns: [],
@@ -20,7 +20,7 @@ export default class YamlModelRelationBuilder extends AnyObjectBuilder<IYamlMode
     return new YamlModelRelationBuilder(defaultValues);
   }
 
-  with(data: Partial<IYamlModelRelationship>): YamlModelRelationBuilder {
+  with(data: Partial<SMLModelRelationship>): YamlModelRelationBuilder {
     return super.with(data) as YamlModelRelationBuilder;
   }
 

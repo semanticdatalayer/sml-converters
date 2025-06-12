@@ -1,9 +1,9 @@
-import { IYamlDimensionMetric, IYamlDimensionSecondaryAttribute } from "../../yaml/IYamlDimension";
+import { SMLDimensionMetric, SMLDimensionSecondaryAttribute } from "sml-sdk";
 
 export default class XmlSecondaryAttributeTypeGuard {
   static isMetrical = (
-    input: IYamlDimensionSecondaryAttribute | IYamlDimensionMetric
-  ): input is IYamlDimensionMetric => {
-    return (input as IYamlDimensionMetric).type === "metrical-attribute";
+    input: SMLDimensionSecondaryAttribute | SMLDimensionMetric
+  ): input is SMLDimensionMetric => {
+    return (input as SMLDimensionMetric).type === "metrical-attribute";
   };
 }

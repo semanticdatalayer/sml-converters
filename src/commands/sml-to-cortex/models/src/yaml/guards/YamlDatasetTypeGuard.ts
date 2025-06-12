@@ -1,51 +1,51 @@
 import {
-  IYamlDataset,
-  IYamlDatasetAlternateSql,
-  IYamlDatasetAlternateTable,
-  IYamlDatasetColumn,
-  IYamlDatasetColumnDerived,
-  IYamlDatasetColumnMap,
-  IYamlDatasetColumnSimple,
-} from "../IYamlDataset";
+  SMLDataset,
+  SMLDatasetAlternateSql,
+  SMLDatasetAlternateTable,
+  SMLDatasetColumn,
+  SMLDatasetColumnDerived,
+  SMLDatasetColumnMap,
+  SMLDatasetColumnSimple,
+} from "sml-sdk";
 import TypeGuardUtil from "./type-guard-util";
 
 export default class YamlDatasetTypeGuard {
-  static isSimpleColumn(column: IYamlDatasetColumn): column is IYamlDatasetColumnSimple {
+  static isSimpleColumn(column: SMLDatasetColumn): column is SMLDatasetColumnSimple {
     return (
-      TypeGuardUtil.hasProps<IYamlDatasetColumnSimple>(column, "data_type") &&
-      TypeGuardUtil.hasNoProps<IYamlDatasetColumnDerived>(column, "parent_column")
+      TypeGuardUtil.hasProps<SMLDatasetColumnSimple>(column, "data_type") &&
+      TypeGuardUtil.hasNoProps<SMLDatasetColumnDerived>(column, "parent_column")
     );
   }
 
-  static isCalculatedColumn(column: IYamlDatasetColumn): column is IYamlDatasetColumnSimple {
+  static isCalculatedColumn(column: SMLDatasetColumn): column is SMLDatasetColumnSimple {
     return (
       YamlDatasetTypeGuard.isSimpleColumn(column) &&
-      (TypeGuardUtil.hasProps<IYamlDatasetColumnSimple>(column, "sql") ||
-        TypeGuardUtil.hasProps<IYamlDatasetColumnSimple>(column, "dialects"))
+      (TypeGuardUtil.hasProps<SMLDatasetColumnSimple>(column, "sql") ||
+        TypeGuardUtil.hasProps<SMLDatasetColumnSimple>(column, "dialects"))
     );
   }
 
-  static isDerivedColumn(column: IYamlDatasetColumn): column is IYamlDatasetColumnDerived {
-    return TypeGuardUtil.hasProps<IYamlDatasetColumnDerived>(column, "data_type", "parent_column");
+  static isDerivedColumn(column: SMLDatasetColumn): column is SMLDatasetColumnDerived {
+    return TypeGuardUtil.hasProps<SMLDatasetColumnDerived>(column, "data_type", "parent_column");
   }
 
-  static isMapColumn(column: IYamlDatasetColumn): column is IYamlDatasetColumnMap {
-    return TypeGuardUtil.hasProps<IYamlDatasetColumnMap>(column, "map");
+  static isMapColumn(column: SMLDatasetColumn): column is SMLDatasetColumnMap {
+    return TypeGuardUtil.hasProps<SMLDatasetColumnMap>(column, "map");
   }
 
   static hasColumnDataTypeProp(
-    column: IYamlDatasetColumn
-  ): column is IYamlDatasetColumnSimple | IYamlDatasetColumnDerived {
+    column: SMLDatasetColumn
+  ): column is SMLDatasetColumnSimple | SMLDatasetColumnDerived {
     return this.isSimpleColumn(column) || this.isDerivedColumn(column);
   }
 
-  static hasDatasetSqlProp(dataset: IYamlDataset): boolean {
+  static hasDatasetSqlProp(dataset: SMLDataset): boolean {
     return TypeGuardUtil.hasProps(dataset, "sql");
   }
 
   static isAlternateSql(
-    input: IYamlDatasetAlternateSql | IYamlDatasetAlternateTable
-  ): input is IYamlDatasetAlternateSql {
+    input: SMLDatasetAlternateSql | SMLDatasetAlternateTable
+  ): input is SMLDatasetAlternateSql {
     return (
       TypeGuardUtil.hasProps(input, "sql") &&
       TypeGuardUtil.hasNoProps(input, "connection_id") &&
@@ -54,8 +54,8 @@ export default class YamlDatasetTypeGuard {
   }
 
   static isAlternateTable(
-    input: IYamlDatasetAlternateSql | IYamlDatasetAlternateTable
-  ): input is IYamlDatasetAlternateTable {
+    input: SMLDatasetAlternateSql | SMLDatasetAlternateTable
+  ): input is SMLDatasetAlternateTable {
     return (
       TypeGuardUtil.hasProps(input, "connection_id") &&
       TypeGuardUtil.hasProps(input, "table") &&

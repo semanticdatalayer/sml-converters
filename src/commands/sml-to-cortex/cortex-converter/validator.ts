@@ -1,15 +1,15 @@
 import { Logger } from "../../../shared/logger";
 
 // import { ILogger } from "models/src/ILogger";
-import { IYamlFile } from "models/src/IYamlFile";
-import { IFileService } from "validator/src/FileService/IFileService";
-import LocalFileService from "validator/src/FileService/LocalFileService";
-import { PackageParser } from "validator/src/PackagesParser/PackagesParser";
-import { RepoParser } from "validator/src/RepoParser/RepoParser";
-import { RepoReader } from "validator/src/RepoReader/RepoReader";
-import { IRepoValidatorResult } from "validator/src/RepoValidator/IRepoValidator";
-import RepoValidator from "validator/src/RepoValidator/RepoValidator";
-import ValidatorOutput from "validator/src/ValidatorOutput/ValidatorOutput";
+import { IYamlFile } from "../models/src/IYamlFile";
+import { IFileService } from "../validator/src/FileService/IFileService";
+import LocalFileService from "../validator/src/FileService/LocalFileService";
+import { PackageParser } from "../validator/src/PackagesParser/PackagesParser";
+import { RepoParser } from "../validator/src/RepoParser/RepoParser";
+import { RepoReader } from "../validator/src/RepoReader/RepoReader";
+import { IRepoValidatorResult } from "../validator/src/RepoValidator/IRepoValidator";
+import RepoValidator from "../validator/src/RepoValidator/RepoValidator";
+import ValidatorOutput from "../validator/src/ValidatorOutput/ValidatorOutput";
 
 /**
  * Reads the repository files and validates them.

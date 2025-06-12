@@ -1,22 +1,27 @@
-import { ObjectType } from "../../ObjectType";
-import { IYamlRowSecurity, YamlRowSecurityIdType, YamlRowSecurityScope } from "../../yaml/IYamlRowSecurity";
+import { 
+  SMLObjectType,
+  SMLRowSecurity,
+  SMLRowSecurityIdType,
+  SMLRowSecurityScope
+ } from "sml-sdk";
+// import { ISMLRowSecurity as SmlRowSecurity, SMLRowSecurityIdType, SMLRowSecurityScope } from "../../SML/ISMLRowSecurity";
 import { getAggregatedResult, getFreezedObject } from "./utils";
 
-const getRowSecurity = (input: IYamlRowSecurity) => getFreezedObject(input);
+const getRowSecurity = (input: SMLRowSecurity) => getFreezedObject(input);
 
 const securityByRegion = getRowSecurity({
   unique_name: "Row Level Security by Region",
   label: "Row Level Security by Region",
-  object_type: ObjectType.RowSecurity,
+  object_type: SMLObjectType.RowSecurity,
   dataset: "User to Country Map",
   filter_key_column: "country",
   ids_column: "username",
-  id_type: YamlRowSecurityIdType.Group,
-  scope: YamlRowSecurityScope.All,
+  id_type: SMLRowSecurityIdType.Group,
+  scope: SMLRowSecurityScope.All,
 });
 
 const allRowSecurities = {
   securityByRegion,
 };
 
-export const row_securities = getAggregatedResult<IYamlRowSecurity, typeof allRowSecurities>(allRowSecurities);
+export const row_securities = getAggregatedResult<SMLRowSecurity, typeof allRowSecurities>(allRowSecurities);

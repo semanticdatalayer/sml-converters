@@ -1,10 +1,12 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
-import { IYamlPackage, IYamlPackageChange } from "../../yaml/IYamlPackageFile";
+// import { IYamlPackage, IYamlPackageChange } from "../../yaml/IYamlPackageFile";
 
-export class YamlPackageBuilder extends AnyObjectBuilder<IYamlPackage> {
+import {SMLPackage, SMLPackageChange} from "sml-sdk"
+
+export class YamlPackageBuilder extends AnyObjectBuilder<SMLPackage> {
   static create(): YamlPackageBuilder {
-    const defaultData: IYamlPackage = {
+    const defaultData: SMLPackage = {
       url: "http://shared-repo.git",
       name: "shared",
       branch: "develop",
@@ -14,7 +16,7 @@ export class YamlPackageBuilder extends AnyObjectBuilder<IYamlPackage> {
     return new YamlPackageBuilder(defaultData);
   }
 
-  public with(data: Partial<IYamlPackage>): YamlPackageBuilder {
+  public with(data: Partial<SMLPackage>): YamlPackageBuilder {
     return super.with(data) as YamlPackageBuilder;
   }
 
@@ -35,7 +37,7 @@ export class YamlPackageBuilder extends AnyObjectBuilder<IYamlPackage> {
     }) as YamlPackageBuilder;
   }
 
-  static newCommit(name: string, commit: string): IYamlPackageChange {
+  static newCommit(name: string, commit: string): SMLPackageChange {
     return { name, commit };
   }
 }

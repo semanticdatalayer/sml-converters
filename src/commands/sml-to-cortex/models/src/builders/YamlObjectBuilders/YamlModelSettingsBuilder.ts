@@ -1,22 +1,28 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
+
+import {
+  SMLObjectType,
+  SMLModelSettings,
+  SML_MODEL_SETTINGS_FILE_NAME
+} from "sml-sdk";
 
 import { IYamlPartialFile } from "../../IYamlFile";
-import { ObjectType } from "../../ObjectType";
+// import { ObjectType } from "../../ObjectType";
 import { OriginType, PACKAGE_ROOT_NAME } from "../../SourceType";
-import { IYamlModelSettings, MODEL_SETTINGS_FILE_NAME } from "../../yaml/IYamlModelSettings";
+// import { IYamlModelSettings, MODEL_SETTINGS_FILE_NAME } from "../../yaml/IYamlModelSettings";
 import YamlSerializer from "../../YamlSerializer/YamlSerizlizer";
 import { IBuildYamlFileInput, isIBuildYamlFileInput } from "./YamlObjectBuilder";
 
-export class YamlModelSettingsBuilder extends AnyObjectBuilder<IYamlModelSettings> {
+export class YamlModelSettingsBuilder extends AnyObjectBuilder<SMLModelSettings> {
   static create(): YamlModelSettingsBuilder {
-    const defaultData = {
-      object_type: ObjectType.ModelSettings,
+    const defaultData: SMLModelSettings = {
+      object_type: SMLObjectType.ModelSettings,
     };
 
     return new YamlModelSettingsBuilder(defaultData);
   }
 
-  public with(data: Partial<IYamlModelSettings>): YamlModelSettingsBuilder {
+  public with(data: Partial<SMLModelSettings>): YamlModelSettingsBuilder {
     return super.with(data) as YamlModelSettingsBuilder;
   }
 
@@ -25,12 +31,12 @@ export class YamlModelSettingsBuilder extends AnyObjectBuilder<IYamlModelSetting
       return path.relativePath;
     }
 
-    let relativePath = path !== undefined ? path : `${MODEL_SETTINGS_FILE_NAME}`;
+    let relativePath = path !== undefined ? path : `${SML_MODEL_SETTINGS_FILE_NAME}`;
     if (!relativePath.endsWith(".yml")) relativePath = `${relativePath}.yml`;
     return relativePath;
   }
 
-  buildYamlFile(path?: string | IBuildYamlFileInput): IYamlPartialFile<IYamlModelSettings> {
+  buildYamlFile(path?: string | IBuildYamlFileInput): IYamlPartialFile<SMLModelSettings> {
     const data = this.clonedData;
 
     const relativePath = this.getRelativePath(path);
@@ -41,7 +47,7 @@ export class YamlModelSettingsBuilder extends AnyObjectBuilder<IYamlModelSetting
       compilationOutput: [],
       data,
       rawContent: yamlSerializer.serialize(data),
-      type: ObjectType.ModelSettings,
+      type: SMLObjectType.ModelSettings,
       origin: OriginType.Root,
       relativePath,
       packageName: PACKAGE_ROOT_NAME,

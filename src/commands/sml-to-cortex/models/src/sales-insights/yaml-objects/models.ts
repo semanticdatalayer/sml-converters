@@ -1,12 +1,11 @@
-import { ObjectType } from "../../ObjectType";
-import { IYamlModel } from "../../yaml/IYamlModel";
+import { SMLObjectType, SMLModel } from "sml-sdk";
 import { getAggregatedResult, getFreezedObject } from "./utils";
 
-const getModel = (input: IYamlModel) => getFreezedObject(input);
+const getModel = (input: SMLModel) => getFreezedObject(input);
 
 const InternetSales = getModel({
   unique_name: "Internet Sales",
-  object_type: ObjectType.Model,
+  object_type: SMLObjectType.Model,
   label: "Internet Sales",
   dimensions: ["Color Dimension", "Size Dimension", "Style Dimension", "Weight Dimension"],
   drillthroughs: [
@@ -806,4 +805,4 @@ const allModels = {
   InternetSales,
 };
 
-export const models = getAggregatedResult<IYamlModel, typeof allModels>(allModels);
+export const models = getAggregatedResult<SMLModel, typeof allModels>(allModels);

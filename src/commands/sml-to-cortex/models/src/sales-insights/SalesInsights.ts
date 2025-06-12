@@ -4,9 +4,9 @@ import { deepFreeze } from "../deepFreeze";
 import { IFile } from "../IFile";
 import { IFolderStructure } from "../IFolderStructure";
 import { IYamlFile } from "../IYamlFile";
-import { ObjectType } from "../ObjectType";
+import { SMLObjectType } from "sml-sdk";
 import { OriginType, PACKAGE_ROOT_NAME } from "../SourceType";
-import { IYamlObject } from "../yaml/IYamlObject";
+import { SMLObject } from "sml-sdk";
 import { calculations } from "./yaml-objects/calculations";
 import { connections } from "./yaml-objects/connections";
 import { datasets } from "./yaml-objects/datasets";
@@ -15,7 +15,7 @@ import { metrics } from "./yaml-objects/metrics";
 import { models } from "./yaml-objects/models";
 import { row_securities } from "./yaml-objects/row_security";
 
-const createYamlFiles = <T extends IYamlObject>(objects: Array<T>): Array<IYamlFile> => {
+const createYamlFiles = <T extends SMLObject>(objects: Array<T>): Array<IYamlFile> => {
   return objects.map((yamlObject) => Object.freeze(AnyYamlObjectBuilder.create(yamlObject).buildYamlFile()));
 };
 
@@ -37,7 +37,7 @@ const catalogBuilder = YamlCatalogBuilder.create().with({
 const catalog = catalogBuilder.build();
 const catalogFile = catalogBuilder.buildYamlFile();
 
-const buildObjectTypeFolder = (type: ObjectType, files: Array<IYamlFile>): IFolderStructure<IFile> => {
+const buildObjectTypeFolder = (type: SMLObjectType, files: Array<IYamlFile>): IFolderStructure<IFile> => {
   return {
     files,
     folders: [],
@@ -50,13 +50,13 @@ const buildObjectTypeFolder = (type: ObjectType, files: Array<IYamlFile>): IFold
 const rootFolder: IFolderStructure<IFile> = {
   files: [catalogFile],
   folders: [
-    buildObjectTypeFolder(ObjectType.MeasureCalc, files.calculations),
-    buildObjectTypeFolder(ObjectType.Connection, files.connections),
-    buildObjectTypeFolder(ObjectType.Dataset, files.datasets),
-    buildObjectTypeFolder(ObjectType.Dimension, files.dimensions),
-    buildObjectTypeFolder(ObjectType.Measure, files.metrics),
-    buildObjectTypeFolder(ObjectType.Model, files.models),
-    buildObjectTypeFolder(ObjectType.RowSecurity, files.row_securities),
+    buildObjectTypeFolder(SMLObjectType.MetricCalc, files.calculations),
+    buildObjectTypeFolder(SMLObjectType.Connection, files.connections),
+    buildObjectTypeFolder(SMLObjectType.Dataset, files.datasets),
+    buildObjectTypeFolder(SMLObjectType.Dimension, files.dimensions),
+    buildObjectTypeFolder(SMLObjectType.Metric, files.metrics),
+    buildObjectTypeFolder(SMLObjectType.Model, files.models),
+    buildObjectTypeFolder(SMLObjectType.RowSecurity, files.row_securities),
   ],
   origin: OriginType.Root,
   packageName: PACKAGE_ROOT_NAME,

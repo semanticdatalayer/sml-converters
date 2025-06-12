@@ -1,10 +1,10 @@
-import { IYamlObject } from "../../yaml/IYamlObject";
+import { SMLObject } from "sml-sdk";
 
 export const getFreezedObject = <T>(input: T): T => {
   return Object.freeze(input);
 };
 
-export const getAggregatedResult = <TObjectType extends IYamlObject, T extends object>(
+export const getAggregatedResult = <TObjectType extends SMLObject, T extends object>(
   input: T
 ): T & { all: Array<TObjectType> } => {
   const all: Array<TObjectType> = [];

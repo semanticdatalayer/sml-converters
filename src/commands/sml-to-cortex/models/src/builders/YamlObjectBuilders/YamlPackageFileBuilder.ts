@@ -1,14 +1,14 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
 import { FileWithContent } from "../../IFile";
 import { OriginType, PACKAGE_ROOT_NAME } from "../../SourceType";
-import { IYamlPackage, IYamlPackageFile, PACKAGE_FILE_NAME } from "../../yaml/IYamlPackageFile";
+import { SMLPackage, SMLPackageFile, SML_PACKAGE_FILE_NAME } from "sml-sdk";
 import YamlSerializer from "../../YamlSerializer/YamlSerizlizer";
 import { IBuildYamlFileInput, isIBuildYamlFileInput } from "./YamlObjectBuilder";
 
-export class YamlPackageFileBuilder extends AnyObjectBuilder<IYamlPackageFile> {
+export class YamlPackageFileBuilder extends AnyObjectBuilder<SMLPackageFile> {
   static create(): YamlPackageFileBuilder {
-    const defaultData: IYamlPackageFile = {
+    const defaultData: SMLPackageFile = {
       version: 1,
       packages: [],
     };
@@ -16,7 +16,7 @@ export class YamlPackageFileBuilder extends AnyObjectBuilder<IYamlPackageFile> {
     return new YamlPackageFileBuilder(defaultData);
   }
 
-  public with(data: Partial<IYamlPackageFile>): YamlPackageFileBuilder {
+  public with(data: Partial<SMLPackageFile>): YamlPackageFileBuilder {
     return super.with(data) as YamlPackageFileBuilder;
   }
 
@@ -25,8 +25,8 @@ export class YamlPackageFileBuilder extends AnyObjectBuilder<IYamlPackageFile> {
    * @param data package to add
    * @returns new builder
    */
-  public addPackage(data: Partial<IYamlPackage>): YamlPackageFileBuilder {
-    return this.with({ packages: [...this.clonedData.packages, data as IYamlPackage] });
+  public addPackage(data: Partial<SMLPackage>): YamlPackageFileBuilder {
+    return this.with({ packages: [...this.clonedData.packages, data as SMLPackage] });
   }
 
   public version(version: number): YamlPackageFileBuilder {
@@ -38,7 +38,7 @@ export class YamlPackageFileBuilder extends AnyObjectBuilder<IYamlPackageFile> {
       return path.relativePath;
     }
 
-    let relativePath = path !== undefined ? path : `/${PACKAGE_FILE_NAME}`;
+    let relativePath = path !== undefined ? path : `/${SML_PACKAGE_FILE_NAME}`;
     if (!relativePath.endsWith(".yml")) relativePath = `${relativePath}.yml`;
     return relativePath;
   }

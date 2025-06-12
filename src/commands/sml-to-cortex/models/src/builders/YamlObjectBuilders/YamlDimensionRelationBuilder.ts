@@ -1,10 +1,15 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
-import { IYamlDimensionRelationship, YamlDimensionRelationType } from "../../yaml/IYamlDimension";
+import {
+  SMLDimensionRelationship,
+  SMLDimensionRelationType
+} from "sml-sdk"
 
-export class YamlDimensionRelationBuilder extends AnyObjectBuilder<IYamlDimensionRelationship> {
+// import { IYamlDimensionRelationship, YamlDimensionRelationType } from "../../yaml/IYamlDimension";
+
+export class YamlDimensionRelationBuilder extends AnyObjectBuilder<SMLDimensionRelationship> {
   static create(): YamlDimensionRelationBuilder {
-    const defaultValues: IYamlDimensionRelationship = {
+    const defaultValues: SMLDimensionRelationship = {
       from: {
         dataset: "",
         join_columns: [],
@@ -12,12 +17,12 @@ export class YamlDimensionRelationBuilder extends AnyObjectBuilder<IYamlDimensio
       to: {
         level: "",
       },
-      type: YamlDimensionRelationType.Snowflake,
+      type: SMLDimensionRelationType.Snowflake,
     };
     return new YamlDimensionRelationBuilder(defaultValues);
   }
 
-  with(data: Partial<IYamlDimensionRelationship>): YamlDimensionRelationBuilder {
+  with(data: Partial<SMLDimensionRelationship>): YamlDimensionRelationBuilder {
     return super.with(data) as YamlDimensionRelationBuilder;
   }
 
@@ -46,7 +51,7 @@ export class YamlDimensionRelationBuilder extends AnyObjectBuilder<IYamlDimensio
     });
   }
 
-  withType(type: YamlDimensionRelationType): YamlDimensionRelationBuilder {
+  withType(type: SMLDimensionRelationType): YamlDimensionRelationBuilder {
     return this.with({
       type: type,
     });

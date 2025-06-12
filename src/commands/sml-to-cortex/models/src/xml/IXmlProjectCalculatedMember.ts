@@ -1,4 +1,4 @@
-import { AggregationMethod } from "../yaml/IYamlMeasure";
+import { SMLAggregationMethod } from 'sml-sdk';
 import { IXmlCommonVisibleProperties, IXmlSimpleKeyReference } from "./IXmlCommonProjectProperties";
 import { IXmlAttributeCalculatedMemberFormatting } from "./IXmlProjectKeyedAttribute";
 
@@ -16,5 +16,5 @@ export interface IXmlProjectCalculatedMember extends IXmlSimpleKeyReference {
   name: string;
   properties: IXmlProjectCalculatedMemberProperties;
   expression: string;
-  mdxAggregateFunction?: AggregationMethod;
+  mdxAggregateFunction?: SMLAggregationMethod;
 }

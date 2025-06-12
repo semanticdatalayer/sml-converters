@@ -1,10 +1,10 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
-import { IYamlDimensionSecondaryAttribute } from "../../yaml/IYamlDimension";
+import { SMLDimensionSecondaryAttribute } from "sml-sdk";
 
-export default class YamlSecondaryAttributeBuilder extends AnyObjectBuilder<IYamlDimensionSecondaryAttribute> {
+export default class YamlSecondaryAttributeBuilder extends AnyObjectBuilder<SMLDimensionSecondaryAttribute> {
   static create(): YamlSecondaryAttributeBuilder {
-    const defaultsAttributeValues: IYamlDimensionSecondaryAttribute = {
+    const defaultsAttributeValues: SMLDimensionSecondaryAttribute = {
       dataset: "no dataset",
       key_columns: [],
       label: "no name",

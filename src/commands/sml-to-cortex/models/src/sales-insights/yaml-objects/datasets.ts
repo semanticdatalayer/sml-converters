@@ -1,12 +1,12 @@
-import { ObjectType } from "../../ObjectType";
-import { IYamlDataset } from "../../yaml/IYamlDataset";
+import { SMLObjectType } from "sml-sdk";
+import { SMLDataset } from "sml-sdk";
 import { getAggregatedResult, getFreezedObject } from "./utils";
 
-const getDataset = (dataset: IYamlDataset) => getFreezedObject(dataset);
+const getDataset = (dataset: SMLDataset) => getFreezedObject(dataset);
 
-const dateCustom: IYamlDataset = getDataset({
+const dateCustom: SMLDataset = getDataset({
   unique_name: "DateCustom",
-  object_type: ObjectType.Dataset,
+  object_type: SMLObjectType.Dataset,
   label: "DateCustom",
   connection_id: "Postgres",
   table: "datecustom",
@@ -410,10 +410,10 @@ const dateCustom: IYamlDataset = getDataset({
   ],
 });
 
-const userToCountryMap: IYamlDataset = getDataset({
+const userToCountryMap: SMLDataset = getDataset({
   unique_name: "User to Country Map",
   label: "User to Country Map",
-  object_type: ObjectType.Dataset,
+  object_type: SMLObjectType.Dataset,
   connection_id: "Postgres",
   sql: "select 'France' as \"country\", 'joe' as \"username\"\nunion all\nselect 'United States' as \"country\", 'david' as \"username\"\nunion all\nselect 'Australia' as \"country\", 'joe' as \"username\"\nunion all\nselect 'Canada' as \"country\", 'david' as \"username\"\nunion all\nselect 'Germany' as \"country\", 'joe' as \"username\"\nunion all\nselect 'United Kingdom' as \"country\", 'joe' as \"username\"",
   columns: [
@@ -428,9 +428,9 @@ const userToCountryMap: IYamlDataset = getDataset({
   ],
 });
 
-const dimGeoCity: IYamlDataset = getDataset({
+const dimGeoCity: SMLDataset = getDataset({
   unique_name: "dim_geo_city",
-  object_type: ObjectType.Dataset,
+  object_type: SMLObjectType.Dataset,
   label: "dim_geo_city",
   connection_id: "Postgres",
   table: "dim_geo_city",
@@ -454,9 +454,9 @@ const dimGeoCity: IYamlDataset = getDataset({
   ],
 });
 
-const dimGeoCountry: IYamlDataset = getDataset({
+const dimGeoCountry: SMLDataset = getDataset({
   unique_name: "dim_geo_country",
-  object_type: ObjectType.Dataset,
+  object_type: SMLObjectType.Dataset,
   label: "dim_geo_country",
   connection_id: "Postgres",
   table: "dim_geo_country",
@@ -468,10 +468,10 @@ const dimGeoCountry: IYamlDataset = getDataset({
   ],
 });
 
-const dimGeoPostalcode: IYamlDataset = getDataset({
+const dimGeoPostalcode: SMLDataset = getDataset({
   unique_name: "dim_geo_postalcode",
   label: "dim_geo_postalcode",
-  object_type: ObjectType.Dataset,
+  object_type: SMLObjectType.Dataset,
   connection_id: "Postgres",
   table: "dim_geo_postalcode",
   columns: [
@@ -494,10 +494,10 @@ const dimGeoPostalcode: IYamlDataset = getDataset({
   ],
 });
 
-const dimGeoState: IYamlDataset = getDataset({
+const dimGeoState: SMLDataset = getDataset({
   unique_name: "dim_geo_state",
   label: "dim_geo_state",
-  object_type: ObjectType.Dataset,
+  object_type: SMLObjectType.Dataset,
   connection_id: "Postgres",
   table: "dim_geo_state",
   columns: [
@@ -516,10 +516,10 @@ const dimGeoState: IYamlDataset = getDataset({
   ],
 });
 
-const dimCustomer: IYamlDataset = getDataset({
+const dimCustomer: SMLDataset = getDataset({
   unique_name: "dimcustomer",
   label: "dimcustomer",
-  object_type: ObjectType.Dataset,
+  object_type: SMLObjectType.Dataset,
   connection_id: "Postgres",
   table: "dimcustomer",
   columns: [
@@ -558,10 +558,10 @@ const dimCustomer: IYamlDataset = getDataset({
   ],
 });
 
-const dimProduct: IYamlDataset = getDataset({
+const dimProduct: SMLDataset = getDataset({
   unique_name: "dimproduct",
   label: "dimproduct",
-  object_type: ObjectType.Dataset,
+  object_type: SMLObjectType.Dataset,
   connection_id: "Postgres",
   table: "dimproduct",
   columns: [
@@ -596,10 +596,10 @@ const dimProduct: IYamlDataset = getDataset({
   ],
 });
 
-const factinternetsales: IYamlDataset = getDataset({
+const factinternetsales: SMLDataset = getDataset({
   unique_name: "factinternetsales",
   label: "factinternetsales",
-  object_type: ObjectType.Dataset,
+  object_type: SMLObjectType.Dataset,
 
   connection_id: "Postgres",
   table: "factinternetsales",
@@ -699,10 +699,10 @@ const factinternetsales: IYamlDataset = getDataset({
   ],
 });
 
-const dimOrder: IYamlDataset = getDataset({
+const dimOrder: SMLDataset = getDataset({
   unique_name: "dimorder",
   label: "dimorder",
-  object_type: ObjectType.Dataset,
+  object_type: SMLObjectType.Dataset,
 
   connection_id: "Postgres",
   table: "dimorder",
@@ -742,10 +742,10 @@ const dimOrder: IYamlDataset = getDataset({
   ],
 });
 
-const dimGender: IYamlDataset = getDataset({
+const dimGender: SMLDataset = getDataset({
   unique_name: "dimgender",
   label: "dimgender",
-  object_type: ObjectType.Dataset,
+  object_type: SMLObjectType.Dataset,
 
   connection_id: "Postgres",
   table: "dimgender",
@@ -775,4 +775,4 @@ const allDatasets = {
   dimGender: dimGender,
 };
 
-export const datasets = getAggregatedResult<IYamlDataset, typeof allDatasets>(allDatasets);
+export const datasets = getAggregatedResult<SMLDataset, typeof allDatasets>(allDatasets);

@@ -1,10 +1,14 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
-import { IYamlDimensionLevelAttribute } from "../../yaml/IYamlDimension";
+import {
+  SMLDimensionLevelAttribute
+} from "sml-sdk";
 
-export default class YamlLevelAttributeBuilder extends AnyObjectBuilder<IYamlDimensionLevelAttribute> {
+// import { IYamlDimensionLevelAttribute } from "../../yaml/IYamlDimension";
+
+export default class YamlLevelAttributeBuilder extends AnyObjectBuilder<SMLDimensionLevelAttribute> {
   static create(): YamlLevelAttributeBuilder {
-    const defaultsAttributeValues: IYamlDimensionLevelAttribute = {
+    const defaultsAttributeValues: SMLDimensionLevelAttribute = {
       dataset: "no dataset",
       key_columns: [],
       label: "no name",

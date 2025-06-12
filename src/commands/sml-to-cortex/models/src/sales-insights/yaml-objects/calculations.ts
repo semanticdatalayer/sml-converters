@@ -1,19 +1,19 @@
-import { ObjectType } from "../../ObjectType";
-import { IYamlMeasureCalculated } from "../../yaml/IYamlMeasure";
+import { SMLObjectType, SMLMetricCalculated } from "sml-sdk";
+// import { IYamlMetricCalculated } from "../../yaml/IYamlMeasure";
 import { getAggregatedResult, getFreezedObject } from "./utils";
 
-const getCalc = (input: IYamlMeasureCalculated) => getFreezedObject(input);
+const getCalc = (input: SMLMetricCalculated) => getFreezedObject(input);
 
 const averageLastProductUnitCountPerOrder = getCalc({
   unique_name: "Average Last Product Unit Count per Order",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Average Last Product Unit Count per Order",
   expression: "([Measures].[lastproductunitprice] / [Measures].[orderquantity1])",
 });
 
 const estimatedCustomerCountOrderCustomPP445PrevYearGrowthPct = getCalc({
   unique_name: "Estimated Customer Count-Order CustomPP445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order CustomPP445-PrevYearGrowthPct",
   description: "Percent growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -23,7 +23,7 @@ const estimatedCustomerCountOrderCustomPP445PrevYearGrowthPct = getCalc({
 
 const estimatedCustomerCountOrderRetail44530PrdMvAvgPrevYear = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-30PrdMvAvgPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-30PrdMvAvgPrevYear",
   description: "Prev Year's 30 Period Moving  Average of Sales. Use on the [Order Retail445] Dimension",
   expression:
@@ -33,7 +33,7 @@ const estimatedCustomerCountOrderRetail44530PrdMvAvgPrevYear = getCalc({
 
 const estimatedCustomerCountOrderRetail44530PrdMvStdev = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-30PrdMvStdev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-30PrdMvStdev",
   description: "30 Period Standard Deviation Use at Day Level of [Order Retail445]",
   expression:
@@ -43,7 +43,7 @@ const estimatedCustomerCountOrderRetail44530PrdMvStdev = getCalc({
 
 const estimatedCustomerCountOrderRetail445Next = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-Next",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-Next",
   description: "Next Period's  Sales Amount on Order Retail445",
   expression:
@@ -53,7 +53,7 @@ const estimatedCustomerCountOrderRetail445Next = getCalc({
 
 const lastProductUnitPriceOrderCustomPP445PrevYear = getCalc({
   unique_name: "Last Product Unit Price-Order CustomPP445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order CustomPP445-PrevYear",
   description: "Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -63,7 +63,7 @@ const lastProductUnitPriceOrderCustomPP445PrevYear = getCalc({
 
 const salesAmountOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
   unique_name: "Sales Amount-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
   description: "Sales 30 Period Moving Avg  vs Prev Year as Percentage",
   expression:
@@ -73,7 +73,7 @@ const salesAmountOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
 
 const soldProductNDCOrderRetail445Prev = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-Prev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-Prev ",
   description: "Order Reporting Hierarchy Previous Period Sales",
   expression:
@@ -83,7 +83,7 @@ const soldProductNDCOrderRetail445Prev = getCalc({
 
 const soldProductNDCOrderRetail445YTDPrevYear = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-YTDPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-YTDPrevYear",
   description: "Previous Year's Year-to-date Sum of Sales ",
   expression:
@@ -93,35 +93,35 @@ const soldProductNDCOrderRetail445YTDPrevYear = getCalc({
 
 const averageEstCustomerCountPerOrder = getCalc({
   unique_name: "Average Est Customer Count per Order",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Average Est Customer Count per Order",
   expression: "([Measures].[customercountestimate1] / [Measures].[orderquantity1])",
 });
 
 const averageSalesAmountSDCountPerOrder = getCalc({
   unique_name: "Average Sales Amount SD Count per Order",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Average Sales Amount SD Count per Order",
   expression: "([Measures].[salesamountsstdev1] / [Measures].[orderquantity1])",
 });
 
 const averageSalesPerOrder = getCalc({
   unique_name: "Average Sales per Order",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Average Sales per Order",
   expression: "([Measures].[salesamount1] / [Measures].[orderquantity1])",
 });
 
 const averageSoldProductPerOrder = getCalc({
   unique_name: "Average Sold Product per Order",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Average Sold Product per Order",
   expression: "([Measures].[soldproductNDC1] / [Measures].[orderquantity1])",
 });
 
 const customerCountOrderCustomPP445PrevYearGrowthPct = getCalc({
   unique_name: "Customer Count-Order CustomPP445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order CustomPP445-PrevYearGrowthPct",
   description: "Percent growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -131,7 +131,7 @@ const customerCountOrderCustomPP445PrevYearGrowthPct = getCalc({
 
 const customerCountOrderRetail44530PrdMvAvgPrevYear = getCalc({
   unique_name: "Customer Count-Order Retail445-30PrdMvAvgPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-30PrdMvAvgPrevYear",
   description: "Prev Year's 30 Period Moving  Average of Sales. Use on the [Order Retail445] Dimension",
   expression:
@@ -141,7 +141,7 @@ const customerCountOrderRetail44530PrdMvAvgPrevYear = getCalc({
 
 const customerCountOrderRetail44530PrdMvStdev = getCalc({
   unique_name: "Customer Count-Order Retail445-30PrdMvStdev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-30PrdMvStdev",
   description: "30 Period Standard Deviation Use at Day Level of [Order Retail445]",
   expression:
@@ -151,7 +151,7 @@ const customerCountOrderRetail44530PrdMvStdev = getCalc({
 
 const customerCountOrderRetail445Next = getCalc({
   unique_name: "Customer Count-Order Retail445-Next",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-Next",
   description: "Next Period's  Sales Amount on Order Retail445",
   expression:
@@ -161,7 +161,7 @@ const customerCountOrderRetail445Next = getCalc({
 
 const customerCountOrderRetail445Prev = getCalc({
   unique_name: "Customer Count-Order Retail445-Prev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-Prev ",
   description: "Order Reporting Hierarchy Previous Period Sales",
   expression:
@@ -171,7 +171,7 @@ const customerCountOrderRetail445Prev = getCalc({
 
 const estimatedCustomerCountOrderCustomPP445PrevYear = getCalc({
   unique_name: "Estimated Customer Count-Order CustomPP445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order CustomPP445-PrevYear",
   description: "Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -180,7 +180,7 @@ const estimatedCustomerCountOrderCustomPP445PrevYear = getCalc({
 
 const estimatedCustomerCountOrderRetail44530PrdMvAvg = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-30PrdMvAvg",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-30PrdMvAvg",
   description: "30 Period Moving Average of Sales Amount.  Meant to execute at Day Level  of ",
   expression:
@@ -190,7 +190,7 @@ const estimatedCustomerCountOrderRetail44530PrdMvAvg = getCalc({
 
 const estimatedCustomerCountOrderRetail44530PrdMvLowerBand = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-30PrdMvLowerBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-30PrdMvLowerBand",
   description: "Sales 30 Day Moving Average - 1 Stdev, use on [Order Retail445]",
   expression:
@@ -200,7 +200,7 @@ const estimatedCustomerCountOrderRetail44530PrdMvLowerBand = getCalc({
 
 const estimatedCustomerCountOrderRetail445Prev = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-Prev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-Prev ",
   description: "Order Reporting Hierarchy Previous Period Sales",
   expression:
@@ -210,7 +210,7 @@ const estimatedCustomerCountOrderRetail445Prev = getCalc({
 
 const estimatedCustomerCountOrderRetail445PrevPeriodGrowthPct = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-PrevPeriodGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-PrevPeriodGrowthPct",
   description: "Order Retail445 Previous Period Growth Percent",
   expression:
@@ -220,7 +220,7 @@ const estimatedCustomerCountOrderRetail445PrevPeriodGrowthPct = getCalc({
 
 const estimatedCustomerCountOrderRetail445PrevYearGrowthPct = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-PrevYearGrowthPct",
   description: "Order Retail445 Sales Amount Year-over-year growth as percent",
   expression:
@@ -230,7 +230,7 @@ const estimatedCustomerCountOrderRetail445PrevYearGrowthPct = getCalc({
 
 const estimatedCustomerCountOrderRetail445YTD = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-YTD",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-YTD",
   description: "Sales Amount Year-to-date Order Retail445",
   expression:
@@ -240,7 +240,7 @@ const estimatedCustomerCountOrderRetail445YTD = getCalc({
 
 const lastProductUnitPriceOrderCustomPP445PrevYearGrowthPct = getCalc({
   unique_name: "Last Product Unit Price-Order CustomPP445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order CustomPP445-PrevYearGrowthPct",
   description: "Percent growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -250,7 +250,7 @@ const lastProductUnitPriceOrderCustomPP445PrevYearGrowthPct = getCalc({
 
 const lastProductUnitPriceOrderRetail44530PrdMvAvgPrevYear = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-30PrdMvAvgPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-30PrdMvAvgPrevYear",
   description: "Prev Year's 30 Period Moving  Average of Sales. Use on the [Order Retail445] Dimension",
   expression:
@@ -260,7 +260,7 @@ const lastProductUnitPriceOrderRetail44530PrdMvAvgPrevYear = getCalc({
 
 const lastProductUnitPriceOrderRetail44530PrdMvStdev = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-30PrdMvStdev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-30PrdMvStdev",
   description: "30 Period Standard Deviation Use at Day Level of [Order Retail445]",
   expression:
@@ -270,7 +270,7 @@ const lastProductUnitPriceOrderRetail44530PrdMvStdev = getCalc({
 
 const lastProductUnitPriceOrderRetail445Next = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-Next",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-Next",
   description: "Next Period's  Sales Amount on Order Retail445",
   expression:
@@ -280,7 +280,7 @@ const lastProductUnitPriceOrderRetail445Next = getCalc({
 
 const lastProductUnitPriceOrderRetail445PrevYear = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-PrevYear",
   description: "Order Sales Amount Prev Year (Retail445)",
   expression:
@@ -290,7 +290,7 @@ const lastProductUnitPriceOrderRetail445PrevYear = getCalc({
 
 const maxTaxAmountOrderRetail44530PrdMvStdev = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-30PrdMvStdev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-30PrdMvStdev",
   description: "30 Period Standard Deviation Use at Day Level of [Order Retail445]",
   expression:
@@ -300,7 +300,7 @@ const maxTaxAmountOrderRetail44530PrdMvStdev = getCalc({
 
 const salesAmountSStdevOrderCustomPP445PrevYear = getCalc({
   unique_name: "Sales Amount SStdev-Order CustomPP445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order CustomPP445-PrevYear",
   description: "Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -310,7 +310,7 @@ const salesAmountSStdevOrderCustomPP445PrevYear = getCalc({
 
 const salesAmountSStdevOrderCustomPP445PrevYearGrowthPct = getCalc({
   unique_name: "Sales Amount SStdev-Order CustomPP445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order CustomPP445-PrevYearGrowthPct",
   description: "Percent growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -320,7 +320,7 @@ const salesAmountSStdevOrderCustomPP445PrevYearGrowthPct = getCalc({
 
 const salesAmountSStdevOrderRetail44530PrdMvStdev = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-30PrdMvStdev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-30PrdMvStdev",
   description: "30 Period Standard Deviation Use at Day Level of [Order Retail445]",
   expression:
@@ -330,7 +330,7 @@ const salesAmountSStdevOrderRetail44530PrdMvStdev = getCalc({
 
 const soldProductNDCOrderCustomPP445PrevYear = getCalc({
   unique_name: "SoldProductNDC-Order CustomPP445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order CustomPP445-PrevYear",
   description: "Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -340,7 +340,7 @@ const soldProductNDCOrderCustomPP445PrevYear = getCalc({
 
 const soldProductNDCOrderRetail44530PrdMvAvgPrevYear = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-30PrdMvAvgPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-30PrdMvAvgPrevYear",
   description: "Prev Year's 30 Period Moving  Average of Sales. Use on the [Order Retail445] Dimension",
   expression:
@@ -350,7 +350,7 @@ const soldProductNDCOrderRetail44530PrdMvAvgPrevYear = getCalc({
 
 const soldProductNDCOrderRetail44530PrdMvStdev = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-30PrdMvStdev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-30PrdMvStdev",
   description: "30 Period Standard Deviation Use at Day Level of [Order Retail445]",
   expression:
@@ -360,7 +360,7 @@ const soldProductNDCOrderRetail44530PrdMvStdev = getCalc({
 
 const soldProductNDCOrderRetail445Next = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-Next",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-Next",
   description: "Next Period's  Sales Amount on Order Retail445",
   expression:
@@ -370,21 +370,21 @@ const soldProductNDCOrderRetail445Next = getCalc({
 
 const averageCustomerCountPerOrder = getCalc({
   unique_name: "Average Customer Count per Order",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Average Customer Count per Order",
   expression: "([Measures].[customercount1] / [Measures].[orderquantity1])",
 });
 
 const averageMaxTaxCountPerOrder = getCalc({
   unique_name: "Average Customer Count per Order",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Average Customer Count per Order",
   expression: "([Measures].[customercount1] / [Measures].[orderquantity1])",
 });
 
 const customerCountOrderRetail44530PrdMvAvg = getCalc({
   unique_name: "Customer Count-Order Retail445-30PrdMvAvg",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-30PrdMvAvg",
   description: "30 Period Moving Average of Sales Amount.  Meant to execute at Day Level  of ",
   expression:
@@ -394,7 +394,7 @@ const customerCountOrderRetail44530PrdMvAvg = getCalc({
 
 const customerCountOrderRetail44530PrdMvLowerBand = getCalc({
   unique_name: "Customer Count-Order Retail445-30PrdMvLowerBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-30PrdMvLowerBand",
   description: "Sales 30 Day Moving Average - 1 Stdev, use on [Order Retail445]",
   expression:
@@ -404,7 +404,7 @@ const customerCountOrderRetail44530PrdMvLowerBand = getCalc({
 
 const customerCountOrderRetail445PrevPeriodGrowthPct = getCalc({
   unique_name: "Customer Count-Order Retail445-PrevPeriodGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-PrevPeriodGrowthPct",
   description: "Order Retail445 Previous Period Growth Percent",
   expression:
@@ -414,7 +414,7 @@ const customerCountOrderRetail445PrevPeriodGrowthPct = getCalc({
 
 const customerCountOrderRetail445PrevYearGrowthPct = getCalc({
   unique_name: "Customer Count-Order Retail445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-PrevYearGrowthPct",
   description: "Order Retail445 Sales Amount Year-over-year growth as percent",
   expression:
@@ -424,7 +424,7 @@ const customerCountOrderRetail445PrevYearGrowthPct = getCalc({
 
 const estimatedCustomerCountOrderCustomPP445PrevYearGrowth = getCalc({
   unique_name: "Estimated Customer Count-Order CustomPP445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order CustomPP445-PrevYearGrowth",
   description: "Growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -434,7 +434,7 @@ const estimatedCustomerCountOrderCustomPP445PrevYearGrowth = getCalc({
 
 const estimatedCustomerCountOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
   description: "Sales 30 Period Moving Avg  vs Prev Year as Percentage",
   expression:
@@ -444,7 +444,7 @@ const estimatedCustomerCountOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc(
 
 const estimatedCustomerCountOrderRetail44530PrdMvUpperBand = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-30PrdMvUpperBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-30PrdMvUpperBand",
   description: "Sales 30 Day Moving Average + 1 Standard Deviation use on [Order Retail445]",
   expression:
@@ -454,7 +454,7 @@ const estimatedCustomerCountOrderRetail44530PrdMvUpperBand = getCalc({
 
 const estimatedCustomerCountOrderRetail445PrevPeriodGrowth = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-PrevPeriodGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-PrevPeriodGrowth",
   description: "Order Retail 445 Growth since previous period.",
   expression:
@@ -464,7 +464,7 @@ const estimatedCustomerCountOrderRetail445PrevPeriodGrowth = getCalc({
 
 const estimatedCustomerCountOrderRetail445PrevYear = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-PrevYear",
   description: "Order Sales Amount Prev Year (Retail445)",
   expression:
@@ -474,7 +474,7 @@ const estimatedCustomerCountOrderRetail445PrevYear = getCalc({
 
 const lastProductUnitPriceOrderRetail44530PrdMvAvg = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-30PrdMvAvg",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-30PrdMvAvg",
   description: "30 Period Moving Average of Sales Amount.  Meant to execute at Day Level  of ",
   expression:
@@ -484,7 +484,7 @@ const lastProductUnitPriceOrderRetail44530PrdMvAvg = getCalc({
 
 const lastProductUnitPriceOrderRetail44530PrdMvLowerBand = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-30PrdMvLowerBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-30PrdMvLowerBand",
   description: "Sales 30 Day Moving Average - 1 Stdev, use on [Order Retail445]",
   expression:
@@ -494,7 +494,7 @@ const lastProductUnitPriceOrderRetail44530PrdMvLowerBand = getCalc({
 
 const lastProductUnitPriceOrderRetail445Prev = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-Prev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-Prev ",
   description: "Order Reporting Hierarchy Previous Period Sales",
   expression:
@@ -504,7 +504,7 @@ const lastProductUnitPriceOrderRetail445Prev = getCalc({
 
 const lastProductUnitPriceOrderRetail445PrevPeriodGrowthPct = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-PrevPeriodGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-PrevPeriodGrowthPct",
   description: "Order Retail445 Previous Period Growth Percent",
   expression:
@@ -514,7 +514,7 @@ const lastProductUnitPriceOrderRetail445PrevPeriodGrowthPct = getCalc({
 
 const lastProductUnitPriceOrderRetail445PrevYearGrowthPct = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-PrevYearGrowthPct",
   description: "Order Retail445 Sales Amount Year-over-year growth as percent",
   expression:
@@ -524,7 +524,7 @@ const lastProductUnitPriceOrderRetail445PrevYearGrowthPct = getCalc({
 
 const lastProductUnitPriceOrderRetail445YTD = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-YTD",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-YTD",
   description: "Sales Amount Year-to-date Order Retail445",
   expression:
@@ -534,7 +534,7 @@ const lastProductUnitPriceOrderRetail445YTD = getCalc({
 
 const lastProductUnitPriceOrderRetail445YTDPrevYear = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-YTDPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-YTDPrevYear",
   description: "Previous Year's Year-to-date Avg Last product price ",
   expression:
@@ -544,7 +544,7 @@ const lastProductUnitPriceOrderRetail445YTDPrevYear = getCalc({
 
 const maxTaxAmountOrderCustomPP445PrevYear = getCalc({
   unique_name: "Max Tax Amount-Order CustomPP445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order CustomPP445-PrevYear",
   description: "Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -554,7 +554,7 @@ const maxTaxAmountOrderCustomPP445PrevYear = getCalc({
 
 const maxTaxAmountOrderCustomPP445PrevYearGrowthPct = getCalc({
   unique_name: "Max Tax Amount-Order CustomPP445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order CustomPP445-PrevYearGrowthPct",
   description: "Percent growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -564,7 +564,7 @@ const maxTaxAmountOrderCustomPP445PrevYearGrowthPct = getCalc({
 
 const maxTaxAmountOrderRetail44530PrdMvAvg = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-30PrdMvAvg",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-30PrdMvAvg",
   description: "30 Period Moving Average of Sales Amount.  Meant to execute at Day Level  of ",
   expression:
@@ -574,7 +574,7 @@ const maxTaxAmountOrderRetail44530PrdMvAvg = getCalc({
 
 const maxTaxAmountOrderRetail44530PrdMvAvgPrevYear = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-30PrdMvAvgPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-30PrdMvAvgPrevYear",
   description: "Prev Year's 30 Period Moving  Average of Sales. Use on the [Order Retail445] Dimension",
   expression:
@@ -584,7 +584,7 @@ const maxTaxAmountOrderRetail44530PrdMvAvgPrevYear = getCalc({
 
 const maxTaxAmountOrderRetail445Next = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-Next",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-Next",
   description: "Next Period's  Sales Amount on Order Retail445",
   expression:
@@ -594,7 +594,7 @@ const maxTaxAmountOrderRetail445Next = getCalc({
 
 const maxTaxAmountOrderRetail445Prev = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-Prev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-Prev ",
   description: "Order Reporting Hierarchy Previous Period Sales",
   expression:
@@ -604,7 +604,7 @@ const maxTaxAmountOrderRetail445Prev = getCalc({
 
 const maxTaxAmountOrderRetail445PrevPeriodGrowthPct = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-PrevPeriodGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-PrevPeriodGrowthPct",
   description: "Order Retail445 Previous Period Growth Percent",
   expression:
@@ -614,7 +614,7 @@ const maxTaxAmountOrderRetail445PrevPeriodGrowthPct = getCalc({
 
 const salesAmountSStdevOrderRetail44530PrdMvAvgPrevYear = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-30PrdMvAvgPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-30PrdMvAvgPrevYear",
   description: "Prev Year's 30 Period Moving  Average of Sales. Use on the [Order Retail445] Dimension",
   expression:
@@ -624,7 +624,7 @@ const salesAmountSStdevOrderRetail44530PrdMvAvgPrevYear = getCalc({
 
 const salesAmountSStdevOrderRetail445Next = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-Next",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-Next",
   description: "Next Period's  Sales Amount on Order Retail445",
   expression:
@@ -634,7 +634,7 @@ const salesAmountSStdevOrderRetail445Next = getCalc({
 
 const salesAmountSStdevOrderRetail445PrevPeriodGrowthPct = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-PrevPeriodGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-PrevPeriodGrowthPct",
   description: "Order Retail445 Previous Period Growth Percent",
   expression:
@@ -644,7 +644,7 @@ const salesAmountSStdevOrderRetail445PrevPeriodGrowthPct = getCalc({
 
 const salesAmountSStdevOrderRetail445PrevYear = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-PrevYear",
   description: "Order Sales Amount Prev Year (Retail445)",
   expression:
@@ -654,7 +654,7 @@ const salesAmountSStdevOrderRetail445PrevYear = getCalc({
 
 const salesAmountSStdevOrderRetail445PrevYearGrowthPct = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-PrevYearGrowthPct",
   description: "Order Retail445 Sales Amount Year-over-year growth as percent",
   expression:
@@ -664,7 +664,7 @@ const salesAmountSStdevOrderRetail445PrevYearGrowthPct = getCalc({
 
 const salesAmountSStdevOrderRetail445YTD = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-YTD",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-YTD",
   description: "Sales Amount Year-to-date Order Retail445",
   expression:
@@ -674,7 +674,7 @@ const salesAmountSStdevOrderRetail445YTD = getCalc({
 
 const salesAmountOrderCustomPP445PrevYearGrowthPct = getCalc({
   unique_name: "Sales Amount-Order CustomPP445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order CustomPP445-PrevYearGrowthPct",
   description: "Percent growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -684,7 +684,7 @@ const salesAmountOrderCustomPP445PrevYearGrowthPct = getCalc({
 
 const salesAmountOrderRetail44530PrdMvStdev = getCalc({
   unique_name: "Sales Amount-Order Retail445-30PrdMvStdev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-30PrdMvStdev",
   description: "30 Period Standard Deviation Use at Day Level of [Order Retail445]",
   expression:
@@ -694,7 +694,7 @@ const salesAmountOrderRetail44530PrdMvStdev = getCalc({
 
 const soldProductNDCOrderCustomPP445PrevYearGrowthPct = getCalc({
   unique_name: "SoldProductNDC-Order CustomPP445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order CustomPP445-PrevYearGrowthPct",
   description: "Percent growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -704,7 +704,7 @@ const soldProductNDCOrderCustomPP445PrevYearGrowthPct = getCalc({
 
 const soldProductNDCOrderRetail44530PrdMvAvg = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-30PrdMvAvg",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-30PrdMvAvg",
   description: "30 Period Moving Average of Sales Amount.  Meant to execute at Day Level  of ",
   expression:
@@ -714,7 +714,7 @@ const soldProductNDCOrderRetail44530PrdMvAvg = getCalc({
 
 const soldProductNDCOrderRetail445YTD = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-YTD",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-YTD",
   description: "Sales Amount Year-to-date Order Retail445",
   expression:
@@ -724,7 +724,7 @@ const soldProductNDCOrderRetail445YTD = getCalc({
 
 const customerCountOrderCustomPP445PrevYear = getCalc({
   unique_name: "Customer Count-Order CustomPP445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order CustomPP445-PrevYear",
   description: "Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -733,7 +733,7 @@ const customerCountOrderCustomPP445PrevYear = getCalc({
 
 const customerCountOrderCustomPP445PrevYearGrowth = getCalc({
   unique_name: "Customer Count-Order CustomPP445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order CustomPP445-PrevYearGrowth",
   description: "Growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -743,7 +743,7 @@ const customerCountOrderCustomPP445PrevYearGrowth = getCalc({
 
 const customerCountOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
   unique_name: "Customer Count-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
   description: "Sales 30 Period Moving Avg  vs Prev Year as Percentage",
   expression:
@@ -753,7 +753,7 @@ const customerCountOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
 
 const customerCountOrderRetail44530PrdMvUpperBand = getCalc({
   unique_name: "Customer Count-Order Retail445-30PrdMvUpperBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-30PrdMvUpperBand",
   description: "Sales 30 Day Moving Average + 1 Standard Deviation use on [Order Retail445]",
   expression:
@@ -763,7 +763,7 @@ const customerCountOrderRetail44530PrdMvUpperBand = getCalc({
 
 const customerCountOrderRetail445PrevPeriodGrowth = getCalc({
   unique_name: "Customer Count-Order Retail445-PrevPeriodGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-PrevPeriodGrowth",
   description: "Order Retail 445 Growth since previous period.",
   expression:
@@ -773,7 +773,7 @@ const customerCountOrderRetail445PrevPeriodGrowth = getCalc({
 
 const customerCountOrderRetail445PrevYear = getCalc({
   unique_name: "Customer Count-Order Retail445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-PrevYear",
   description: "Order Sales Amount Prev Year (Retail445)",
   expression:
@@ -783,7 +783,7 @@ const customerCountOrderRetail445PrevYear = getCalc({
 
 const customerCountOrderRetail445YTD = getCalc({
   unique_name: "Customer Count-Order Retail445-YTD",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-YTD",
   description: "Sales Amount Year-to-date Order Retail445",
   expression:
@@ -793,7 +793,7 @@ const customerCountOrderRetail445YTD = getCalc({
 
 const estimatedCustomerCountOrderRetail445PrevYearGrowth = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-PrevYearGrowth",
   description: "Parallel Period Sales Growth  Since the Previous Year",
   expression:
@@ -803,7 +803,7 @@ const estimatedCustomerCountOrderRetail445PrevYearGrowth = getCalc({
 
 const estimatedCustomerCountOrderRetail445YTDPrevYear = getCalc({
   unique_name: "Estimated Customer Count-Order Retail445-YTDPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Estimated Customer Count-Order Retail445-YTDPrevYear",
   description: "Previous Year's Year-to-date Sum of Sales ",
   expression:
@@ -813,7 +813,7 @@ const estimatedCustomerCountOrderRetail445YTDPrevYear = getCalc({
 
 const lastProductUnitPriceOrderCustomPP445PrevYearGrowth = getCalc({
   unique_name: "Last Product Unit Price-Order CustomPP445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order CustomPP445-PrevYearGrowth",
   description: "Growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -823,7 +823,7 @@ const lastProductUnitPriceOrderCustomPP445PrevYearGrowth = getCalc({
 
 const lastProductUnitPriceOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
   description: "Sales 30 Period Moving Avg  vs Prev Year as Percentage",
   expression:
@@ -833,7 +833,7 @@ const lastProductUnitPriceOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
 
 const lastProductUnitPriceOrderRetail44530PrdMvUpperBand = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-30PrdMvUpperBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-30PrdMvUpperBand",
   description: "Sales 30 Day Moving Average + 1 Standard Deviation use on [Order Retail445]",
   expression:
@@ -843,7 +843,7 @@ const lastProductUnitPriceOrderRetail44530PrdMvUpperBand = getCalc({
 
 const lastProductUnitPriceOrderRetail445PrevPeriodGrowth = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-PrevPeriodGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-PrevPeriodGrowth",
   description: "Order Retail 445 Growth since previous period.",
   expression:
@@ -853,7 +853,7 @@ const lastProductUnitPriceOrderRetail445PrevPeriodGrowth = getCalc({
 
 const maxTaxAmountOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
   description: "Sales 30 Period Moving Avg  vs Prev Year as Percentage",
   expression:
@@ -863,7 +863,7 @@ const maxTaxAmountOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
 
 const maxTaxAmountOrderRetail44530PrdMvLowerBand = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-30PrdMvLowerBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-30PrdMvLowerBand",
   description: "Sales 30 Day Moving Average - 1 Stdev, use on [Order Retail445]",
   expression:
@@ -873,7 +873,7 @@ const maxTaxAmountOrderRetail44530PrdMvLowerBand = getCalc({
 
 const maxTaxAmountOrderRetail44530PrdMvUpperBand = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-30PrdMvUpperBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-30PrdMvUpperBand",
   description: "Sales 30 Day Moving Average + 1 Standard Deviation use on [Order Retail445]",
   expression:
@@ -883,7 +883,7 @@ const maxTaxAmountOrderRetail44530PrdMvUpperBand = getCalc({
 
 const maxTaxAmountOrderRetail445PrevYearGrowthPct = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-PrevYearGrowthPct",
   description: "Order Retail445 Sales Amount Year-over-year growth as percent",
   expression:
@@ -893,7 +893,7 @@ const maxTaxAmountOrderRetail445PrevYearGrowthPct = getCalc({
 
 const maxTaxAmountOrderRetail445YTD = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-YTD",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-YTD",
   description: "Sales Amount Year-to-date Order Retail445",
   expression:
@@ -903,7 +903,7 @@ const maxTaxAmountOrderRetail445YTD = getCalc({
 
 const salesAmountSStdevOrderCustomPP445PrevYearGrowth = getCalc({
   unique_name: "Sales Amount SStdev-Order CustomPP445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order CustomPP445-PrevYearGrowth",
   description: "Growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -913,7 +913,7 @@ const salesAmountSStdevOrderCustomPP445PrevYearGrowth = getCalc({
 
 const salesAmountSStdevOrderRetail44530PrdMvAvg = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-30PrdMvAvg",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-30PrdMvAvg",
   description: "30 Period Moving Average of Sales Amount.  Meant to execute at Day Level  of ",
   expression:
@@ -923,7 +923,7 @@ const salesAmountSStdevOrderRetail44530PrdMvAvg = getCalc({
 
 const salesAmountSStdevOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
   description: "Sales 30 Period Moving Avg  vs Prev Year as Percentage",
   expression:
@@ -933,7 +933,7 @@ const salesAmountSStdevOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
 
 const salesAmountSStdevOrderRetail44530PrdMvLowerBand = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-30PrdMvLowerBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-30PrdMvLowerBand",
   description: "Sales 30 Day Moving Average - 1 Stdev, use on [Order Retail445]",
   expression:
@@ -943,7 +943,7 @@ const salesAmountSStdevOrderRetail44530PrdMvLowerBand = getCalc({
 
 const salesAmountSStdevOrderRetail445Prev = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-Prev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-Prev ",
   description: "Order Reporting Hierarchy Previous Period Sales",
   expression:
@@ -953,7 +953,7 @@ const salesAmountSStdevOrderRetail445Prev = getCalc({
 
 const salesAmountOrderCustomPP445PrevYear = getCalc({
   unique_name: "Sales Amount-Order CustomPP445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order CustomPP445-PrevYear",
   description: "Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -963,7 +963,7 @@ const salesAmountOrderCustomPP445PrevYear = getCalc({
 
 const salesAmountOrderRetail44530PrdMvAvgPrevYear = getCalc({
   unique_name: "Sales Amount-Order Retail445-30PrdMvAvgPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-30PrdMvAvgPrevYear",
   description: "Prev Year's 30 Period Moving  Average of Sales. Use on the [Order Retail445] Dimension",
   expression:
@@ -973,7 +973,7 @@ const salesAmountOrderRetail44530PrdMvAvgPrevYear = getCalc({
 
 const salesAmountOrderRetail445Next = getCalc({
   unique_name: "Sales Amount-Order Retail445-Next",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-Next",
   description: "Next Period's  Sales Amount on Order Retail445",
   expression:
@@ -983,7 +983,7 @@ const salesAmountOrderRetail445Next = getCalc({
 
 const salesAmountOrderRetail445Prev = getCalc({
   unique_name: "Sales Amount-Order Retail445-Prev",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-Prev ",
   description: "Order Reporting Hierarchy Previous Period Sales",
   expression:
@@ -993,7 +993,7 @@ const salesAmountOrderRetail445Prev = getCalc({
 
 const salesAmountOrderRetail445PrevPeriodGrowthPct = getCalc({
   unique_name: "Sales Amount-Order Retail445-PrevPeriodGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-PrevPeriodGrowthPct",
   description: "Order Retail445 Previous Period Growth Percent",
   expression:
@@ -1003,7 +1003,7 @@ const salesAmountOrderRetail445PrevPeriodGrowthPct = getCalc({
 
 const salesAmountOrderRetail445PrevYearGrowthPct = getCalc({
   unique_name: "Sales Amount-Order Retail445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-PrevYearGrowthPct",
   description: "Order Retail445 Sales Amount Year-over-year growth as percent",
   expression:
@@ -1013,7 +1013,7 @@ const salesAmountOrderRetail445PrevYearGrowthPct = getCalc({
 
 const soldProductNDCOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-30PrdMvAvgPrevYearGrowthPct",
   description: "Sales 30 Period Moving Avg  vs Prev Year as Percentage",
   expression:
@@ -1023,7 +1023,7 @@ const soldProductNDCOrderRetail44530PrdMvAvgPrevYearGrowthPct = getCalc({
 
 const soldProductNDCOrderRetail44530PrdMvLowerBand = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-30PrdMvLowerBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-30PrdMvLowerBand",
   description: "Sales 30 Day Moving Average - 1 Stdev, use on [Order Retail445]",
   expression:
@@ -1033,7 +1033,7 @@ const soldProductNDCOrderRetail44530PrdMvLowerBand = getCalc({
 
 const soldProductNDCOrderRetail445PrevPeriodGrowth = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-PrevPeriodGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-PrevPeriodGrowth",
   description: "Order Retail 445 Growth since previous period.",
   expression:
@@ -1043,7 +1043,7 @@ const soldProductNDCOrderRetail445PrevPeriodGrowth = getCalc({
 
 const soldProductNDCOrderRetail445PrevPeriodGrowthPct = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-PrevPeriodGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-PrevPeriodGrowthPct",
   description: "Order Retail445 Previous Period Growth Percent",
   expression:
@@ -1053,7 +1053,7 @@ const soldProductNDCOrderRetail445PrevPeriodGrowthPct = getCalc({
 
 const soldProductNDCOrderRetail445PrevYear = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-PrevYear",
   description: "Order Sales Amount Prev Year (Retail445)",
   expression:
@@ -1063,7 +1063,7 @@ const soldProductNDCOrderRetail445PrevYear = getCalc({
 
 const soldProductNDCOrderRetail445PrevYearGrowthPct = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-PrevYearGrowthPct",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-PrevYearGrowthPct",
   description: "Order Retail445 Sales Amount Year-over-year growth as percent",
   expression:
@@ -1073,7 +1073,7 @@ const soldProductNDCOrderRetail445PrevYearGrowthPct = getCalc({
 
 const customerCountOrderRetail445YTDPrevYear = getCalc({
   unique_name: "Customer Count-Order Retail445-YTDPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-YTDPrevYear",
   description: "Previous Year's Year-to-date Sum of Sales ",
   expression:
@@ -1083,7 +1083,7 @@ const customerCountOrderRetail445YTDPrevYear = getCalc({
 
 const lastProductUnitPriceOrderRetail445PrevYearGrowth = getCalc({
   unique_name: "Last Product Unit Price-Order Retail445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Last Product Unit Price-Order Retail445-PrevYearGrowth",
   description: "Parallel Period Sales Growth  Since the Previous Year",
   expression:
@@ -1093,7 +1093,7 @@ const lastProductUnitPriceOrderRetail445PrevYearGrowth = getCalc({
 
 const maxTaxAmountOrderCustomPP445PrevYearGrowth = getCalc({
   unique_name: "Max Tax Amount-Order CustomPP445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order CustomPP445-PrevYearGrowth",
   description: "Growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -1103,7 +1103,7 @@ const maxTaxAmountOrderCustomPP445PrevYearGrowth = getCalc({
 
 const maxTaxAmountOrderRetail445PrevPeriodGrowth = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-PrevPeriodGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-PrevPeriodGrowth",
   description: "Order Retail 445 Growth since previous period.",
   expression:
@@ -1113,7 +1113,7 @@ const maxTaxAmountOrderRetail445PrevPeriodGrowth = getCalc({
 
 const maxTaxAmountOrderRetail445PrevYear = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-PrevYear",
   description: "Order Sales Amount Prev Year (Retail445)",
   expression:
@@ -1123,7 +1123,7 @@ const maxTaxAmountOrderRetail445PrevYear = getCalc({
 
 const salesAmountSStdevOrderRetail44530PrdMvUpperBand = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-30PrdMvUpperBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-30PrdMvUpperBand",
   description: "Sales 30 Day Moving Average + 1 Standard Deviation use on [Order Retail445]",
   expression:
@@ -1133,7 +1133,7 @@ const salesAmountSStdevOrderRetail44530PrdMvUpperBand = getCalc({
 
 const salesAmountSSalesAmountSStdevOrderRetail445PrevYearGrowthStdevOrderRetail44530PrdMvUpperBand = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-PrevYearGrowth",
   description: "Parallel Period Sales Growth  Since the Previous Year",
   expression:
@@ -1143,7 +1143,7 @@ const salesAmountSSalesAmountSStdevOrderRetail445PrevYearGrowthStdevOrderRetail4
 
 const salesAmountSStdevOrderRetail445YTDPrevYear = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-YTDPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-YTDPrevYear",
   description: "Previous Year's Year-to-date Sum of Sales ",
   expression:
@@ -1153,7 +1153,7 @@ const salesAmountSStdevOrderRetail445YTDPrevYear = getCalc({
 
 const salesAmountOrderCustomPP445PrevYearGrowth = getCalc({
   unique_name: "Sales Amount-Order CustomPP445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order CustomPP445-PrevYearGrowth",
   description: "Growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -1163,7 +1163,7 @@ const salesAmountOrderCustomPP445PrevYearGrowth = getCalc({
 
 const salesAmountOrderRetail44530PrdMvAvg = getCalc({
   unique_name: "Sales Amount-Order Retail445-30PrdMvAvg",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-30PrdMvAvg",
   description: "30 Period Moving Average of Sales Amount.  Meant to execute at Day Level  of ",
   expression:
@@ -1173,7 +1173,7 @@ const salesAmountOrderRetail44530PrdMvAvg = getCalc({
 
 const salesAmountOrderRetail44530PrdMvLowerBand = getCalc({
   unique_name: "Sales Amount-Order Retail445-30PrdMvLowerBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-30PrdMvLowerBand",
   description: "Sales 30 Day Moving Average - 1 Stdev, use on [Order Retail445]",
   expression:
@@ -1183,7 +1183,7 @@ const salesAmountOrderRetail44530PrdMvLowerBand = getCalc({
 
 const salesAmountOrderRetail445YTD = getCalc({
   unique_name: "Sales Amount-Order Retail445-YTD",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-YTD",
   description: "Sales Amount Year-to-date Order Retail445",
   expression:
@@ -1193,7 +1193,7 @@ const salesAmountOrderRetail445YTD = getCalc({
 
 const soldProductNDCOrderCustomPP445PrevYearGrowth = getCalc({
   unique_name: "SoldProductNDC-Order CustomPP445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order CustomPP445-PrevYearGrowth",
   description: "Growth over Previous Period Sales with a custom lookback key.  Use with [Order CustomPP445]",
   expression:
@@ -1203,7 +1203,7 @@ const soldProductNDCOrderCustomPP445PrevYearGrowth = getCalc({
 
 const soldProductNDCOrderRetail44530PrdMvUpperBand = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-30PrdMvUpperBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-30PrdMvUpperBand",
   description: "Sales 30 Day Moving Average + 1 Standard Deviation use on [Order Retail445]",
   expression:
@@ -1213,7 +1213,7 @@ const soldProductNDCOrderRetail44530PrdMvUpperBand = getCalc({
 
 const maxTaxAmountOrderRetail445YTDPrevYear = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-YTDPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-YTDPrevYear",
   description: "Previous Year's Year-to-date Sum of Sales ",
   expression:
@@ -1223,7 +1223,7 @@ const maxTaxAmountOrderRetail445YTDPrevYear = getCalc({
 
 const salesAmountSStdevOrderRetail445PrevPeriodGrowth = getCalc({
   unique_name: "Sales Amount SStdev-Order Retail445-PrevPeriodGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount SStdev-Order Retail445-PrevPeriodGrowth",
   description: "Order Retail 445 Growth since previous period.",
   expression:
@@ -1233,7 +1233,7 @@ const salesAmountSStdevOrderRetail445PrevPeriodGrowth = getCalc({
 
 const salesAmountOrderRetail44530PrdMvUpperBand = getCalc({
   unique_name: "Sales Amount-Order Retail445-30PrdMvUpperBand",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-30PrdMvUpperBand",
   description: "Sales 30 Day Moving Average + 1 Standard Deviation use on [Order Retail445]",
   expression:
@@ -1243,7 +1243,7 @@ const salesAmountOrderRetail44530PrdMvUpperBand = getCalc({
 
 const salesAmountOrderRetail445PrevPeriodGrowth = getCalc({
   unique_name: "Sales Amount-Order Retail445-PrevPeriodGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-PrevPeriodGrowth",
   description: "Order Retail 445 Growth since previous period.",
   expression:
@@ -1253,7 +1253,7 @@ const salesAmountOrderRetail445PrevPeriodGrowth = getCalc({
 
 const salesAmountOrderRetail445PrevYear = getCalc({
   unique_name: "Sales Amount-Order Retail445-PrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-PrevYear",
   description: "Order Sales Amount Prev Year (Retail445)",
   expression:
@@ -1263,7 +1263,7 @@ const salesAmountOrderRetail445PrevYear = getCalc({
 
 const salesAmountOrderRetail445PrevYearGrowth = getCalc({
   unique_name: "Sales Amount-Order Retail445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-PrevYearGrowth",
   description: "Parallel Period Sales Growth  Since the Previous Year",
   expression:
@@ -1273,7 +1273,7 @@ const salesAmountOrderRetail445PrevYearGrowth = getCalc({
 
 const soldProductNDCOrderRetail445PrevYearGrowth = getCalc({
   unique_name: "SoldProductNDC-Order Retail445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "SoldProductNDC-Order Retail445-PrevYearGrowth",
   description: "Parallel Period Sales Growth  Since the Previous Year",
   expression:
@@ -1283,7 +1283,7 @@ const soldProductNDCOrderRetail445PrevYearGrowth = getCalc({
 
 const customerCountOrderRetail445PrevYearGrowth = getCalc({
   unique_name: "Customer Count-Order Retail445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Customer Count-Order Retail445-PrevYearGrowth",
   description: "Parallel Period Sales Growth  Since the Previous Year",
   expression:
@@ -1293,7 +1293,7 @@ const customerCountOrderRetail445PrevYearGrowth = getCalc({
 
 const salesAmountOrderRetail445YTDPrevYear = getCalc({
   unique_name: "Sales Amount-Order Retail445-YTDPrevYear",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Sales Amount-Order Retail445-YTDPrevYear",
   description: "Previous Year's Year-to-date Sum of Sales ",
   expression:
@@ -1303,7 +1303,7 @@ const salesAmountOrderRetail445YTDPrevYear = getCalc({
 
 const maxTaxAmountOrderRetail445PrevYearGrowth = getCalc({
   unique_name: "Max Tax Amount-Order Retail445-PrevYearGrowth",
-  object_type: ObjectType.MeasureCalc,
+  object_type: SMLObjectType.MetricCalc,
   label: "Max Tax Amount-Order Retail445-PrevYearGrowth",
   description: "Parallel Period Sales Growth  Since the Previous Year",
   expression:
@@ -1447,4 +1447,4 @@ const allCalculations = {
   maxTaxAmountOrderRetail445PrevYearGrowth,
 };
 
-export const calculations = getAggregatedResult<IYamlMeasureCalculated, typeof allCalculations>(allCalculations);
+export const calculations = getAggregatedResult<SMLMetricCalculated, typeof allCalculations>(allCalculations);

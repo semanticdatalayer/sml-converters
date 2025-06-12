@@ -6,26 +6,26 @@ import {
   DEFAULT_SECONDARY_ATTRIBUTE,
 } from "../YamlDimensionConstants";
 import {
-  IYamlDimensionLevel,
-  IYamlDimensionMetric,
-  IYamlDimensionSecondaryAttribute,
-  IYamlLevelAliasAttribute,
-} from "../../yaml/IYamlDimension";
+  SMLDimensionLevel,
+  SMLDimensionMetric,
+  SMLDimensionSecondaryAttribute,
+  SMLLevelAliasAttribute,
+} from "sml-sdk";
 
-export default class YamlDimensionLevelBuilder extends AnyObjectBuilder<IYamlDimensionLevel> {
+export default class YamlDimensionLevelBuilder extends AnyObjectBuilder<SMLDimensionLevel> {
   static create(): YamlDimensionLevelBuilder {
-    const defaultValues: IYamlDimensionLevel = {
+    const defaultValues: SMLDimensionLevel = {
       unique_name: "level_1",
     };
 
     return new YamlDimensionLevelBuilder(defaultValues);
   }
 
-  with(data: Partial<IYamlDimensionLevel>): YamlDimensionLevelBuilder {
+  with(data: Partial<SMLDimensionLevel>): YamlDimensionLevelBuilder {
     return super.with(data) as YamlDimensionLevelBuilder;
   }
 
-  addSecondaryAttribute(secondaryAttribute: Partial<IYamlDimensionSecondaryAttribute> = {}): YamlDimensionLevelBuilder {
+  addSecondaryAttribute(secondaryAttribute: Partial<SMLDimensionSecondaryAttribute> = {}): YamlDimensionLevelBuilder {
     const newSecondaryAttribute = Object.assign({}, DEFAULT_SECONDARY_ATTRIBUTE, secondaryAttribute);
     const secondaryAttributes = this.clonedData.secondary_attributes || [];
 
@@ -34,7 +34,7 @@ export default class YamlDimensionLevelBuilder extends AnyObjectBuilder<IYamlDim
     });
   }
 
-  addLevelAlias(alias: Partial<IYamlLevelAliasAttribute> = {}): YamlDimensionLevelBuilder {
+  addLevelAlias(alias: Partial<SMLLevelAliasAttribute> = {}): YamlDimensionLevelBuilder {
     const newAlias = Object.assign({}, DEFAULT_LEVEL_ALIAS, alias);
     const aliasesList = this.clonedData.aliases || [];
 
@@ -43,7 +43,7 @@ export default class YamlDimensionLevelBuilder extends AnyObjectBuilder<IYamlDim
     });
   }
 
-  addMetric(metric: Partial<IYamlDimensionMetric> = {}): YamlDimensionLevelBuilder {
+  addMetric(metric: Partial<SMLDimensionMetric> = {}): YamlDimensionLevelBuilder {
     const newMetric = Object.assign({}, DEFAULT_METRIC, metric);
     const metricsList = this.clonedData.metrics || [];
 

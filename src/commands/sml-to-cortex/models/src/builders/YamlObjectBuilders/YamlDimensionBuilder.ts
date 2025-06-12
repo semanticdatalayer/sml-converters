@@ -4,45 +4,48 @@ import {
   DEFAULT_METRIC,
   DEFAULT_PARALLEL_PERIOD,
   DEFAULT_SECONDARY_ATTRIBUTE,
-} from "../../../../../builders/constants/YamlDimensionConstants";
-import { ObjectType } from "../../ObjectType";
-import { IYamlDimensionCalculationGroup, IYamlDimensionCalculationMember } from "../../yaml/IYamlCalculationGroups";
+} from "../YamlDimensionConstants";
+// import { ObjectType } from "../../ObjectType";
+// import { IYamlDimensionCalculationGroup, IYamlDimensionCalculationMember } from "../../yaml/IYamlCalculationGroups";
 import {
-  IYamlDimension,
-  IYamlDimensionHierarchy,
-  IYamlDimensionLevel,
-  IYamlDimensionLevelAttribute,
-  IYamlDimensionMetric,
-  IYamlDimensionRelationship,
-  IYamlDimensionSecondaryAttribute,
-  IYamlLevelAliasAttribute,
-  IYamlLevelParallelPeriod,
-  IYamlLevelWithMultipleDatasets,
-  YamlDimensionRelationType,
-} from "../../yaml/IYamlDimension";
+  SMLObjectType,
+  SMLDimensionCalculationGroup,
+  SMLDimensionCalculationMember,
+  SMLDimension,
+  SMLDimensionHierarchy,
+  SMLDimensionLevel,
+  SMLDimensionLevelAttribute,
+  SMLDimensionMetric,
+  SMLDimensionRelationship,
+  SMLDimensionSecondaryAttribute,
+  SMLLevelAliasAttribute,
+  SMLLevelParallelPeriod,
+  SMLLevelWithMultipleDatasets,
+  SMLDimensionRelationType,
+} from "sml-sdk"
 import YamlLevelAttributeBuilder from "./YamlLevelAttributeBuilder";
 import { YamlObjectBuilder } from "./YamlObjectBuilder";
 
-export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimension, YamlDimensionBuilder> {
-  static create(dimension?: IYamlDimension): YamlDimensionBuilder {
-    const defaultValues: IYamlDimension = {
+export default class YamlDimensionBuilder extends YamlObjectBuilder<SMLDimension, YamlDimensionBuilder> {
+  static create(dimension?: SMLDimension): YamlDimensionBuilder {
+    const defaultValues: SMLDimension = {
       level_attributes: [],
       hierarchies: [],
       label: "no name is set",
-      object_type: ObjectType.Dimension,
+      object_type: SMLObjectType.Dimension,
       unique_name: "no unique name is set",
     };
 
     return new YamlDimensionBuilder(dimension || defaultValues);
   }
 
-  addAttributeByUniqueName(attr: Pick<IYamlDimensionLevelAttribute, "unique_name">): YamlDimensionBuilder {
+  addAttributeByUniqueName(attr: Pick<SMLDimensionLevelAttribute, "unique_name">): YamlDimensionBuilder {
     return this.addAttribute(attr);
   }
 
   // TODO: Duplicate with addLevelAttribute
-  addAttribute(attr: Partial<IYamlDimensionLevelAttribute>): YamlDimensionBuilder {
-    const defaultsAttributeValues: IYamlDimensionLevelAttribute = YamlLevelAttributeBuilder.create().build();
+  addAttribute(attr: Partial<SMLDimensionLevelAttribute>): YamlDimensionBuilder {
+    const defaultsAttributeValues: SMLDimensionLevelAttribute = YamlLevelAttributeBuilder.create().build();
 
     const newAttr = Object.assign(defaultsAttributeValues, attr);
     return this.with({
@@ -56,8 +59,8 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
     }) as YamlDimensionBuilder;
   }
 
-  addHierarchy(hierarchy: Partial<IYamlDimensionHierarchy> = {}): YamlDimensionBuilder {
-    const defaultHierarchyValues: IYamlDimensionHierarchy = {
+  addHierarchy(hierarchy: Partial<SMLDimensionHierarchy> = {}): YamlDimensionBuilder {
+    const defaultHierarchyValues: SMLDimensionHierarchy = {
       unique_name: "no unique name",
       label: "name",
       levels: [{ unique_name: "level name" }],
@@ -69,8 +72,8 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
     });
   }
 
-  addLevelAttribute(attribute: Partial<IYamlDimensionLevelAttribute> = {}): YamlDimensionBuilder {
-    const defaultLevelAttribute: IYamlDimensionLevelAttribute = {
+  addLevelAttribute(attribute: Partial<SMLDimensionLevelAttribute> = {}): YamlDimensionBuilder {
+    const defaultLevelAttribute: SMLDimensionLevelAttribute = {
       dataset: "dataset",
       key_columns: [],
       label: "name",
@@ -83,8 +86,8 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
     });
   }
 
-  addLevelAttributeWithMultipleDatasets(attribute: Partial<IYamlLevelWithMultipleDatasets> = {}): YamlDimensionBuilder {
-    const defaultLevelAttribute: IYamlLevelWithMultipleDatasets = {
+  addLevelAttributeWithMultipleDatasets(attribute: Partial<SMLLevelWithMultipleDatasets> = {}): YamlDimensionBuilder {
+    const defaultLevelAttribute: SMLLevelWithMultipleDatasets = {
       label: "name",
       unique_name: "unique_name",
       shared_degenerate_columns: [
@@ -101,7 +104,7 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
     });
   }
 
-  addSecondaryAttribute(secondaryAttribute: Partial<IYamlDimensionSecondaryAttribute> = {}): YamlDimensionBuilder {
+  addSecondaryAttribute(secondaryAttribute: Partial<SMLDimensionSecondaryAttribute> = {}): YamlDimensionBuilder {
     const newSecondaryAttribute = Object.assign({}, DEFAULT_SECONDARY_ATTRIBUTE, secondaryAttribute);
     const hierarchies = this.clonedData.hierarchies;
     hierarchies[0].levels[0].secondary_attributes = [newSecondaryAttribute];
@@ -111,9 +114,9 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
     });
   }
 
-  addMetric(metric: Partial<IYamlDimensionMetric>): YamlDimensionBuilder {
+  addMetric(metric: Partial<SMLDimensionMetric>): YamlDimensionBuilder {
     const newMetric = Object.assign({}, DEFAULT_METRIC, metric);
-    const newHierarchy: IYamlDimensionHierarchy = {
+    const newHierarchy: SMLDimensionHierarchy = {
       unique_name: "no unique name",
       label: "name",
       levels: [{ unique_name: "no unique name", metrics: [newMetric] }],
@@ -122,9 +125,9 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
     return this.addHierarchy().with({ hierarchies: [...(this.clonedData.hierarchies || []), newHierarchy] });
   }
 
-  addParallelPeriod(parallelPeriod: Partial<IYamlLevelParallelPeriod>): YamlDimensionBuilder {
+  addParallelPeriod(parallelPeriod: Partial<SMLLevelParallelPeriod>): YamlDimensionBuilder {
     const newParallelPeriod = Object.assign({}, DEFAULT_PARALLEL_PERIOD, parallelPeriod);
-    const newHierarchy: IYamlDimensionHierarchy = {
+    const newHierarchy: SMLDimensionHierarchy = {
       unique_name: "unique_name",
       label: "label",
       levels: [{ unique_name: "level_unique_name", parallel_periods: [newParallelPeriod] }],
@@ -133,7 +136,7 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
     return this.addHierarchy().with({ hierarchies: [...(this.clonedData.hierarchies || []), newHierarchy] });
   }
 
-  addLevelAlias(levelAlias: Partial<IYamlLevelAliasAttribute>): YamlDimensionBuilder {
+  addLevelAlias(levelAlias: Partial<SMLLevelAliasAttribute>): YamlDimensionBuilder {
     const newMetric = Object.assign({}, DEFAULT_LEVEL_ALIAS, levelAlias);
     const hierarchies = this.clonedData.hierarchies;
     hierarchies[0].levels[0].aliases = [newMetric];
@@ -143,15 +146,15 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
     });
   }
 
-  static createLevel(level: Partial<IYamlDimensionLevel>): IYamlDimensionLevel {
+  static createLevel(level: Partial<SMLDimensionLevel>): SMLDimensionLevel {
     const newLevel = Object.assign({}, DEFAULT_LEVEL, level);
     return newLevel;
   }
 
   static createLevelWithAlias(
-    level: Partial<IYamlDimensionLevel>,
-    alias: Array<Partial<IYamlLevelAliasAttribute>>
-  ): IYamlDimensionLevel {
+    level: Partial<SMLDimensionLevel>,
+    alias: Array<Partial<SMLLevelAliasAttribute>>
+  ): SMLDimensionLevel {
     const newLevel = YamlDimensionBuilder.createLevel(level);
     const newAliases = alias.map((a) => {
       return Object.assign({}, DEFAULT_LEVEL_ALIAS, a);
@@ -163,9 +166,9 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
   }
 
   static createLevelWithMetrics(
-    level: Partial<IYamlDimensionLevel>,
-    metrics: Array<Partial<IYamlDimensionMetric>>
-  ): IYamlDimensionLevel {
+    level: Partial<SMLDimensionLevel>,
+    metrics: Array<Partial<SMLDimensionMetric>>
+  ): SMLDimensionLevel {
     const newLevel = YamlDimensionBuilder.createLevel(level);
     const newMetrics = metrics.map((a) => {
       return Object.assign({}, DEFAULT_METRIC, a);
@@ -177,9 +180,9 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
   }
 
   static createLevelWithSecondaryAttribute(
-    level: Partial<IYamlDimensionLevel>,
-    attributes: Array<Partial<IYamlDimensionSecondaryAttribute>>
-  ): IYamlDimensionLevel {
+    level: Partial<SMLDimensionLevel>,
+    attributes: Array<Partial<SMLDimensionSecondaryAttribute>>
+  ): SMLDimensionLevel {
     const newLevel = YamlDimensionBuilder.createLevel(level);
     const newAttributes = attributes.map((a) => {
       return Object.assign({}, DEFAULT_SECONDARY_ATTRIBUTE, a);
@@ -190,8 +193,8 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
     return newLevel;
   }
 
-  addRelationship(relationship: Partial<IYamlDimensionRelationship> = {}): YamlDimensionBuilder {
-    const defaultRelationship: IYamlDimensionRelationship = {
+  addRelationship(relationship: Partial<SMLDimensionRelationship> = {}): YamlDimensionBuilder {
+    const defaultRelationship: SMLDimensionRelationship = {
       from: {
         dataset: "testDataset",
         join_columns: ["testJoinColumn"],
@@ -199,7 +202,7 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
       to: {
         level: "testAttr",
       },
-      type: YamlDimensionRelationType.Snowflake,
+      type: SMLDimensionRelationType.Snowflake,
     };
 
     const newRelationship = Object.assign(defaultRelationship, relationship);
@@ -215,11 +218,11 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
   addOrphanDimension(dimension_unique_name: string): YamlDimensionBuilder {
     return this.addRelationship({
       to: { dimension: dimension_unique_name, level: "" },
-      type: YamlDimensionRelationType.Embedded,
+      type: SMLDimensionRelationType.Embedded,
     });
   }
 
-  addCalculationGroup(calculationgroup: Partial<IYamlDimensionCalculationGroup> = {}): YamlDimensionBuilder {
+  addCalculationGroup(calculationgroup: Partial<SMLDimensionCalculationGroup> = {}): YamlDimensionBuilder {
     const newCalcGroup = this.buildCalculationGroup(calculationgroup);
     return this.with({
       calculation_groups: [...(this.clonedData.calculation_groups || []), newCalcGroup],
@@ -227,9 +230,9 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
   }
 
   addCalcGroupAndCalculatedMembers(
-    calculatedMembers: Partial<IYamlDimensionCalculationMember>[] = []
+    calculatedMembers: Partial<SMLDimensionCalculationMember>[] = []
   ): YamlDimensionBuilder {
-    const defaultData: IYamlDimensionCalculationMember = {
+    const defaultData: SMLDimensionCalculationMember = {
       expression: "no expression",
       format: "no format",
       unique_name: "no name",
@@ -249,9 +252,9 @@ export default class YamlDimensionBuilder extends YamlObjectBuilder<IYamlDimensi
   }
 
   private buildCalculationGroup(
-    calculationgroup: Partial<IYamlDimensionCalculationGroup> = {}
-  ): IYamlDimensionCalculationGroup {
-    const defaultData: IYamlDimensionCalculationGroup = {
+    calculationgroup: Partial<SMLDimensionCalculationGroup> = {}
+  ): SMLDimensionCalculationGroup {
+    const defaultData: SMLDimensionCalculationGroup = {
       calculated_members: [],
       unique_name: "no name",
       label: "no label",

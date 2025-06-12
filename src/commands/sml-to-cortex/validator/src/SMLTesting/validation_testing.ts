@@ -1,6 +1,6 @@
 // import ConsoleLogger from "../../../../apps/cli/src/Logger/ConsoleLogger";
 import { validateRepoFiles } from "../../../compiler-snowflake/validator";
-import { ILogger } from "../../../models/src/ILogger";
+import { Logger } from "../../../../../shared/logger";
 import { IRepoValidatorResult } from "../../src/RepoValidator/IRepoValidator";
 
 // import { SnowSemanticConverter } from "./snow-converter";
