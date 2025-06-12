@@ -1,4 +1,4 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../../utils/builders/AnyObjectBuilder";
 
 import { IXmlProjectAttributeKey } from "../../../xml/IXmlProjectAttributeKey";
 

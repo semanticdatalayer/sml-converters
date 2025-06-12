@@ -1,13 +1,15 @@
-import { FILE_TYPE } from "models/src/FileType";
-import { IYamlFile } from "models/src/IYamlFile";
-import IYamlParsedFile from "models/src/IYamlParsedFile";
-import { OriginType } from "models/src/SourceType";
-import { IYamlObject } from "models/src/yaml/IYamlObject";
+// import { FILE_TYPE } from "../models/src/FileType";  unneeded
+import { IYamlFile } from "../models/src/IYamlFile";
+import IYamlParsedFile from "../models/src/IYamlParsedFile";
+import { OriginType } from "../models/src/SourceType";
+// import { IYamlObject } from "../models/src/yaml/IYamlObject"; replaced
 
-import { Constants } from "./CortexConverter";
+import { SMLObject } from "sml-sdk";
 
-export function parsedFilesToFiles(parsedFiles: IYamlParsedFile<IYamlObject>[]): IYamlFile<IYamlObject>[] {
-  const newFiles: IYamlFile<IYamlObject>[] = new Array<IYamlFile<IYamlObject>>();
+import { Constants } from "./cortex-converter";
+
+export function parsedFilesToFiles(parsedFiles: IYamlParsedFile<SMLObject>[]): IYamlFile<SMLObject>[] {
+  const newFiles: IYamlFile<SMLObject>[] = new Array<IYamlFile<SMLObject>>();
   parsedFiles.forEach((parsedFile) => {
     newFiles.push({
       compilationOutput: parsedFile.compilationOutput,

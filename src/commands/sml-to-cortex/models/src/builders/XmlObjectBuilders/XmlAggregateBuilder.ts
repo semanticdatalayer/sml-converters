@@ -1,4 +1,4 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
 import { IXmlAggregate, IXmlAttributes } from "../../xml/IXmlAggregate";
 import { IXmlAttributeAndKeyReferences } from "../../xml/IXmlCommonProjectProperties";

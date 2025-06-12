@@ -1,7 +1,13 @@
 import { ObjectType } from "../ObjectType";
 import { IYamlDatasetsProperties } from "./IYamlCatalog";
 import { YamlDimensionRelationType } from "./IYamlDimension";
-import { IReferenceableYamlObject, IUniqueNameObject, IYamlObject } from "./IYamlObject";
+// import { IReferenceableYamlObject, IUniqueNameObject, IYamlObject } from "./IYamlObject"; overriden
+
+import { 
+  SMLReferenceableObjectWithLabel, 
+  SMLReferenceableObject, 
+  SMLObject 
+} from "sml-sdk";
 
 export enum CachingType {
   engineMemory = "engine-memory",
@@ -10,13 +16,13 @@ interface IYamlQueryName {
   query_name: string;
 }
 
-export interface IYamlQueryNameWithObjectType extends IUniqueNameObject, IYamlQueryName {
+export interface IYamlQueryNameWithObjectType extends SMLReferenceableObject, IYamlQueryName {
   object_type: ObjectType;
 }
 
 export type IYamlModelOverride = Record<string, IYamlQueryName>;
 
-export interface IYamlModel extends IYamlObject, IYamlDatasetsProperties {
+export interface IYamlModel extends SMLObject, IYamlDatasetsProperties {
   include_default_drillthrough?: boolean;
   relationships: Array<IYamlModelRelationship>;
   metrics: Array<IYamlModelMetricsAndCalc>;
@@ -29,13 +35,13 @@ export interface IYamlModel extends IYamlObject, IYamlDatasetsProperties {
   overrides?: IYamlModelOverride;
 }
 
-export interface IYamlModelMetricsAndCalc extends IUniqueNameObject {
+export interface IYamlModelMetricsAndCalc extends SMLReferenceableObject {
   folder?: string;
 }
 
 export type IYamlModelRelationship = IYamlModelRegularRelationship | IYamlModelSecurityRelationship;
 
-export interface IYamlModelRegularRelationship extends IUniqueNameObject {
+export interface IYamlModelRegularRelationship extends SMLReferenceableObject {
   from: {
     dataset: string;
     join_columns: Array<string>;
@@ -48,7 +54,7 @@ export interface IYamlModelRegularRelationship extends IUniqueNameObject {
   type?: YamlDimensionRelationType;
 }
 
-export interface IYamlModelSecurityRelationship extends IUniqueNameObject {
+export interface IYamlModelSecurityRelationship extends SMLReferenceableObject {
   from: {
     dataset: string;
     join_columns: Array<string>;
@@ -59,7 +65,7 @@ export interface IYamlModelSecurityRelationship extends IUniqueNameObject {
   type?: YamlDimensionRelationType;
 }
 
-export interface IYamlModelPerspective extends Omit<IReferenceableYamlObject, "label"> {
+export interface IYamlModelPerspective extends Omit<SMLReferenceableObjectWithLabel, "label"> {
   metrics?: Array<string>;
   dimensions?: Array<IYamlPerspectiveDimension>;
 }
@@ -76,7 +82,7 @@ export interface IYamlPerspectiveHierarchy {
   levels?: Array<string>;
 }
 
-export interface IYamlModelDrillThrough extends Omit<IReferenceableYamlObject, "label"> {
+export interface IYamlModelDrillThrough extends Omit<SMLReferenceableObjectWithLabel, "label"> {
   metrics: Array<string>;
   notes?: string;
   attributes?: Array<IYamlAttributeReference>;
@@ -88,7 +94,7 @@ export interface IYamlAttributeReference {
   relationships_path?: Array<string>;
 }
 
-export interface IYamlModelAggregate extends IReferenceableYamlObject {
+export interface IYamlModelAggregate extends SMLReferenceableObjectWithLabel {
   attributes?: Array<IYamlAggregateAttribute>;
   metrics?: Array<string>;
   caching?: CachingType;
@@ -105,7 +111,7 @@ export enum PartitionType {
   nameAndKey = "name+key",
 }
 
-export interface IYamlModelPartition extends IUniqueNameObject {
+export interface IYamlModelPartition extends SMLReferenceableObject {
   dimension: string;
   attribute: string;
   type: PartitionType;

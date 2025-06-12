@@ -4,7 +4,7 @@ import {
   DEFAULT_METRIC,
   DEFAULT_PARALLEL_PERIOD,
   DEFAULT_SECONDARY_ATTRIBUTE,
-} from "../../../builders/constants/YamlDimensionConstants";
+} from "../../../../../builders/constants/YamlDimensionConstants";
 import { ObjectType } from "../../ObjectType";
 import { IYamlDimensionCalculationGroup, IYamlDimensionCalculationMember } from "../../yaml/IYamlCalculationGroups";
 import {

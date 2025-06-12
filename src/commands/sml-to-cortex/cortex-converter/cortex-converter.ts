@@ -1,26 +1,11 @@
 import {
-  SMLCatalog,
-  SMLColumnDataType,
-  SMLConnection,
-  SMLDataset,
-  SMLDatasetColumnSimple,
-  SMLDimension,
-  SMLDimensionLevel,
-  SMLDimensionSecondaryAttribute,
-  SMLMetric,
-  SMLMetricCalculated,
   SMLModel,
-  SMLModelMetricsAndCalc,
-  SMLModelRelationship,
   SMLObject,
   SMLObjectType,
-  SMLUnrelatedDimensionsHandling,
-  SMLPackageFile
 } from "sml-sdk";
 
 import {
   SmlConverterResult,
-  SmlConvertResultBuilder,
 } from "../../../shared/sml-convert-result";
 
 import { Logger } from "../../../shared/logger";

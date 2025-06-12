@@ -1,35 +1,43 @@
-import { DbtConstants } from "converter-dbt/src/dbt-converter/dbt-constants";
-import YamlCalculatedMeasureBuilder from "models/src/builders/YamlObjectBuilders/YamlCalculatedMeasureBuilder";
-import YamlCatalogBuilder from "models/src/builders/YamlObjectBuilders/YamlCatalogBuilder";
-import YamlCompositeModelBuilder from "models/src/builders/YamlObjectBuilders/YamlCompositeModelBuilder";
-import YamlDatasetBuilder from "models/src/builders/YamlObjectBuilders/YamlDatasetBuilder";
-import YamlDimensionBuilder from "models/src/builders/YamlObjectBuilders/YamlDimensionBuilder";
-import YamlMeasureBuilder from "models/src/builders/YamlObjectBuilders/YamlMeasureBuilder";
-import YamlModelBuilder from "models/src/builders/YamlObjectBuilders/YamlModelBuilder";
-import YamlModelRelationBuilder from "models/src/builders/YamlObjectBuilders/YamlModelRelationBuilder";
-import IYamlParsedFile from "models/src/IYamlParsedFile";
-import { ObjectType } from "models/src/ObjectType";
-import { YamlColumnDataType } from "models/src/yaml/IYamlDataset";
+import {
+  SMLObject,
+  SMLMetricCalculated,
+  SMLCalculationMethod,
+  SMLCatalog,
+  SMLObjectType,
+  SMLColumnDataType
+} from 'sml-sdk'
+
+import YamlCalculatedMeasureBuilder from "../models/src/builders/YamlObjectBuilders/YamlCalculatedMeasureBuilder";
+import YamlCatalogBuilder from "../models/src/builders/YamlObjectBuilders/YamlCatalogBuilder";
+import YamlCompositeModelBuilder from "../models/src/builders/YamlObjectBuilders/YamlCompositeModelBuilder";
+import YamlDatasetBuilder from "../models/src/builders/YamlObjectBuilders/YamlDatasetBuilder";
+import YamlDimensionBuilder from "../models/src/builders/YamlObjectBuilders/YamlDimensionBuilder";
+import YamlMeasureBuilder from "../models/src/builders/YamlObjectBuilders/YamlMeasureBuilder";
+import YamlModelBuilder from "../models/src/builders/YamlObjectBuilders/YamlModelBuilder";
+import YamlModelRelationBuilder from "../models/src/builders/YamlObjectBuilders/YamlModelRelationBuilder";
+import IYamlParsedFile from "../models/src/IYamlParsedFile";
+// import { ObjectType } from "../models/src/ObjectType";
+// import { YamlColumnDataType } from "../models/src/yaml/IYamlDataset";
 import {
   IYamlDimensionType,
   YamlDimensionRelationType,
   YamlDimensionTimeUnit,
   YamlHierarchyEmptyField,
-} from "models/src/yaml/IYamlDimension";
-import { CalculationMethod } from "models/src/yaml/IYamlMeasure";
-import { IYamlObject } from "models/src/yaml/IYamlObject";
+} from "../models/src/yaml/IYamlDimension";
+import { CalculationMethod } from "../models/src/yaml/IYamlMeasure";
+// import { IYamlObject } from "../../../models/src/yaml/IYamlObject";
 
 import { testConstants } from "./tools";
 
 export default class StaticModelFiles {
-  public static getStaticCatalogFiles(asCatalogName: string): IYamlParsedFile<IYamlObject>[] {
-    const result = new Array<IYamlParsedFile<IYamlObject>>();
+  public static getStaticCatalogFiles(asCatalogName: string): IYamlParsedFile<SMLObject>[] {
+    const result = new Array<IYamlParsedFile<SMLObject>>();
 
     const catalog = YamlCatalogBuilder.create()
       .with({
         version: 1.0,
         label: asCatalogName + " Catalog",
-        object_type: ObjectType.Catalog,
+        object_type: SMLObjectType.Catalog,
         unique_name: asCatalogName,
         aggressive_agg_promotion: false,
         build_speculative_aggs: false,
@@ -345,7 +353,7 @@ export default class StaticModelFiles {
                 label: "Average Key",
                 dataset: "dimcustomer",
                 column: "geographykey",
-                calculation_method: CalculationMethod.Average,
+                calculation_method: SMLCalculationMethod.Average,
               },
             ], // secondary_attributes: createOthers(rightSemanticModel.dimensions, dbt_tools_1.DbtTools.dsName(rightModelName), rightEntity.name),
           },
@@ -426,12 +434,12 @@ export default class StaticModelFiles {
       .setSource({ table: "factinternetsales" })
       // .withConnection()
       .with({ label: "factinternetsales" })
-      .addColumn("customerkey", YamlColumnDataType.Long)
-      .addColumn("productkey", YamlColumnDataType.Long)
-      .addColumn("orderdate", YamlColumnDataType.String)
-      .addColumn("orderdatekey", YamlColumnDataType.Long)
-      .addColumn("orderquantity", YamlColumnDataType.Long)
-      .addColumn("salesamount", YamlColumnDataType.Double)
+      .addColumn("customerkey", SMLColumnDataType.Long)
+      .addColumn("productkey", SMLColumnDataType.Long)
+      .addColumn("orderdate", SMLColumnDataType.String)
+      .addColumn("orderdatekey", SMLColumnDataType.Long)
+      .addColumn("orderquantity", SMLColumnDataType.Long)
+      .addColumn("salesamount", SMLColumnDataType.Double)
       .buildYamlFile();
     result.push(factDataset);
 
@@ -439,10 +447,10 @@ export default class StaticModelFiles {
       .uniqueName("factdemotab")
       .setSource({ table: "factdemotab" })
       .with({ label: "factdemotab" })
-      .addColumn("customerkey", YamlColumnDataType.Long)
-      .addColumn("productkey", YamlColumnDataType.Long)
-      .addColumn("salesordernumber", YamlColumnDataType.String)
-      .addColumn("taxamt", YamlColumnDataType.Double)
+      .addColumn("customerkey", SMLColumnDataType.Long)
+      .addColumn("productkey", SMLColumnDataType.Long)
+      .addColumn("salesordernumber", SMLColumnDataType.String)
+      .addColumn("taxamt", SMLColumnDataType.Double)
       .buildYamlFile();
     result.push(fact2Dataset);
 
@@ -450,7 +458,7 @@ export default class StaticModelFiles {
       .uniqueName("salesamount1")
       .with({
         label: "Sales Amount",
-        calculation_method: CalculationMethod.Sum,
+        calculation_method: SMLCalculationMethod.Sum,
         dataset: "factinternetsales",
         column: "salesamount",
       })
@@ -461,7 +469,7 @@ export default class StaticModelFiles {
       .uniqueName("orderquantity1")
       .with({
         label: "Order Quantity",
-        calculation_method: CalculationMethod.Sum,
+        calculation_method: SMLCalculationMethod.Sum,
         dataset: "factinternetsales",
         column: "orderquantity",
       })
@@ -472,7 +480,7 @@ export default class StaticModelFiles {
       .uniqueName("% Orders Created")
       .with({
         label: "Percentage of Orders Created",
-        calculation_method: CalculationMethod.Maximum,
+        calculation_method: SMLCalculationMethod.Maximum,
         dataset: "factinternetsales",
         column: "orderquantity",
       })
@@ -483,7 +491,7 @@ export default class StaticModelFiles {
       .uniqueName("Orders Created")
       .with({
         label: "Orders Created",
-        calculation_method: CalculationMethod.Minimum,
+        calculation_method: SMLCalculationMethod.Minimum,
         dataset: "factinternetsales",
         column: "orderquantity",
       })
@@ -494,7 +502,7 @@ export default class StaticModelFiles {
       .uniqueName("_calculated tax 9% in $")
       .with({
         label: "Calculated Tax 9% in $",
-        calculation_method: CalculationMethod.Sum,
+        calculation_method: SMLCalculationMethod.Sum,
         dataset: "factinternetsales",
         column: "Calculated Tax",
       })
@@ -506,7 +514,7 @@ export default class StaticModelFiles {
       .uniqueName("m_taxamt_sum")
       .with({
         label: "Tax Amount",
-        calculation_method: CalculationMethod.Sum,
+        calculation_method: SMLCalculationMethod.Sum,
         dataset: "factdemotab",
         column: "taxamt",
       })

@@ -1,16 +1,21 @@
-import { ObjectType } from "../../ObjectType";
-import { IYamlMeasureCalculated } from "../../yaml/IYamlMeasure";
+import {
+  SMLObjectType,
+  SMLMetricCalculated,
+} from "sml-sdk";
+
+// import { ObjectType } from "../../ObjectType";
+// import { IYamlMeasureCalculated } from "../../yaml/IYamlMeasure";
 import { YamlObjectBuilder } from "./YamlObjectBuilder";
 
 export default class YamlCalculatedMeasureBuilder extends YamlObjectBuilder<
-  IYamlMeasureCalculated,
+  SMLMetricCalculated,
   YamlCalculatedMeasureBuilder
 > {
   public static create(): YamlCalculatedMeasureBuilder {
-    const defaults: IYamlMeasureCalculated = {
+    const defaults: SMLMetricCalculated = {
       label: "no name",
       unique_name: "no unique name",
-      object_type: ObjectType.MeasureCalc,
+      object_type: SMLObjectType.MetricCalc,
       expression: "test expression",
     };
 

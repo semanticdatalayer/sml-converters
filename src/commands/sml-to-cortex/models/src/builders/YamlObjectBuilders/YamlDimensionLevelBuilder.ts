@@ -1,10 +1,10 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
 import {
   DEFAULT_LEVEL_ALIAS,
   DEFAULT_METRIC,
   DEFAULT_SECONDARY_ATTRIBUTE,
-} from "../../../builders/constants/YamlDimensionConstants";
+} from "../YamlDimensionConstants";
 import {
   IYamlDimensionLevel,
   IYamlDimensionMetric,

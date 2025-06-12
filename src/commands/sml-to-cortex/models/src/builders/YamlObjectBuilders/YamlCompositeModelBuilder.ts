@@ -1,17 +1,22 @@
+import { 
+  SMLObjectType,
+  SMLCompositeModel
+} from "sml-sdk";
+
 import { ObjectType } from "../../ObjectType";
 import { IYamlCompositeModel } from "../../yaml/IYamlCompositeModel";
 import { IYamlModelMetricsAndCalc } from "../../yaml/IYamlModel";
 import { YamlObjectBuilder } from "./YamlObjectBuilder";
 
 export default class YamlCompositeModelBuilder extends YamlObjectBuilder<
-  IYamlCompositeModel,
+  SMLCompositeModel,
   YamlCompositeModelBuilder
 > {
   static create(): YamlCompositeModelBuilder {
-    const defaultValues: IYamlCompositeModel = {
+    const defaultValues: SMLCompositeModel = {
       label: "no label",
       models: [],
-      object_type: ObjectType.CompositeModel,
+      object_type: SMLObjectType.CompositeModel,
       unique_name: "no unique name",
     };
 

@@ -1,8 +1,19 @@
+import {
+  SMLReferenceableObject,
+  SMLReferenceableObjectWithLabel,
+  SMLObject,
+  SMLDimensionCalculationGroup,
+  SMLCalculationMethod,
+  SMLUnrelatedDimensionsHandling,
+  SMLRowSecurityIdType,
+  SMLRowSecurityScope
+} from "sml-sdk";
+
 import { IAttributeData, IAttributeRole, ICommonAttributeProps, IFormatting } from "./ISharedProps";
-import { IYamlDimensionCalculationGroup } from "./IYamlCalculationGroups";
-import { CalculationMethod, UnrelatedDimensionsHandling } from "./IYamlMeasure";
-import { IReferenceableYamlObject, IUniqueNameObject, IYamlObject } from "./IYamlObject";
-import { YamlRowSecurityIdType, YamlRowSecurityScope } from "./IYamlRowSecurity";
+// import { IYamlDimensionCalculationGroup } from "./IYamlCalculationGroups";
+// import { CalculationMethod, UnrelatedDimensionsHandling } from "./IYamlMeasure";
+// import { IReferenceableYamlObject, IUniqueNameObject, IYamlObject } from "./IYamlObject";
+// import { YamlRowSecurityIdType, YamlRowSecurityScope } from "./IYamlRowSecurity";
 
 export enum YamlHierarchyEmptyField {
   Yes = "yes",
@@ -10,7 +21,7 @@ export enum YamlHierarchyEmptyField {
   Always = "always",
 }
 
-export interface IYamlDimensionLevel extends IUniqueNameObject {
+export interface IYamlDimensionLevel extends SMLReferenceableObject {
   is_hidden?: boolean;
   secondary_attributes?: Array<IYamlDimensionSecondaryAttribute>;
   aliases?: Array<IYamlLevelAliasAttribute>;
@@ -18,7 +29,7 @@ export interface IYamlDimensionLevel extends IUniqueNameObject {
   parallel_periods?: Array<IYamlLevelParallelPeriod>;
 }
 
-export interface IYamlDimensionHierarchy extends ICommonAttributeProps, IReferenceableYamlObject {
+export interface IYamlDimensionHierarchy extends ICommonAttributeProps, SMLReferenceableObjectWithLabel {
   levels: Array<IYamlDimensionLevel>;
   unique_name: string;
   filter_empty?: YamlHierarchyEmptyField;
@@ -66,7 +77,7 @@ export interface ILevelDatasetInfo extends IBasicDimensionalAttribute, IKeyColum
   is_unique_key?: boolean;
 }
 
-interface IBaseLevel extends IReferenceableYamlObject, IDataHandling, IAllowedCalcsForDMA, ICommonAttributeProps {
+interface IBaseLevel extends SMLReferenceableObjectWithLabel, IDataHandling, IAllowedCalcsForDMA, ICommonAttributeProps {
   contains_unique_names?: boolean;
 }
 
@@ -89,19 +100,19 @@ export interface IYamlDimensionSecondaryAttribute extends IBasicDimensionalAttri
 export type IDimensionalAttribute = IYamlDimensionLevelAttribute | IYamlDimensionSecondaryAttribute;
 
 export interface IYamlDimensionMetric
-  extends IReferenceableYamlObject,
+  extends SMLReferenceableObjectWithLabel,
     IDataHandling,
     IAllowedCalcsForDMA,
     IAttributeData,
     ICommonAttributeProps {
-  calculation_method: CalculationMethod;
+  calculation_method: SMLCalculationMethod;
   column: string;
-  unrelated_dimensions_handling?: UnrelatedDimensionsHandling;
+  unrelated_dimensions_handling?: SMLUnrelatedDimensionsHandling;
 }
 
 export interface IYamlLevelAliasAttribute
   extends IBasicLevelAliasAttribute,
-    IReferenceableYamlObject,
+    SMLReferenceableObjectWithLabel,
     IDataHandling,
     ICommonAttributeProps,
     IAttributeRole {}
@@ -148,7 +159,7 @@ export interface IYamlSnowflakeRelationship {
 export type IYamlDimensionRegularRelationship = IYamlSnowflakeRelationship | IYamlEmbeddedRelationship;
 export type IYamlDimensionRelationship = IYamlDimensionRegularRelationship | IYamlSecurityRelationship;
 
-export interface IYamlEmbeddedRelationship extends IUniqueNameObject {
+export interface IYamlEmbeddedRelationship extends SMLReferenceableObject {
   from: {
     dataset: string;
     join_columns: Array<string>;
@@ -163,7 +174,7 @@ export interface IYamlEmbeddedRelationship extends IUniqueNameObject {
   role_play?: string;
 }
 
-export interface IYamlSecurityRelationship extends IUniqueNameObject {
+export interface IYamlSecurityRelationship extends SMLReferenceableObject {
   from: {
     dataset: string;
     join_columns: Array<string>;
@@ -184,19 +195,19 @@ export enum YamlDimensionRelationType {
 export interface IYamlDimensionSecurityProps {
   filter_key_column: string;
   ids_column: string;
-  id_type: YamlRowSecurityIdType;
-  scope: YamlRowSecurityScope;
+  id_type: SMLRowSecurityIdType;
+  scope: SMLRowSecurityScope;
   use_filter_key?: boolean;
   secure_totals?: boolean;
 }
 
-interface IYamlBaseDimension extends IYamlObject {
+interface IYamlBaseDimension extends SMLObject {
   is_degenerate?: boolean;
   hierarchies: Array<IYamlDimensionHierarchy>;
   description?: string;
   type?: IYamlDimensionType;
   relationships?: Array<IYamlDimensionRelationship>;
-  calculation_groups?: Array<IYamlDimensionCalculationGroup>;
+  calculation_groups?: Array<SMLDimensionCalculationGroup>;
 }
 
 export interface IYamlNormalDimension extends IYamlBaseDimension {

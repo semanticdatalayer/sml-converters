@@ -1,8 +1,10 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { SMLObject } from "sml-sdk";
+
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
 import { IYamlFile } from "../../IYamlFile";
 import { OriginType, PACKAGE_ROOT_NAME } from "../../SourceType";
-import { IYamlObject } from "../../yaml/IYamlObject";
+// import { IYamlObject } from "../../yaml/IYamlObject";
 import YamlSerializer from "../../YamlSerializer/YamlSerizlizer";
 
 export interface IBuildYamlFileInput {
@@ -12,7 +14,7 @@ export interface IBuildYamlFileInput {
 export const isIBuildYamlFileInput = (input: unknown): input is IBuildYamlFileInput => {
   return !!(input as IBuildYamlFileInput).relativePath;
 };
-export class YamlObjectBuilder<T extends IYamlObject, Builder extends AnyObjectBuilder<T>> extends AnyObjectBuilder<T> {
+export class YamlObjectBuilder<T extends SMLObject, Builder extends AnyObjectBuilder<T>> extends AnyObjectBuilder<T> {
   with(data: Partial<T>): Builder {
     return super.with(data) as Builder;
   }

@@ -1,7 +1,9 @@
-import { ObjectType } from "./ObjectType";
+// import { ObjectType } from "./ObjectType";
+
+import {SMLObjectType} from "sml-sdk";
 
 export const FILE_TYPE = {
-  ...ObjectType,
+  ...SMLObjectType,
   Unknown: "Unknown",
   Folder: "Folder",
   Text: "Text",
@@ -17,23 +19,23 @@ export type FileType = ObjectValues<typeof FILE_TYPE>;
 
 export const getDisplayName = (t: FileType): string => {
   switch (t) {
-    case ObjectType.Model:
+    case SMLObjectType.Model:
       return "Model";
-    case ObjectType.CompositeModel:
+    case SMLObjectType.CompositeModel:
       return "Composite model";
-    case ObjectType.Catalog:
+    case SMLObjectType.Catalog:
       return "Catalog";
-    case ObjectType.Dimension:
+    case SMLObjectType.Dimension:
       return "Dimension";
-    case ObjectType.Dataset:
+    case SMLObjectType.Dataset:
       return "Dataset";
-    case ObjectType.Measure:
+    case SMLObjectType.Metric:
       return "Metric";
-    case ObjectType.MeasureCalc:
+    case SMLObjectType.MetricCalc:
       return "Calculation";
-    case ObjectType.Connection:
+    case SMLObjectType.Connection:
       return "Connection";
-    case ObjectType.RowSecurity:
+    case SMLObjectType.RowSecurity:
       return "Row Security";
     default:
       return "Unknown";

@@ -1,4 +1,4 @@
-import { AnyObjectBuilder } from "utils/builders/AnyObjectBuilder";
+import { AnyObjectBuilder } from "../../../../utils/builders/AnyObjectBuilder";
 
 import { IXmlCube } from "../../xml/IXmlCube";
 import { IXmlDataSetRef } from "../../xml/IXmlDataset";
