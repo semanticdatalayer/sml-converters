@@ -1,11 +1,11 @@
 export interface ICommonAttributeProps {
   description?: string;
-  //TODO check in measures
+  //TODO: check in measures
   is_hidden?: boolean;
   folder?: string;
 }
 
-//TODO ask again for format string. How to match enum?
+//TODO: ask again for format string. How to match enum?
 export interface IFormatting {
   format?: string;
 }

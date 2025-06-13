@@ -33,7 +33,7 @@ import yaml from "js-yaml";
 // import { ConvertResult } from "../models/src/ConvertResult";  overriden
 // import { IConverterResult } from "models/src/IConvertResult"; overriden
 // import { ILogger } from "models/src/ILogger"; overriden
-import { IYamlFile } from "../models/src/IYamlFile";  //TODO WILL BE RENAMED
+import { IYamlFile } from "../models/src/IYamlFile";  //TODO: WILL BE RENAMED
 // import { IYamlCatalog } from "../models/src/yaml/IYamlCatalog"; overriden
 // import { IYamlCompositeModel } from "../models/src/yaml/IYamlCompositeModel"; overriden
 // import { IYamlConnection } from "../models/src/yaml/IYamlConnection";
@@ -514,7 +514,7 @@ export function makeResultFromFileList(smlFiles: Array<IYamlFile>, logger: Logge
       case "connection":
         result.addConnection(smlFile.data as SMLConnection);
         break;
-      // case "row_security":   //TODO sml-convert-result.ts does not have row_security or composite_model
+      // case "row_security":   //TODO: sml-convert-result.ts does not have row_security or composite_model
       //   result.addRowSecurity(smlFile.data as SMLRowSecurity);
       //   break;
       // case "composite_model":
@@ -637,7 +637,7 @@ type modelType = SMLModel | SMLCompositeModel | undefined;
 
 function createSMLModel(smlObjects: SmlConverterResult, modelToConvert: string, logger: Logger): modelType {
   let smlModel: modelType = smlObjects.models.find((model) => model.unique_name === modelToConvert);
-  //TODO sml-convert-result.ts does not have compositeModels, see if I need to update it
+  //TODO: sml-convert-result.ts does not have compositeModels, see if I need to update it
   // if (!smlModel) {
   //   smlModel = smlObjects.compositeModels.find((compositeModel) => compositeModel.unique_name == modelToConvert);
   //   if (!smlModel) {

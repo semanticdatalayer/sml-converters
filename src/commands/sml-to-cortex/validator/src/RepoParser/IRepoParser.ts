@@ -1,6 +1,6 @@
-import { EnvFileData, IFile } from "models/src/IFile";
-import { IFolderStructure } from "models/src/IFolderStructure";
-import { IYamlFile } from "models/src/IYamlFile";
+import { EnvFileData, IFile } from "../../../models/src/IFile";
+import { IFolderStructure } from "../../../models/src/IFolderStructure";
+import { IYamlFile } from "../../../models/src/IYamlFile";
 
 import ValidatorOutput from "../ValidatorOutput/ValidatorOutput";
 

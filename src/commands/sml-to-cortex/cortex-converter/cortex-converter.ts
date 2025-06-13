@@ -12,14 +12,14 @@ import { Logger } from "../../../shared/logger";
 
 import { IFile } from "../models/src/IFile";   // not used, in converter file, only in validator
 import { IFolderStructure } from "../models/src/IFolderStructure"; // not used, in converter file, only in validator
-import { IYamlFile } from "../models/src/IYamlFile"; //TODO, only in validator
-import IYamlParsedFile from "../models/src/IYamlParsedFile"; //TODO can't find it, only in validator
+import { IYamlFile } from "../models/src/IYamlFile"; //TODO:, only in validator
+import IYamlParsedFile from "../models/src/IYamlParsedFile"; //TODO: can't find it, only in validator
 // import { IYamlModel } from "models/src/yaml/IYamlModel";  // replaced by SMLModel in sdk
 // import { IYamlObject } from "models/src/yaml/IYamlObject";  // replaced by SMLObject in sdk
-import { RepoParser } from "../validator/src/RepoParser/RepoParser"; //TODO should be in new file
-import { IRepoParser } from "../validator/src/RepoParser/IRepoParser"; //TODO should be in new file
+import { RepoParser } from "../validator/src/RepoParser/RepoParser"; //TODO: should be in new file
+import { IRepoParser } from "../validator/src/RepoParser/IRepoParser"; //TODO: should be in new file
 import { convertCompositeModel } from "../validator/src/utils/composite-model/composite-model.util";
-import ValidatorOutput from "../validator/src/ValidatorOutput/ValidatorOutput";  //TODO idk what to do with validators
+import ValidatorOutput from "../validator/src/ValidatorOutput/ValidatorOutput";  //TODO: idk what to do with validators
 
 import { ICortexConverter, ICortexConverterResult } from "./ICortexConverter";  // will be in model file
 import { Convert, makeResultFromFileList } from "./snow-converter";
