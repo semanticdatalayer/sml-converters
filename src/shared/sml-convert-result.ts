@@ -8,6 +8,8 @@ import {
   SMLModel,
   SMLNormalDimension,
   SMLObject,
+  SMLRowSecurity,
+  SMLCompositeModel
 } from "sml-sdk";
 
 import Guard from "./guard";
@@ -19,6 +21,8 @@ export interface SmlConverterResult {
   dimensions: Array<SMLDimension>;
   measures: Array<SMLMetric>;
   measuresCalculated: Array<SMLMetricCalculated>;
+  compositeModels: Array<SMLCompositeModel>;
+  rowSecurity: Array<SMLRowSecurity>;
   catalog: SMLCatalog;
 }
 
@@ -29,10 +33,12 @@ export class SmlConvertResultBuilder {
   private _dimensions: Array<SMLNormalDimension> = [];
   private _measures: Array<SMLMetric> = [];
   private _measuresCalculated: Array<SMLMetricCalculated> = [];
+  private _compositeModels: Array<SMLCompositeModel> = [];
+  private _rowSecurity: Array<SMLRowSecurity> = [];
   private _catalog?: SMLCatalog = undefined;
 
   public get catalog(): SMLCatalog {
-    return Guard.ensure(this._catalog, "catalog is nto set");
+    return Guard.ensure(this._catalog, "catalog is not set");
   }
 
   public set catalog(value: SMLCatalog) {
@@ -48,6 +54,8 @@ export class SmlConvertResultBuilder {
       ...this._dimensions,
       ...this._measures,
       ...this._measuresCalculated,
+      ...this._compositeModels,
+      ...this._rowSecurity,
       ...this._models,
     ];
 
@@ -99,6 +107,13 @@ export class SmlConvertResultBuilder {
   addMeasuresCalc(measureCalc: SMLMetricCalculated) {
     this.addObjectToArray(this._measuresCalculated, measureCalc);
   }
+  addCompositeModel(compModel: SMLCompositeModel) {
+    this.addObjectToArray(this._compositeModels, compModel);
+  }
+  
+  addRowSecurity(rowSecurity: SMLRowSecurity) {
+    this.addObjectToArray(this._rowSecurity, rowSecurity);
+  }
 
   getResult(): SmlConverterResult {
     return {
@@ -108,6 +123,8 @@ export class SmlConvertResultBuilder {
       measures: this._measures,
       measuresCalculated: this._measuresCalculated,
       models: this._models,
+      compositeModels: this._compositeModels,
+      rowSecurity: this._rowSecurity,
       catalog: this.catalog,
     };
   }
@@ -134,5 +151,13 @@ export class SmlConvertResultBuilder {
 
   public get measuresCalculated() {
     return this._measuresCalculated;
+  }
+
+  public get compositeModels() {
+    return this._compositeModels;
+  }
+
+  public get rowSecurity() {
+    return this._rowSecurity;
   }
 }

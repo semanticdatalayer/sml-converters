@@ -8,6 +8,10 @@ import {
   SmlConverterResult,
 } from "../../../shared/sml-convert-result";
 
+import {
+  SmlFolderReader
+} from "../../../shared/sml-folder-reader"
+
 import { Logger } from "../../../shared/logger";
 
 import { IFile } from "../models/src/IFile";   // not used, in converter file, only in validator
@@ -39,7 +43,7 @@ type CortexConverterDependencies = {
   doMapDatasetsToDims: boolean;
 };
 
-export default class CortexConverter implements ICortexConverter {
+export default class CortexConverter {
   // dependencies: CortexConverterDependencies;
   private logger: Logger;
   private smlFilesPath?: string;
@@ -60,27 +64,19 @@ export default class CortexConverter implements ICortexConverter {
     this.doMapDatasetsToDims = deps.doMapDatasetsToDims;
   }
 
-  async convertRepo(rootFolder: IFolderStructure<IFile>): Promise<ICortexConverterResult> {
-    const repoParser: IRepoParser = new RepoParser();
-    const validatorOutput = ValidatorOutput.create();
-    const parsedRootFolder = repoParser.parseFolderStructure(rootFolder, validatorOutput); // this.dependencies. this.dependencies.smlFilesPath.parseFolderStructure(rootFolder, validatorOutput);
-    let yamlParsedFiles: Array<IYamlFile> = repoParser.extractYamlFiles(parsedRootFolder, validatorOutput);
-    yamlParsedFiles = repoParser.getYamlFilesWithValidObjectType(yamlParsedFiles, validatorOutput); // Do I need this?
-    const cortexConversionOutput: Array<ISnowModel> = await this.createCortexOutput(yamlParsedFiles);
-
-    return { filesOutput: cortexConversionOutput };
-  }
-
   async convertYamlFiles(rootFolder: string): Promise<ICortexConverterResult> {
-    const smlFiles: Array<IYamlFile> = await flatRepoFromPath(rootFolder, this.logger);
-    const cortexConversionOutput: Array<ISnowModel> = await this.createCortexOutput(smlFiles);
+    // const smlFiles: Array<IYamlFile> = await flatRepoFromPath(rootFolder, this.logger);
+
+    const smlReader = new SmlFolderReader(this.logger);
+    const smlConverterResult = await smlReader.readSmlObjects(rootFolder);
+    const cortexConversionOutput: Array<ISnowModel> = await this.createCortexOutput(smlConverterResult);
 
     return { filesOutput: cortexConversionOutput };
   }
 
-  async createCortexOutput(smlFiles: IYamlFile<SMLObject>[]): Promise<ISnowModel[]> {
+  async createCortexOutput(smlObjects: SmlConverterResult): Promise<ISnowModel[]> {
     const cortexConversionOutput = new Array<ISnowModel>();
-    const smlObjects: SmlConverterResult = makeResultFromFileList(smlFiles, this.logger);
+    // const smlObjects: SmlConverterResult = makeResultFromFileList(smlFiles, this.logger);
 
     for (const model of smlObjects.models) {
       const snowModel: ISnowModel = await Convert(
@@ -92,24 +88,29 @@ export default class CortexConverter implements ICortexConverter {
       cortexConversionOutput.push(snowModel);
     }
 
+    //TODO: Figure out what to do about the composite models
     // Composite models compilation logic requires the file
-    for (const compositeModelFile of smlFiles) {
-      if (compositeModelFile.data.object_type === SMLObjectType.CompositeModel) {
-        const fullCompositeModelFile: IYamlParsedFile<SMLObject> = convertCompositeModel(
-          compositeModelFile,
-          smlFiles
-        );
+    // for (const compositeModelFile of smlObjects.compositeModels) {
+    //   const newFiles: IYamlParsedFile<SMLObject> = 
+    //   {
+    //     data: compositeModelFile,
+    //     compilationOutput: 
 
-        const modelFromComposite = fullCompositeModelFile.data as SMLModel;
-        const snowModel: ISnowModel = await Convert(
-          smlObjects,
-          modelFromComposite,
-          this.logger,
-          Constants.DO_MAP_DATASETS_TO_DIMS
-        );
-        cortexConversionOutput.push(snowModel);
-      }
-    }
+    //   };
+    //     const fullCompositeModelFile: IYamlParsedFile<SMLObject> = convertCompositeModel(
+    //       newFiles,
+    //       smlObjects
+    //     );
+
+    //     const modelFromComposite = fullCompositeModelFile.data as SMLModel;
+    //     const snowModel: ISnowModel = await Convert(
+    //       smlObjects,
+    //       modelFromComposite,
+    //       this.logger,
+    //       Constants.DO_MAP_DATASETS_TO_DIMS
+    //     );
+    //     cortexConversionOutput.push(snowModel);
+    // }
 
     return cortexConversionOutput;
   }

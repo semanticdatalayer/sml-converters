@@ -1,9 +1,17 @@
-import IYamlParsedFile from "models/src/IYamlParsedFile";
-import { ObjectType } from "models/src/ObjectType";
-import YamlObjectTypeGuard from "models/src/yaml/guards/yaml-object-type-guard";
-import { IYamlCompositeModel } from "models/src/yaml/IYamlCompositeModel";
-import { IYamlModel, IYamlModelOverride } from "models/src/yaml/IYamlModel";
-import { IYamlObject } from "models/src/yaml/IYamlObject";
+import IYamlParsedFile from "../../../../models/src/IYamlParsedFile";
+// import { ObjectType } from "../../../../models/src/ObjectType";
+import YamlObjectTypeGuard from "../../../../models/src/yaml/guards/yaml-object-type-guard";
+// import { IYamlCompositeModel } from "../../../../models/src/yaml/IYamlCompositeModel";
+// import { IYamlModel, IYamlModelOverride } from "../../../../models/src/yaml/IYamlModel";
+// import { IYamlObject } from "models/src/yaml/IYamlObject";
+
+import {
+  SMLCompositeModel,
+  SMLModel,
+  SMLModelOverride,
+  SMLObject,
+  SMLObjectType
+} from 'sml-sdk'
 
 /**
  * Converts composite models into regular models by merging their attributes
@@ -14,7 +22,7 @@ import { IYamlObject } from "models/src/yaml/IYamlObject";
  * @param allFiles - An array of all YAML files in the repository.
  * @returns A new array of YAML files with converted models.
  */
-export function convertCompositeModels(allFiles: IYamlParsedFile<IYamlObject>[]): IYamlParsedFile<IYamlObject>[] {
+export function convertCompositeModels(allFiles: IYamlParsedFile<SMLObject>[]): IYamlParsedFile<SMLObject>[] {
   return allFiles.map((file) => {
     return convertCompositeModel(file, allFiles);
   });
@@ -26,11 +34,11 @@ export function convertCompositeModels(allFiles: IYamlParsedFile<IYamlObject>[])
  * @param allFiles An array of all YAML files in the repository.
  * @returns A new regular model if the original file is composite model, otherwise returns the original file.
  */
-export function convertCompositeModel(file: IYamlParsedFile<IYamlObject>, allFiles: IYamlParsedFile<IYamlObject>[]) {
+export function convertCompositeModel(file: IYamlParsedFile<SMLObject>, allFiles: IYamlParsedFile<SMLObject>[]) {
   return YamlObjectTypeGuard.isCompositeModel(file.data)
     ? {
         ...file,
-        data: generateCompositeModelData(file as IYamlParsedFile<IYamlCompositeModel>, allFiles),
+        data: generateCompositeModelData(file as IYamlParsedFile<SMLCompositeModel>, allFiles),
       }
     : file;
 }
@@ -44,13 +52,13 @@ export function convertCompositeModel(file: IYamlParsedFile<IYamlObject>, allFil
  * @returns A new regular model with combined attributes.
  */
 export function generateCompositeModelData(
-  compositeModel: IYamlParsedFile<IYamlCompositeModel>,
-  yamlFiles: IYamlParsedFile<IYamlObject>[]
-): IYamlModel {
-  const yamlModel: IYamlModel = {
+  compositeModel: IYamlParsedFile<SMLCompositeModel>,
+  yamlFiles: IYamlParsedFile<SMLObject>[]
+): SMLModel {
+  const yamlModel: SMLModel = {
     relationships: [],
     metrics: compositeModel.data.metrics ?? [],
-    object_type: ObjectType.Model,
+    object_type: SMLObjectType.Model,
     label: compositeModel.data.label,
     unique_name: compositeModel.data.unique_name,
     dimensions: [],
@@ -64,7 +72,7 @@ export function generateCompositeModelData(
       throw new Error(`No object found with unique name ${innerModelName}`);
     }
 
-    const innerModelData = innerModel.data as IYamlModel;
+    const innerModelData = innerModel.data as SMLModel;
 
     yamlModel.metrics = yamlModel.metrics.concat(innerModelData.metrics);
     yamlModel.dimensions = yamlModel.dimensions?.concat(innerModelData.dimensions ?? []);
@@ -84,7 +92,7 @@ export function generateCompositeModelData(
   return yamlModel;
 }
 
-function mergeOverrides(model1: IYamlModel, model2: IYamlModel): IYamlModelOverride {
+function mergeOverrides(model1: SMLModel, model2: SMLModel): SMLModelOverride {
   return {
     ...model1.overrides,
     ...model2.overrides,

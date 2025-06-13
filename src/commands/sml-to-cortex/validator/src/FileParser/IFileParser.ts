@@ -1,5 +1,5 @@
-import { IParsedFile } from "models/src/IParsedFile";
-import IRawFile from "models/src/IRawFile";
+import { IParsedFile } from "../../../models/src/IParsedFile";
+import IRawFile from "../../../models/src/IRawFile";
 
 export type FileParserFileType = "yaml" | "yml" | "json" | "env";
 
