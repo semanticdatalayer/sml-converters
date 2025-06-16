@@ -1,17 +1,13 @@
-import IYamlParsedFile from "../../../../models/src/IYamlParsedFile";
-// import { ObjectType } from "../../../../models/src/ObjectType";
-import YamlObjectTypeGuard from "../../../../models/src/yaml/guards/yaml-object-type-guard";
-// import { IYamlCompositeModel } from "../../../../models/src/yaml/IYamlCompositeModel";
-// import { IYamlModel, IYamlModelOverride } from "../../../../models/src/yaml/IYamlModel";
-// import { IYamlObject } from "models/src/yaml/IYamlObject";
-
 import {
-  SMLCompositeModel,
-  SMLModel,
-  SMLModelOverride,
-  SMLObject,
-  SMLObjectType
+    SMLObjectType,
+    SMLCompositeModel,
+    SMLModel,
+    SMLModelOverride,
+    SMLObject
 } from 'sml-sdk'
+
+import IYamlParsedFile from "../models/src/IYamlParsedFile";
+import YamlObjectTypeGuard from "../models/src/yaml/guards/yaml-object-type-guard";
 
 /**
  * Converts composite models into regular models by merging their attributes

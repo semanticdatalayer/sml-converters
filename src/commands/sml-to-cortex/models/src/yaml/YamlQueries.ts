@@ -22,7 +22,7 @@ import {
 import IYamlParsedFile from "../../src/IYamlParsedFile";
 // import { ObjectType } from "../../src/ObjectType";
 import ValidationError from "../ValidationError";
-import IXmlProject from "../xml/IXmlProject";
+import IXmlProject from "../xml/IXmlProject";   //TODO: only mention of XML outside of xml filder
 import YamlDimensionTypeGuard from "./guards/YamlDimensionTypeGuard";
 import YamlModelTypeGuard from "./guards/YamlModelTypeGuard";
 // import { IYamlCompositeModel } from "./IYamlCompositeModel";

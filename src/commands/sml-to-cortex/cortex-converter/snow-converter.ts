@@ -27,31 +27,10 @@ import {
   SMLRowSecurity
  } from "sml-sdk";
 
-import { mkdir, writeFile } from "fs";
-// import path from "path";
+import {  writeFile } from "fs";
 import yaml from "js-yaml";
-// import { ConvertResult } from "../models/src/ConvertResult";  overriden
-// import { IConverterResult } from "models/src/IConvertResult"; overriden
-// import { ILogger } from "models/src/ILogger"; overriden
-import { IYamlFile } from "../models/src/IYamlFile";  //TODO: WILL BE RENAMED
-// import { IYamlCatalog } from "../models/src/yaml/IYamlCatalog"; overriden
-// import { IYamlCompositeModel } from "../models/src/yaml/IYamlCompositeModel"; overriden
-// import { IYamlConnection } from "../models/src/yaml/IYamlConnection";
-// import { IYamlDataset, YamlColumnDataType } from "../models/src/yaml/IYamlDataset"; overriden
-// import {
-//   IYamlDimension,
-//   IYamlDimensionLevel,
-//   IYamlDimensionLevelAttribute,
-//   IYamlDimensionMetric,
-//   IYamlDimensionSecondaryAttribute,
-//   IYamlEmbeddedRelationship,
-//   IYamlLevelAliasAttribute,
-// } from "../models/src/yaml/IYamlDimension";  overriden
-// import { CalculationMethod, IYamlMeasure, IYamlMeasureCalculated } from "../models/src/yaml/IYamlMeasure"; overriden
-// import { IYamlModel, IYamlModelRelationship } from "../models/src/yaml/IYamlModel"; ovdeerriden
-// import { IReferenceableYamlObject } from "../models/src/yaml/IYamlObject"; overriden
-// import { IYamlRowSecurity } from "../models/src/yaml/IYamlRowSecurity"; overriden
-import { IRepoValidatorResult } from "../validator/src/RepoValidator/IRepoValidator";
+import { IYamlFile } from "../models/src/IYamlFile";
+// import { IRepoValidatorResult } from "../validator/src/RepoValidator/IRepoValidator";
 import { sortAlphabetically } from "./tools"; // all good
 
 import { ISnowDimension, ISnowMeasure, ISnowModel, ISnowTable, ISnowTimeDimension } from "./snow-model";
@@ -465,29 +444,29 @@ function mapToSnowTimeDim(
   } as ISnowTimeDimension;
 }
 
-function processValidation(validationResult: IRepoValidatorResult, logger: Logger): string {
-  let msgs = "";
-  let warns = "";
-  validationResult.filesOutput.forEach((validationMsg) =>
-    validationMsg.compilationOutput.forEach((compiled) => {
-      if (compiled.severity === "error") {
-        if (!DEBUG || compiled.message !== "must have required property 'relationships'") {
-          msgs += `\n   File '${validationMsg.relativePath}': ${compiled.message}`;
-        }
-      }
-      if (compiled.severity.includes("warn")) {
-        warns += `\n   File '${validationMsg.relativePath}': ${compiled.message}`;
-      }
-    })
-  );
-  if (msgs.length > 1) {
-    msgs = "The following validation errors were found in the incoming SML and must be addressed:" + msgs;
-  }
-  if (warns.length > 1) {
-    logger.warn("The following validation warnings were found in the incoming SML:" + warns);
-  }
-  return msgs;
-}
+// function processValidation(validationResult: IRepoValidatorResult, logger: Logger): string {
+//   let msgs = "";
+//   let warns = "";
+//   validationResult.filesOutput.forEach((validationMsg) =>
+//     validationMsg.compilationOutput.forEach((compiled) => {
+//       if (compiled.severity === "error") {
+//         if (!DEBUG || compiled.message !== "must have required property 'relationships'") {
+//           msgs += `\n   File '${validationMsg.relativePath}': ${compiled.message}`;
+//         }
+//       }
+//       if (compiled.severity.includes("warn")) {
+//         warns += `\n   File '${validationMsg.relativePath}': ${compiled.message}`;
+//       }
+//     })
+//   );
+//   if (msgs.length > 1) {
+//     msgs = "The following validation errors were found in the incoming SML and must be addressed:" + msgs;
+//   }
+//   if (warns.length > 1) {
+//     logger.warn("The following validation warnings were found in the incoming SML:" + warns);
+//   }
+//   return msgs;
+// }
 
 export function makeResultFromFileList(smlFiles: Array<IYamlFile>, logger: Logger): SmlConverterResult {
   const result = new SmlConvertResultBuilder;
@@ -514,12 +493,12 @@ export function makeResultFromFileList(smlFiles: Array<IYamlFile>, logger: Logge
       case "connection":
         result.addConnection(smlFile.data as SMLConnection);
         break;
-      // case "row_security":   //TODO: sml-convert-result.ts does not have row_security or composite_model
-      //   result.addRowSecurity(smlFile.data as SMLRowSecurity);
-      //   break;
-      // case "composite_model":
-      //   result.addCompositeModel(smlFile.data as SMLCompositeModel);
-      //   break;
+      case "row_security":
+        result.addRowSecurity(smlFile.data as SMLRowSecurity);
+        break;
+      case "composite_model":
+        result.addCompositeModel(smlFile.data as SMLCompositeModel);
+        break;
       default:
         logger.warn(`Object type of ${smlFile.type} not recognized so object will be skipped`);
         break;
@@ -637,13 +616,12 @@ type modelType = SMLModel | SMLCompositeModel | undefined;
 
 function createSMLModel(smlObjects: SmlConverterResult, modelToConvert: string, logger: Logger): modelType {
   let smlModel: modelType = smlObjects.models.find((model) => model.unique_name === modelToConvert);
-  //TODO: sml-convert-result.ts does not have compositeModels, see if I need to update it
-  // if (!smlModel) {
-  //   smlModel = smlObjects.compositeModels.find((compositeModel) => compositeModel.unique_name == modelToConvert);
-  //   if (!smlModel) {
-  //     smlModel = getDefaultModel(smlObjects, modelToConvert, DEBUG, logger);
-  //   }
-  // }
+  if (!smlModel) {
+    smlModel = smlObjects.compositeModels.find((compositeModel) => compositeModel.unique_name == modelToConvert);
+    if (!smlModel) {
+      smlModel = getDefaultModel(smlObjects, modelToConvert, DEBUG, logger);
+    }
+  }
   if (!smlModel) {
     throw new Error(`No model with unique_name '${modelToConvert}' found in catalog`);
   }

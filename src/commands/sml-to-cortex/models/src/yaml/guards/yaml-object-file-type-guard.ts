@@ -10,19 +10,10 @@ import {
   SMLMetric,
   SMLMetricCalculated,
   SMLObject,
+  SMLTypedObject,
   SMLModel
 } from 'sml-sdk'
 
-// import { IYamlCatalog as SMLCatalog } from "../IYamlCatalog";
-// import { IYamlCompositeModel as SMLCompositeModel } from "../IYamlCompositeModel";
-// import { IYamlConnection as SMLConnection } from "../IYamlConnection";
-// import { IYamlDataset as SMLDataset } from "../IYamlDataset";
-// import { IYamlDimension as SMLDimension } from "../IYamlDimension";
-// import { IYamlGlobalSettings as SMLGlobalSettings } from "../IYamlGlobalSettings";
-// import { IYamlMeasure as SMLMetric } from "../IYamlMeasure";
-// import { IYamlModel as SMLModel } from "../IYamlModel";
-// import { IYamlObject as SMLObject } from "../IYamlObject";
-// import { IYamlMeasureCalculated as SMLMetricCalculated } from "./../IYamlMeasure";
 import YamlObjectTypeGuard from "./yaml-object-type-guard";
 
 const isYamlFileOfType = <T extends SMLObject>(input: IYamlFile, typeGuard: (input: SMLObject) => input is T) => {
@@ -54,9 +45,10 @@ const YamlObjectFileTypeGuard = {
   isCatalogFile(input: IYamlFile): input is IYamlFile<SMLCatalog> {
     return isYamlFileOfType(input, YamlObjectTypeGuard.isCatalog);
   },
-  isGlobalSettingsFile(input: IYamlFile): input is IYamlFile<SMLGlobalSettings> {
-    return isYamlFileOfType(input, YamlObjectTypeGuard.isGlobalSettings);
-  },
+  //TODO: IYamlFile uses SMLObject, but GlobalSettings uses SMLTypedObject
+  // isGlobalSettingsFile(input: IYamlFile): input is IYamlFile<SMLGlobalSettings> {
+  //   return isYamlFileOfType(input, YamlObjectTypeGuard.isGlobalSettings);
+  // },
 };
 
 export default YamlObjectFileTypeGuard;
