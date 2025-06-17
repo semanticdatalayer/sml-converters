@@ -1,11 +1,12 @@
 import { Args, Flags, Command } from "@oclif/core";
 import path from "path";
-import fs from "fs-extra";
+import fs from "fs/promises";
 import yaml from "js-yaml";
 import { CommandLogger } from "../../shared/command-logger";
 import { Logger } from "../../shared/logger";
 import CortexConverter from "./cortex-converter/cortex-converter";
 import { ICortexConverterResult } from "./cortex-converter/ICortexConverter";
+import { ensureDir } from "../../shared/file-system-util";
 
 export class SMLToCortex extends Command {
   static description = "Convert from SML to Snowflake Cortex Analyst yaml.";
@@ -67,7 +68,7 @@ async function saveCortexYamlFiles(
   logger: Logger,
 ) {
   try {
-    await fs.ensureDir(outputDir);
+    ensureDir(outputDir);
 
     await Promise.all(
       cortexModels.filesOutput.map(async (obj) => {

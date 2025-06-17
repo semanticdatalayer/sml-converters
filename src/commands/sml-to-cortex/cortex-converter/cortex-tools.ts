@@ -1,8 +1,6 @@
-// import { FILE_TYPE } from "../models/src/FileType";  unneeded
 import { IYamlFile } from "../models/IYamlFile";
 import IYamlParsedFile from "../models/IYamlParsedFile";
 import { OriginType } from "../models/SourceType";
-// import { IYamlObject } from "../models/src/yaml/IYamlObject"; replaced
 
 import { SMLObject } from "sml-sdk";
 
@@ -65,6 +63,15 @@ export function printFilteredMessage(val: string, msg: string) {
   }
 }
 
+/**
+ * Determines whether the provided string value is present in the list of filtered values.
+ *
+ * The comparison is case-insensitive and ignores surrounding quotes in both the input value
+ * and the filter values.
+ *
+ * @param val - The string value to check against the filter list.
+ * @returns `true` if the value is found in `Constants.FILTER_VALUES`, otherwise `false`.
+ */
 export function isFiltered(val: string): boolean {
   let found = false;
   if (val && Constants.FILTER_VALUES) {
@@ -81,9 +88,34 @@ export function noQuotes(field: string): string {
   return field.toString().replace(/["']/g, "");
 }
 
+/**
+ * Returns a new array with the elements sorted alphabetically based on the string value
+ * returned by the provided selector function.
+ *
+ * @typeParam T - The type of elements in the input array.
+ * @param array - The array of elements to sort.
+ * @param selector - A function that takes an element and returns a string to use for sorting.
+ * @returns A new array sorted alphabetically by the selected string value.
+ */
 export const sortAlphabetically = <T>(
   array: T[],
   selector: (el: T) => string
 ): T[] => {
   return [...array].sort((a, b) => selector(a).localeCompare(selector(b)));
 };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function deepFreeze(o: any) {
+  Object.freeze(o);
+
+  Object.getOwnPropertyNames(o).forEach((prop) => {
+    if (Object.prototype.hasOwnProperty.call(o, prop) &&
+      o[prop] !== null &&
+      (typeof o[prop] === "object" || typeof o[prop] === "function") &&
+      !Object.isFrozen(o[prop])) {
+      deepFreeze(o[prop]);
+    }
+  });
+
+  return o;
+}

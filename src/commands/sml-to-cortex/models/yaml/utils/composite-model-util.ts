@@ -25,7 +25,7 @@ export function convertCompositeModels(allFiles: IYamlParsedFile<SMLObject>[]): 
 }
 
 /**
- * Converts a composite model to a regular model, if the original file is composite model.
+ * Converts a composite model to a regular model if the original file is composite model.
  * @param file Original yaml file.
  * @param allFiles An array of all YAML files in the repository.
  * @returns A new regular model if the original file is composite model, otherwise returns the original file.
@@ -48,7 +48,7 @@ export function convertCompositeModel(file: IYamlParsedFile<SMLObject>, allFiles
  * @returns A new regular model with combined attributes.
  */
 export function generateCompositeModelData(
-  compositeModel: IYamlParsedFile<SMLCompositeModel>,
+  compositeModel: IYamlParsedFile<SMLCompositeModel>, 
   yamlFiles: IYamlParsedFile<SMLObject>[]
 ): SMLModel {
   const yamlModel: SMLModel = {

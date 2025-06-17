@@ -30,7 +30,7 @@ import {
 import {  writeFile } from "fs";
 import yaml from "js-yaml";
 import { IYamlFile } from "../models/IYamlFile";
-import { sortAlphabetically } from "./tools"; // all good
+import { sortAlphabetically } from "./cortex-tools";
 
 import { ISnowDimension, ISnowMeasure, ISnowModel, ISnowTable, ISnowTimeDimension } from "./snow-model";
 

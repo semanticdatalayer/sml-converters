@@ -1,7 +1,6 @@
 import {
   SMLModel,
-  SMLObject,
-  SMLObjectType,
+  SMLObject
 } from "sml-sdk";
 
 import {
@@ -44,13 +43,6 @@ export default class CortexConverter {
   private doMapDatasetsToDims: boolean;
 
   constructor(deps: CortexConverterDependencies) {
-    // const defaultDep: CortexConverterDependencies = {
-    //   smlFilesPath: undefined,
-    //   logger: new CommandLogger(),
-    //   doMapDatasetsToDims: false,
-    // };
-
-    // this.dependencies = Object.assign(defaultDep, deps);
     this.logger = deps.logger;
     this.smlFilesPath = deps.smlFilesPath;
     this.smlFiles = deps.smlFiles;
@@ -58,7 +50,6 @@ export default class CortexConverter {
   }
 
   async convertYamlFiles(rootFolder: string): Promise<ICortexConverterResult> {
-    // const smlFiles: Array<IYamlFile> = await flatRepoFromPath(rootFolder, this.logger);
 
     const smlReader = new SmlFolderReader(this.logger);
     const smlConverterResult = await smlReader.readSmlObjects(rootFolder);
@@ -69,7 +60,6 @@ export default class CortexConverter {
 
   async createCortexOutput(smlObjects: SmlConverterResult): Promise<ISnowModel[]> {
     const cortexConversionOutput = new Array<ISnowModel>();
-    // const smlObjects: SmlConverterResult = makeResultFromFileList(smlFiles, this.logger);
 
     for (const model of smlObjects.models) {
       const snowModel: ISnowModel = await Convert(
