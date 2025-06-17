@@ -16,3 +16,16 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
+      - run: npm pack
+      - name: "Store :: NPM Package"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sml-converters
+          path: sml-converters-*.tgz
+          retention-days: 14
+      - name: "NPM :: Get sml-converters version"
+        id: package_version
+        run: echo "PACKAGE_VERSION=$(jq -r .version package.json)" >> $GITHUB_ENV
+      - name: "NPM :: Install sml-converters globally"
+        run: npm install -g sml-converters-${{ env.PACKAGE_VERSION }}.tgz
