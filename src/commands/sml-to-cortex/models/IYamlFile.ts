@@ -1,5 +1,4 @@
 import { IFile } from "./IFile";
-// import { IYamlObject } from "./yaml/IYamlObject";
 import { SMLObject } from "sml-sdk";
 
 export interface IYamlFile<T extends SMLObject = SMLObject> extends IFile {

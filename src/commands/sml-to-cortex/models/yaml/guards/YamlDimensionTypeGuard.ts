@@ -10,7 +10,6 @@ import {
   SMLDimensionRelationType,
   SMLModelRelationship
 } from "sml-sdk";
-// import { IYamlModelRelationship } from "../IYamlModel";
 import {
   dimensionEmbededOrphanSchema,
   dimensionSecurityOrphanSchema,

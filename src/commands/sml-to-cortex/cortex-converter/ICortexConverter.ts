@@ -1,5 +1,5 @@
-import { IFile } from "../models/src/IFile";
-import { IFolderStructure } from "../models/src/IFolderStructure";
+import { IFile } from "../models/IFile";
+import { IFolderStructure } from "../models/IFolderStructure";
 
 import { ISnowModel } from "./snow-model";
 

@@ -1,5 +1,3 @@
-// import { ObjectType } from "./ObjectType";
-
 import {SMLObjectType} from "sml-sdk";
 
 export const FILE_TYPE = {

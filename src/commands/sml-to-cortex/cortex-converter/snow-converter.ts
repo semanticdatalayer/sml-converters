@@ -29,8 +29,7 @@ import {
 
 import {  writeFile } from "fs";
 import yaml from "js-yaml";
-import { IYamlFile } from "../models/src/IYamlFile";
-// import { IRepoValidatorResult } from "../validator/src/RepoValidator/IRepoValidator";
+import { IYamlFile } from "../models/IYamlFile";
 import { sortAlphabetically } from "./tools"; // all good
 
 import { ISnowDimension, ISnowMeasure, ISnowModel, ISnowTable, ISnowTimeDimension } from "./snow-model";

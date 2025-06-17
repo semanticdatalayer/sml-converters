@@ -1,7 +1,6 @@
 import { FileType } from "./FileType";
 import { ICompilationOutput } from "./IFileCompilationOutput";
 import { IOriginType, OriginType } from "./SourceType";
-// import { IYamlObject } from "./yaml/IYamlObject";
 
 import { SMLObject } from "sml-sdk";
 

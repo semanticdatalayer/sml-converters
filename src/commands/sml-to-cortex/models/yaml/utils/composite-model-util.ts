@@ -6,8 +6,8 @@ import {
     SMLObject
 } from 'sml-sdk'
 
-import IYamlParsedFile from "../models/src/IYamlParsedFile";
-import YamlObjectTypeGuard from "../models/src/yaml/guards/yaml-object-type-guard";
+import IYamlParsedFile from "../../IYamlParsedFile";
+import YamlObjectTypeGuard from "../../yaml/guards/yaml-object-type-guard";
 
 /**
  * Converts composite models into regular models by merging their attributes

@@ -14,15 +14,14 @@ import {
 
 import { Logger } from "../../../shared/logger";
 
-import { IYamlFile } from "../models/src/IYamlFile"; //TODO:, only in validator
-import IYamlParsedFile from "../models/src/IYamlParsedFile"; //TODO: can't find it, only in validator
-import { convertCompositeModel } from "../utils/composite-model-util";
+import { IYamlFile } from "../models/IYamlFile"
+import IYamlParsedFile from "../models/IYamlParsedFile";
+import { convertCompositeModel } from "../models/yaml/utils/composite-model-util";
+import { convertSMLObjectToYamlParsedFile, convertSMLObjectsToYamlParsedFiles } from "../models/yaml/utils/yaml-util"
 
-import { ICortexConverterResult } from "./ICortexConverter";  // will be in model file
+import { ICortexConverterResult } from "./ICortexConverter";
 import { Convert } from "./snow-converter";
 import { ISnowModel } from "./snow-model";
-import { flatRepoFromPath } from "./validator";
-import {ICompilationOutput, Severity, ValidationSource} from "../models/src/IFileCompilationOutput"
 
 export const Constants = {
   DO_MAP_DATASETS_TO_DIMS: false,
@@ -82,9 +81,6 @@ export default class CortexConverter {
       cortexConversionOutput.push(snowModel);
     }
 
-    //TODO: Figure out what to do about the composite models
-    // Composite models compilation logic requires the file
-
     for (const compositeModelFile of smlObjects.compositeModels) {
       
       const newFile = convertSMLObjectToYamlParsedFile(compositeModelFile);
@@ -109,21 +105,3 @@ export default class CortexConverter {
   }
 }
 
-function convertSMLObjectToYamlParsedFile(compositeModelFile:SMLObject): IYamlParsedFile {
-  const fakeCompOutput: ICompilationOutput = { 
-    severity: Severity.Error,
-    message: ""
-  }
-  const newFile: IYamlParsedFile<SMLObject> = 
-  {
-    data: compositeModelFile,
-    compilationOutput: [fakeCompOutput],
-    relativePath: "",
-    rawContent: ""
-  };
-  return newFile;
-}
-
-function convertSMLObjectsToYamlParsedFiles(compositeModelFiles: Array<SMLObject>): Array<IYamlParsedFile> {
-  return compositeModelFiles.map((file) => convertSMLObjectToYamlParsedFile(file));
-}

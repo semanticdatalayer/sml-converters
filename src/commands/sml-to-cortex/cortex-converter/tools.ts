@@ -1,7 +1,7 @@
 // import { FILE_TYPE } from "../models/src/FileType";  unneeded
-import { IYamlFile } from "../models/src/IYamlFile";
-import IYamlParsedFile from "../models/src/IYamlParsedFile";
-import { OriginType } from "../models/src/SourceType";
+import { IYamlFile } from "../models/IYamlFile";
+import IYamlParsedFile from "../models/IYamlParsedFile";
+import { OriginType } from "../models/SourceType";
 // import { IYamlObject } from "../models/src/yaml/IYamlObject"; replaced
 
 import { SMLObject } from "sml-sdk";
