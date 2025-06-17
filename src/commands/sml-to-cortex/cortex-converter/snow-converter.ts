@@ -6,13 +6,9 @@ import {
 } from "../../../shared/sml-convert-result";
 
 import { 
-  SMLReferenceableObjectWithLabel,
   SMLModel,
   SMLModelRelationship,
   SMLCompositeModel,
-  SMLCatalog,
-  SMLConnection,
-  SMLDataset,
   SMLColumnDataType,
   SMLDimension,
   SMLDimensionLevel,
@@ -23,16 +19,15 @@ import {
   SMLLevelAliasAttribute,
   SMLCalculationMethod,
   SMLMetric,
-  SMLMetricCalculated,
-  SMLRowSecurity
+  SMLMetricCalculated
  } from "sml-sdk";
 
 import {  writeFile } from "fs";
 import yaml from "js-yaml";
-import { IYamlFile } from "../models/IYamlFile";
 import { sortAlphabetically } from "./cortex-tools";
 
 import { ISnowDimension, ISnowMeasure, ISnowModel, ISnowTable, ISnowTimeDimension } from "./snow-model";
+import { dimNameOnly, ensureUnique, fmtForMsg, namingRules } from "./util/naming-utils";
 
 // NOTES
 // data_type: Measures always have type NUMBER, while dimensions can be NUMBER, TEXT, or TIMESTAMP
@@ -248,12 +243,6 @@ function fmtDimRef(relationship: SMLModelRelationship | SMLEmbeddedRelationship,
   throw new Error(`Missing 'dimension' property in TO of relationship from ${relationship.from.dataset}`); // Should never hit this
 }
 
-// Extracts the name of the dim from a reference
-function dimNameOnly(reference: string): string {
-  if (reference.includes("|")) return reference.substring(0, reference.indexOf("|"));
-  return reference;
-}
-
 function addDimRels(
   smlObjects: SmlConverterResult,
   dim: SMLDimension | undefined,
@@ -395,10 +384,6 @@ function addIfNotHidden(
   }
 }
 
-function fmtForMsg(obj: SMLReferenceableObjectWithLabel): string {
-  return obj.label == obj.unique_name ? `${obj.label}` : `${obj.label} (${obj.unique_name})`;
-}
-
 function mapToSnowDim(
   attribute: SMLDimensionLevelAttribute | SMLDimensionSecondaryAttribute | SMLLevelAliasAttribute,
   roleplay: string,
@@ -467,80 +452,36 @@ function mapToSnowTimeDim(
 //   return msgs;
 // }
 
-export function makeResultFromFileList(smlFiles: Array<IYamlFile>, logger: Logger): SmlConverterResult {
-  const result = new SmlConvertResultBuilder;
-  smlFiles.forEach((smlFile) => {
-    switch (smlFile.type) {
-      case "catalog":
-        result.catalog = smlFile.data as SMLCatalog;
-        break;
-      case "model":
-        result.addModel(smlFile.data as SMLModel);
-        break;
-      case "dataset":
-        result.addDatasets(smlFile.data as SMLDataset);
-        break;
-      case "dimension":
-        result.addDimension(smlFile.data as SMLDimension);
-        break;
-      case "metric":
-        result.addMeasures(smlFile.data as SMLMetric);
-        break;
-      case "metric_calc":
-        result.addMeasuresCalc(smlFile.data as SMLMetricCalculated);
-        break;
-      case "connection":
-        result.addConnection(smlFile.data as SMLConnection);
-        break;
-      case "row_security":
-        result.addRowSecurity(smlFile.data as SMLRowSecurity);
-        break;
-      case "composite_model":
-        result.addCompositeModel(smlFile.data as SMLCompositeModel);
-        break;
-      default:
-        logger.warn(`Object type of ${smlFile.type} not recognized so object will be skipped`);
-        break;
-    }
-  });
-  return result;
-}
-
-// export function makeFileListFromResult(smlResult: IConverterResult, logger: Logger): IYamlParsedFile<IYamlObject>[] {
-//   // const filesOutput = new Array<IYamlParsedFile<IYamlObject>>;
-//   const yamlParsedFiles: IYamlParsedFile<IYamlObject>[] = [smlResult.catalog, smlResult.models[0]];
-
-//   filesOutput.push();
-//   smlResult.catalog;
-
+// export function makeResultFromFileList(smlFiles: Array<IYamlFile>, logger: Logger): SmlConverterResult {
+//   const result = new SmlConvertResultBuilder;
 //   smlFiles.forEach((smlFile) => {
 //     switch (smlFile.type) {
 //       case "catalog":
-//         result.catalog = smlFile.data as IYamlCatalog;
+//         result.catalog = smlFile.data as SMLCatalog;
 //         break;
 //       case "model":
-//         result.addModel(smlFile.data as IYamlModel);
+//         result.addModel(smlFile.data as SMLModel);
 //         break;
 //       case "dataset":
-//         result.addDatasets(smlFile.data as IYamlDataset);
+//         result.addDatasets(smlFile.data as SMLDataset);
 //         break;
 //       case "dimension":
-//         result.addDimension(smlFile.data as IYamlDimension);
+//         result.addDimension(smlFile.data as SMLDimension);
 //         break;
 //       case "metric":
-//         result.addMeasures(smlFile.data as IYamlMeasure);
+//         result.addMeasures(smlFile.data as SMLMetric);
 //         break;
 //       case "metric_calc":
-//         result.addMeasuresCalc(smlFile.data as IYamlMeasureCalculated);
+//         result.addMeasuresCalc(smlFile.data as SMLMetricCalculated);
 //         break;
 //       case "connection":
-//         result.addConnection(smlFile.data as IYamlConnection);
+//         result.addConnection(smlFile.data as SMLConnection);
 //         break;
 //       case "row_security":
-//         result.addRowSecurity(smlFile.data as IYamlRowSecurity);
+//         result.addRowSecurity(smlFile.data as SMLRowSecurity);
 //         break;
 //       case "composite_model":
-//         result.addCompositeModel(smlFile.data as IYamlCompositeModel);
+//         result.addCompositeModel(smlFile.data as SMLCompositeModel);
 //         break;
 //       default:
 //         logger.warn(`Object type of ${smlFile.type} not recognized so object will be skipped`);
@@ -795,39 +736,4 @@ function toCortexAggregation(smlCalcMethod: SMLCalculationMethod): string {
     default: // Not supported by Cortex Analyst. Example is "count non-null"
       return "";
   }
-}
-
-function namingRules(str: string) {
-  if (!str) return str;
-  const originalStr = str;
-  // Replace spaces with underscores
-  str = str.replace(/\s+/g, "_");
-  // Remove all characters that are not letters, underscores, digits, or dollar signs
-  str = str.replace(/[^a-zA-Z0-9_$]/g, "_");
-  str = str.toUpperCase();
-  // Replace consecutive underscores with a single underscore
-  str = str.replace(/_+/g, "_");
-  // Remove initial underscore unless original string started with an underscore
-  if (!originalStr.startsWith("_")) {
-    str = str.replace(/^_/, ""); // Remove the leading underscore if the original didn't start with one
-  }
-  // Remove trailing underscores
-  str = str.replace(/_+$/, "");
-  return str;
-}
-
-function ensureUnique(input: string, attrUniqueNames: Set<string>, logger: Logger): string {
-  if (!attrUniqueNames.has(input)) {
-    attrUniqueNames.add(input);
-    return input;
-  }
-  let i = 1;
-  let newString = input;
-  while (attrUniqueNames.has(newString)) {
-    newString = `${input}_${i}`;
-    i++;
-  }
-  logger.warn(`Multiple instances of name '${input}' found so one instance is being changed to '${newString}'`); // TODO: Put this back
-  attrUniqueNames.add(newString);
-  return newString;
 }

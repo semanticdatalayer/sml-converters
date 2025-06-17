@@ -6,6 +6,12 @@ import { SMLObject } from "sml-sdk";
 
 import { Constants } from "./cortex-converter";
 
+/**
+ * Converts an array of parsed YAML files into an array of YAML file objects.
+ *
+ * @param parsedFiles - An array of parsed YAML files of type `IYamlParsedFile<SMLObject>`.
+ * @returns An array of `IYamlFile<SMLObject>` objects constructed from the parsed files.
+ */
 export function parsedFilesToFiles(parsedFiles: IYamlParsedFile<SMLObject>[]): IYamlFile<SMLObject>[] {
   const newFiles: IYamlFile<SMLObject>[] = new Array<IYamlFile<SMLObject>>();
   parsedFiles.forEach((parsedFile) => {
@@ -56,7 +62,6 @@ export function shortStack(): string {
 export function printFilteredMessage(val: string, msg: string) {
   if (
     Constants.PRINT_MESSAGES &&
-    // Constants.FILTER_VALUES.some((item) => noQuotes(item).toLowerCase === noQuotes(val).toLowerCase)
     Constants.FILTER_VALUES.some((item) => noQuotes(item).toLowerCase().includes(noQuotes(val).toLowerCase()))
   ) {
     console.log(`FFF ${msg}`);

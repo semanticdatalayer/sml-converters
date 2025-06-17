@@ -31,8 +31,13 @@ USAGE
 # Commands
 
 <!-- commands -->
-* [`sml-converters dbt-to-sml`](#sml-converters-dbt-to-sml)
-* [`sml-converters help [COMMAND]`](#sml-converters-help-command)
+- [sml-converters](#sml-converters)
+- [Usage](#usage)
+- [Commands](#commands)
+  - [`sml-converters dbt-to-sml`](#sml-converters-dbt-to-sml)
+  - [`sml-converters sml-to-cortex`](#sml-converters-sml-to-cortex)
+  - [`sml-converters help [COMMAND]`](#sml-converters-help-command)
+- [License](#license)
 
 ## `sml-converters dbt-to-sml`
 
@@ -45,8 +50,7 @@ USAGE
     <value>] [--clean]
 
 FLAGS
-  --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in
-                                 AtScale.
+  --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in AtScale.
   --clean                        Clean the output folder contents without the .git folder
   --database=<value>             [default: sample-db] Database name
   --dbType=<option>              [default: snowflake] Data Warehouse type
@@ -71,6 +75,30 @@ EXAMPLES
   $ sml-converters dbt-to-sml -s ./dbt-source-path -o ./sml-output-path
 
   $ sml-converters dbt-to-sml -s ./dbt-source-path -o ./sml-output-path --clean
+```
+## `sml-converters sml-to-cortex`
+
+Converts SML to Snowflake Cortex
+
+```
+USAGE
+  $ sml-converters sml-to-cortex [SOURCE] [--output <value>]
+
+ARGUMENTS
+  SOURCE                         Root directory of SML files
+
+FLAGS
+  --output-path=<value>               [default: ./cortexOutput] Output folder
+
+DESCRIPTION
+  Converts SML to Snowflake Cortex
+
+
+EXAMPLES
+  $ sml-converters sml-to-cortex ./
+
+  $ sml-converters sml-to-cortex ./ --output-path="./CortexOutput"
+
 ```
 
 ## `sml-converters help [COMMAND]`

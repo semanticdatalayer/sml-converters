@@ -1,3 +1,6 @@
+// Taken out of validator package from sml-cli
+// TODO: if validator package gets moved to SDK, remove this file
+
 import {
     SMLObjectType,
     SMLCompositeModel,

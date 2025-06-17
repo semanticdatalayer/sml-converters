@@ -26,12 +26,20 @@ export class SmlFolderReader {
   }
   constructor(private readonly logger: Logger) {}
 
+  /**
+   * Reads a directory of SML yaml files from the specified folder path 
+   * and returns the conversion result as a SmlConverterResult
+   *
+   * @param folderPath - The path to the folder containing SML .yml objects to be read.
+   * @returns A SmlConverterResult object containing the results of the conversion.
+   */
   async readSmlObjects(folderPath: string): Promise<SmlConverterResult> {
     const someResult: SmlConvertResultBuilder = new SmlConvertResultBuilder();
     await this.readSmlObjectsRecursive(folderPath, someResult);
     return someResult.getResult();
   }
 
+  /** Helper function for readSmlObject, goes through folders recursively to get all yml files */
   private async readSmlObjectsRecursive(folderPath: string, smlObjects: SmlConvertResultBuilder, recursionDepth = 0) {
     if (recursionDepth >= 100) {
       // we need quick circuit breaker
@@ -48,7 +56,6 @@ export class SmlFolderReader {
     smlObjectsOrNot.forEach((smlObjectOrNot) => {
     if(smlObjectOrNot != undefined) {
       const objectType = smlObjectOrNot.object_type;
-      //TODO: copied from snow-converter.ts
         switch (objectType) {
               case "catalog":
                 smlObjects.catalog = smlObjectOrNot as SMLCatalog;
@@ -87,6 +94,13 @@ export class SmlFolderReader {
     await Promise.all(folders.map((folder) => this.readSmlObjectsRecursive(path.join(folderPath, folder), smlObjects, recursionDepth +1)))
   }
 
+  
+  /**
+   * Reads a YAML file from the specified path, parses its content, and returns it as an `SMLObject` if valid.
+   *
+   * @param filePath - The path to the YAML file to be read.
+   * @returns A SMLObject if the file is a valid YAML representation of an SML object, or `undefined` otherwise.
+   */
   private async getSMLObject(filePath: string): Promise<SMLObject | undefined> {
      if (filePath.endsWith(".yml") || filePath.endsWith(".yaml")) {
         const fileStringContent = await fileSystem.readFile(filePath, "utf-8");
@@ -99,10 +113,18 @@ export class SmlFolderReader {
     }
 }
 
+/**
+ * Determines whether the provided object conforms to the `SMLObject` interface.
+ *
+ * This function checks if the given object has the required properties:
+ * - `object_type`: must be a valid value from the `SMLObjectType` enum.
+ * - `label`: must be a string.
+ * - `unique_name`: must be a string.
+ *
+ * @param smlObject - The object to test for SMLObject conformity.
+ * @returns true if the checked object is an SMLObject, false otherwise
+ */
 export function isSMLObject(smlObject: any): smlObject is SMLObject {
-    //check whether it is an sml object. It has to have those 3 props:
-    // object_type, label, unique_name. 
-    // And object type should be one of the values in the enum: SMLObjectType;
     return (
         Object.values(SMLObjectType).includes(smlObject.object_type) &&
         typeof smlObject.label === 'string' &&

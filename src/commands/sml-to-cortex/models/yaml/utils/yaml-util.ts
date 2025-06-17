@@ -3,7 +3,7 @@ import {
 } from "../../../../../shared/sml-convert-result";
 
 /**
- * Converts an array of `SMLObject` instances into an array of `IYamlParsedFile` instances.
+ * Converts an array of SMLObject instances into an array of IYamlParsedFile instances.
  * 
  * @param compositeModelFiles - The array of SML objects to convert.
  * @returns An array of `IYamlParsedFile` objects, each corresponding to an input SML object.
