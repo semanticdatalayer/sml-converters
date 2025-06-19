@@ -9,23 +9,7 @@ import {
     SMLObject
 } from 'sml-sdk'
 
-// import IYamlParsedFile from "../../IYamlParsedFile";
-import YamlObjectTypeGuard from "../../yaml/guards/yaml-object-type-guard";
-
-/**
- * Converts composite models into regular models by merging their attributes
- * with the attributes of their inner models. The composite models are removed
- * from the list and replaced with the new regular models. The function returns
- * the updated list of files.
- *
- * @param allFiles - An array of all YAML files in the repository.
- * @returns A new array of YAML files with converted models.
- */
-// export function convertCompositeModels(allFiles: Array<SMLObject>): Array<SMLObject> {
-//   return allFiles.map((file) => {
-//     return convertCompositeModel(file, allFiles);
-//   });
-// }
+import YamlObjectTypeGuard from "../commands/sml-to-cortex/models/yaml/guards/yaml-object-type-guard";
 
 /**
  * Converts a composite model to a regular model if the original file is composite model.

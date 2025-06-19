@@ -13,7 +13,7 @@ import {
 
 import { Logger } from "../../../shared/logger";
 
-import { convertCompositeModel } from "../models/yaml/utils/composite-model-util";
+import { convertCompositeModel } from "../../../shared/composite-model-util";
 
 import { ICortexConverterResult } from "./ICortexConverter";
 import { Convert } from "./snow-converter";

@@ -10,8 +10,10 @@
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
     "chalk": "^4.1.2",
+    "install": "^0.13.0",
     "js-yaml": "^4.1.0",
     "node": "^20.17.0",
+    "run": "^1.5.0",
     "sml-sdk": "1.0.0",
     "zod": "3.22.3"
   },
