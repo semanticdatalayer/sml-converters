@@ -15,9 +15,9 @@ import { Logger } from "../../../shared/logger";
 
 import { convertCompositeModel } from "../../../shared/composite-model-util";
 
-import { ICortexConverterResult } from "./ICortexConverter";
+import { CortexConverterResult } from "../cortex-models/CortexConverterResult";
 import { Convert } from "./snow-converter";
-import { ISnowModel } from "./snow-model";
+import { CortexModel } from "../cortex-models/CortexModel";
 
 export const Constants = {
   DO_MAP_DATASETS_TO_DIMS: false,
@@ -32,20 +32,20 @@ export default class CortexConverter {
     this.logger = logger;
   }
 
-  async convertYamlFiles(rootFolder: string): Promise<ICortexConverterResult> {
+  async convertYamlFiles(rootFolder: string): Promise<CortexConverterResult> {
 
     const smlReader = new SmlFolderReader(this.logger);
     const smlConverterResult = await smlReader.readSmlObjects(rootFolder);
-    const cortexConversionOutput: Array<ISnowModel> = await this.createCortexOutput(smlConverterResult);
+    const cortexConversionOutput: Array<CortexModel> = await this.createCortexOutput(smlConverterResult);
 
-    return { filesOutput: cortexConversionOutput };
+    return { models: cortexConversionOutput };
   }
 
-  async createCortexOutput(smlObjects: SmlConverterResult): Promise<ISnowModel[]> {
-    const cortexConversionOutput = new Array<ISnowModel>();
+  async createCortexOutput(smlObjects: SmlConverterResult): Promise<CortexModel[]> {
+    const cortexConversionOutput = new Array<CortexModel>();
 
     for (const model of smlObjects.models) {
-      const snowModel: ISnowModel = await Convert(
+      const snowModel: CortexModel = await Convert(
         smlObjects,
         model,
         this.logger,
@@ -62,7 +62,7 @@ export default class CortexConverter {
       );
 
       const modelFromComposite = fullCompositeModelFile as SMLModel;
-      const snowModel: ISnowModel = Convert(
+      const snowModel: CortexModel = Convert(
         smlObjects,
         modelFromComposite,
         this.logger,

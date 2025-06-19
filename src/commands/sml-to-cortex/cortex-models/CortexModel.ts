@@ -1,13 +1,13 @@
-export class ISnowModel {
+export class CortexModel {
   constructor(nameIn: string) {
     this.name = nameIn;
   }
   name: string;
   description?: string;
-  tables?: Array<ISnowTable>;
+  tables?: Array<CortexTable>;
 }
 
-export interface ISnowTable {
+export interface CortexTable {
   name: string;
   description?: string;
   baseTable: {
@@ -15,13 +15,13 @@ export interface ISnowTable {
     schema: string;
     table: string;
   };
-  dimensions?: Array<ISnowDimension>;
-  time_dimensions?: Array<ISnowTimeDimension>;
-  measures: Array<ISnowMeasure>;
-  filters?: Array<ISnowFilter>;
+  dimensions?: Array<CortexDimension>;
+  time_dimensions?: Array<CortexTimeDimension>;
+  measures: Array<CortexMeasure>;
+  filters?: Array<CortexFilter>;
 }
 
-export interface ISnowDimension {
+export interface CortexDimension {
   name: string;
   synonyms: Array<string>;
   description?: string;
@@ -31,7 +31,7 @@ export interface ISnowDimension {
   sample_values?: Array<string>;
 }
 
-export interface ISnowTimeDimension {
+export interface CortexTimeDimension {
   name: string;
   synonyms?: Array<string>;
   description?: string;
@@ -40,7 +40,7 @@ export interface ISnowTimeDimension {
   unique?: boolean;
 }
 
-export interface ISnowMeasure {
+export interface CortexMeasure {
   name: string;
   synonyms?: Array<string>;
   description?: string;
@@ -50,7 +50,7 @@ export interface ISnowMeasure {
   allowed_dimensions?: Array<string>;
 }
 
-export interface ISnowFilter {
+export interface CortexFilter {
   name: string;
   synonyms?: Array<string>;
   description?: string;

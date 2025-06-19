@@ -26,7 +26,7 @@ import {  writeFile } from "fs";
 import yaml from "js-yaml";
 import { sortAlphabetically } from "./cortex-tools";
 
-import { ISnowDimension, ISnowMeasure, ISnowModel, ISnowTable, ISnowTimeDimension } from "./snow-model";
+import { CortexDimension, CortexMeasure, CortexModel, CortexTable, CortexTimeDimension } from "../cortex-models/CortexModel";
 import { dimNameOnly, ensureUnique, fmtForMsg, namingRules } from "./util/naming-utils";
 
 // NOTES
@@ -39,10 +39,10 @@ export function Convert(
   modelToConvert: SMLModel,
   logger: Logger,
   doMapDatasetsToDims: boolean
-): ISnowModel {
+): CortexModel {
   // The deployed catalog has the branch appended. If the branch is main the deployed will be like: sml-tpcds_main
   // But we don't have the branch from the SML path.
-  const snowModel = new ISnowModel(modelToConvert.unique_name);
+  const snowModel = new CortexModel(modelToConvert.unique_name);
 
   const smlModel = createSMLModel(smlObjects, modelToConvert.unique_name, logger);
   if (!smlModel) throw new Error(`No model found with unique_name '${modelToConvert.unique_name}' to convert`);
@@ -56,7 +56,7 @@ export function Convert(
   if (doMapDatasetsToDims) mapDatasetsToDims = createMapDatasetsToDims(modelObjects, models);
 
   snowModel.description = `Snowflake semantic model generated from the SML model '${smlModel.unique_name}'`;
-  snowModel.tables = new Array<ISnowTable>();
+  snowModel.tables = new Array<CortexTable>();
   const newTable = {
     name: smlModel.unique_name,
     description: `Logical table based on an SML semantic model`,
@@ -65,7 +65,7 @@ export function Convert(
       schema: asCatalog,
       table: smlModel.unique_name,
     },
-  } as ISnowTable;
+  } as CortexTable;
 
   const attrUniqueNames = new Set<string>();
 
@@ -270,9 +270,9 @@ function mapToSnowMeasure(
   unsupported_aggregation: Array<string>,
   attrUniqueNames: Set<string>,
   logger: Logger
-): ISnowMeasure {
+): CortexMeasure {
   const updatedUniqueName = ensureUnique(namingRules(metric.unique_name), attrUniqueNames, logger);
-  const newMeas: ISnowMeasure = {
+  const newMeas: CortexMeasure = {
     name: updatedUniqueName,
     description: "description" in metric ? metric.description : undefined,
     synonyms: [metric.label],
@@ -298,7 +298,7 @@ function mapToSnowMeasure(
 function addSnowDimsFromSmlDim(
   dim: SMLDimension,
   dimsAndColsToPass: PassDimsAndCols,
-  snowMeasures: ISnowMeasure[],
+  snowMeasures: CortexMeasure[],
   rolePlays: Set<string>,
   mapDatasetsToDims: Map<string, Set<string>>,
   attrUniqueNames: Set<string>,
@@ -389,7 +389,7 @@ function mapToSnowDim(
   numericColumns: Set<string>,
   attrUniqueNames: Set<string>,
   logger: Logger
-): ISnowDimension {
+): CortexDimension {
   const updatedUniqueName = ensureUnique(
     namingRules(roleplay.replace("{0}", attribute.unique_name)),
     attrUniqueNames,
@@ -403,7 +403,7 @@ function mapToSnowDim(
     data_type:
       "dataset" in attribute && numericColumns.has(`${attribute.dataset}.${attribute.name_column}`) ? "NUMBER" : "TEXT",
     unique: "is_unique_key" in attribute ? attribute.is_unique_key : false,
-  } as ISnowDimension;
+  } as CortexDimension;
 }
 
 function mapToSnowTimeDim(
@@ -411,7 +411,7 @@ function mapToSnowTimeDim(
   role: string,
   attrUniqueNames: Set<string>,
   logger: Logger
-): ISnowTimeDimension {
+): CortexTimeDimension {
   const updatedUniqueName = ensureUnique(
     namingRules(role.replace("{0}", attribute.unique_name)),
     attrUniqueNames,
@@ -424,10 +424,10 @@ function mapToSnowTimeDim(
     expr: `'"${role.replace("{0}", attribute.unique_name)}"'`,
     data_type: "TIMESTAMP",
     unique: "is_unique_key" in attribute ? attribute.is_unique_key : false,
-  } as ISnowTimeDimension;
+  } as CortexTimeDimension;
 }
 
-export function writeYamlToFile(snowModel: ISnowModel, exportFile: string, logger: Logger) {
+export function writeYamlToFile(snowModel: CortexModel, exportFile: string, logger: Logger) {
   // The expr property needs to be formatted with both single and double quotes but the marshaller
   // wraps it in 2 single quotes. This replaceAll corrects that
   const yamlString = yaml.dump(snowModel).replaceAll("'''", "'");
@@ -525,15 +525,15 @@ function addReferencedDims(smlObjects: SmlConverterResult, rolePlays: Set<string
 interface PassDimsAndCols {
   timeColumns: Set<string>;
   numericColumns: Set<string>;
-  snowDims: Array<ISnowDimension>;
-  snowTimeDims: Array<ISnowTimeDimension>;
+  snowDims: Array<CortexDimension>;
+  snowTimeDims: Array<CortexTimeDimension>;
   unsupported_aggregation: Array<string>;
 }
 
 function addDimensions(
   smlObjects: SmlConverterResult,
   modelObjects: SmlConverterResult,
-  newTable: ISnowTable,
+  newTable: CortexTable,
   rolePlays: Set<string>,
   mapDatasetsToDims: Map<string, Set<string>>,
   attrUniqueNames: Set<string>,
@@ -542,8 +542,8 @@ function addDimensions(
   const dimsAndColsToPass: PassDimsAndCols = {
     timeColumns: listTimeColumns(smlObjects),
     numericColumns: listNumericColumns(smlObjects),
-    snowDims: new Array<ISnowDimension>(),
-    snowTimeDims: new Array<ISnowTimeDimension>(),
+    snowDims: new Array<CortexDimension>(),
+    snowTimeDims: new Array<CortexTimeDimension>(),
     unsupported_aggregation: new Array<string>(),
   };
   modelObjects.dimensions.forEach((dim) => {
@@ -600,7 +600,7 @@ function getDefaultModel(
 
 function addCalculations(
   modelObjects: SmlConverterResult,
-  newTable: ISnowTable,
+  newTable: CortexTable,
   mapDatasetsToDims: Map<string, Set<string>>,
   attrUniqueNames: Set<string>,
   logger: Logger
@@ -625,7 +625,7 @@ function addCalculations(
 
 function addMeasures(
   modelObjects: SmlConverterResult,
-  newTable: ISnowTable,
+  newTable: CortexTable,
   mapDatasetsToDims: Map<string, Set<string>>,
   attrUniqueNames: Set<string>,
   logger: Logger

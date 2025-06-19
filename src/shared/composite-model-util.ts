@@ -9,7 +9,7 @@ import {
     SMLObject
 } from 'sml-sdk'
 
-import SmlObjectTypeGuard from "../commands/sml-to-cortex/models/yaml/guards/SmlObjectTypeGuard";
+import SmlObjectTypeGuard from "../commands/sml-to-cortex/cortex-models/yaml/guards/SmlObjectTypeGuard";
 
 /**
  * Converts a composite model to a regular model if the original file is composite model.

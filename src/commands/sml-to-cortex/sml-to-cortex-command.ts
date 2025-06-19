@@ -5,7 +5,7 @@ import yaml from "js-yaml";
 import { CommandLogger } from "../../shared/command-logger";
 import { Logger } from "../../shared/logger";
 import CortexConverter from "./cortex-converter/cortex-converter";
-import { ICortexConverterResult } from "./cortex-converter/ICortexConverter";
+import { CortexConverterResult } from "./cortex-models/CortexConverterResult";
 import { ensureDir } from "../../shared/file-system-util";
 
 export class SMLToCortex extends Command {
@@ -46,7 +46,7 @@ export class SMLToCortex extends Command {
 
     const cortexConverter = new CortexConverter(logger);
     const cortexModels = await cortexConverter.convertYamlFiles(resolvedInPath);
-    const numModels = cortexModels.filesOutput.length;
+    const numModels = cortexModels.models.length;
 
     logger.info(
       `Completed converting ${numModels} Cortex Analyst yaml model${numModels === 1 ? "" : "s"}`,
@@ -62,7 +62,7 @@ export class SMLToCortex extends Command {
 }
 
 async function saveCortexYamlFiles(
-  cortexModels: ICortexConverterResult,
+  cortexModels: CortexConverterResult,
   outputDir: string,
   logger: Logger,
 ) {
@@ -70,7 +70,7 @@ async function saveCortexYamlFiles(
     await ensureDir(outputDir);
 
     await Promise.all(
-      cortexModels.filesOutput.map(async (obj) => {
+      cortexModels.models.map(async (obj) => {
         const yamlStr = yaml.dump(obj);
         const fileName = `${obj.name}.yml`;
         const filePath = `${outputDir}${fileName}`;
