@@ -44,7 +44,7 @@ export class SMLToCortex extends Command {
 
     const logger = CommandLogger.for(this);
 
-    const cortexConverter = new CortexConverter({logger: logger, smlFilesPath: inPath, doMapDatasetsToDims: true});
+    const cortexConverter = new CortexConverter(logger);
     const cortexModels = await cortexConverter.convertYamlFiles(resolvedInPath);
     const numModels = cortexModels.filesOutput.length;
 
@@ -67,7 +67,7 @@ async function saveCortexYamlFiles(
   logger: Logger,
 ) {
   try {
-    ensureDir(outputDir);
+    await ensureDir(outputDir);
 
     await Promise.all(
       cortexModels.filesOutput.map(async (obj) => {

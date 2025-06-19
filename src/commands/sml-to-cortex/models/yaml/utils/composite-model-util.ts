@@ -9,7 +9,7 @@ import {
     SMLObject
 } from 'sml-sdk'
 
-import IYamlParsedFile from "../../IYamlParsedFile";
+// import IYamlParsedFile from "../../IYamlParsedFile";
 import YamlObjectTypeGuard from "../../yaml/guards/yaml-object-type-guard";
 
 /**
@@ -21,23 +21,23 @@ import YamlObjectTypeGuard from "../../yaml/guards/yaml-object-type-guard";
  * @param allFiles - An array of all YAML files in the repository.
  * @returns A new array of YAML files with converted models.
  */
-export function convertCompositeModels(allFiles: IYamlParsedFile<SMLObject>[]): IYamlParsedFile<SMLObject>[] {
-  return allFiles.map((file) => {
-    return convertCompositeModel(file, allFiles);
-  });
-}
+// export function convertCompositeModels(allFiles: Array<SMLObject>): Array<SMLObject> {
+//   return allFiles.map((file) => {
+//     return convertCompositeModel(file, allFiles);
+//   });
+// }
 
 /**
  * Converts a composite model to a regular model if the original file is composite model.
- * @param file Original yaml file.
- * @param allFiles An array of all YAML files in the repository.
+ * @param file Original SMLObject that should be a SMLCompositeModel.
+ * @param allFiles An array of all SML Objects in the repository.
  * @returns A new regular model if the original file is composite model, otherwise returns the original file.
  */
-export function convertCompositeModel(file: IYamlParsedFile<SMLObject>, allFiles: IYamlParsedFile<SMLObject>[]) {
-  return YamlObjectTypeGuard.isCompositeModel(file.data)
+export function convertCompositeModel(file: SMLCompositeModel, allFiles: Array<SMLModel>) {
+  return YamlObjectTypeGuard.isCompositeModel(file)
     ? {
         ...file,
-        data: generateCompositeModelData(file as IYamlParsedFile<SMLCompositeModel>, allFiles),
+        data: generateCompositeModelData(file, allFiles),
       }
     : file;
 }
@@ -47,31 +47,31 @@ export function convertCompositeModel(file: IYamlParsedFile<SMLObject>, allFiles
  * with those of its inner models.
  *
  * @param compositeModel - The composite model to be converted.
- * @param yamlFiles - An array of all YAML files in the repository.
+ * @param smlObjects - An array of all SML Models
  * @returns A new regular model with combined attributes.
  */
 export function generateCompositeModelData(
-  compositeModel: IYamlParsedFile<SMLCompositeModel>, 
-  yamlFiles: IYamlParsedFile<SMLObject>[]
+  compositeModel: SMLCompositeModel, 
+  smlObjects: Array<SMLModel>
 ): SMLModel {
   const yamlModel: SMLModel = {
     relationships: [],
-    metrics: compositeModel.data.metrics ?? [],
+    metrics: compositeModel.metrics ?? [],
     object_type: SMLObjectType.Model,
-    label: compositeModel.data.label,
-    unique_name: compositeModel.data.unique_name,
+    label: compositeModel.label,
+    unique_name: compositeModel.unique_name,
     dimensions: [],
   };
 
   // Merge attributes from each inner model into the new model
-  compositeModel.data.models.forEach((innerModelName) => {
-    const innerModel = yamlFiles.find((file) => file.data.unique_name === innerModelName);
+  compositeModel.models.forEach((innerModelName) => {
+    const innerModel = smlObjects.find((file) => file.unique_name === innerModelName);
 
     if (!innerModel) {
       throw new Error(`No object found with unique name ${innerModelName}`);
     }
 
-    const innerModelData = innerModel.data as SMLModel;
+    const innerModelData = innerModel as SMLModel;
 
     yamlModel.metrics = yamlModel.metrics.concat(innerModelData.metrics);
     yamlModel.dimensions = yamlModel.dimensions?.concat(innerModelData.dimensions ?? []);

@@ -13,10 +13,7 @@ import {
 
 import { Logger } from "../../../shared/logger";
 
-import { IYamlFile } from "../models/IYamlFile"
-import IYamlParsedFile from "../models/IYamlParsedFile";
 import { convertCompositeModel } from "../models/yaml/utils/composite-model-util";
-import { convertSMLObjectToYamlParsedFile, convertSMLObjectsToYamlParsedFiles } from "../models/yaml/utils/yaml-util"
 
 import { ICortexConverterResult } from "./ICortexConverter";
 import { Convert } from "./snow-converter";
@@ -28,24 +25,11 @@ export const Constants = {
   FILTER_VALUES: ["cs_list_price", "cs list price"],
 };
 
-type CortexConverterDependencies = {
-  smlFilesPath?: string;
-  smlFiles?: Array<IYamlFile>;
-  logger: Logger;
-  doMapDatasetsToDims: boolean;
-};
-
 export default class CortexConverter {
   private logger: Logger;
-  private smlFilesPath?: string;
-  private smlFiles?: Array<IYamlFile>;
-  private doMapDatasetsToDims: boolean;
 
-  constructor(deps: CortexConverterDependencies) {
-    this.logger = deps.logger;
-    this.smlFilesPath = deps.smlFilesPath;
-    this.smlFiles = deps.smlFiles;
-    this.doMapDatasetsToDims = deps.doMapDatasetsToDims;
+  constructor(logger: Logger) {
+    this.logger = logger;
   }
 
   async convertYamlFiles(rootFolder: string): Promise<ICortexConverterResult> {
@@ -72,16 +56,13 @@ export default class CortexConverter {
 
     for (const compositeModelFile of smlObjects.compositeModels) {
       
-      const newFile = convertSMLObjectToYamlParsedFile(compositeModelFile);
-      const allFiles = convertSMLObjectsToYamlParsedFiles(smlObjects.models);
-
-      const fullCompositeModelFile: IYamlParsedFile<SMLObject> = convertCompositeModel(
-        newFile,
-        allFiles
+      const fullCompositeModelFile: SMLObject = convertCompositeModel(
+        compositeModelFile,
+        smlObjects.models
       );
 
-      const modelFromComposite = fullCompositeModelFile.data as SMLModel;
-      const snowModel: ISnowModel = await Convert(
+      const modelFromComposite = fullCompositeModelFile as SMLModel;
+      const snowModel: ISnowModel = Convert(
         smlObjects,
         modelFromComposite,
         this.logger,

@@ -33,14 +33,13 @@ import { dimNameOnly, ensureUnique, fmtForMsg, namingRules } from "./util/naming
 // data_type: Measures always have type NUMBER, while dimensions can be NUMBER, TEXT, or TIMESTAMP
 
 const DEBUG = true;
-const MAP_MEASURES_TO_DIMS = true;
 
-export async function Convert(
+export function Convert(
   smlObjects: SmlConverterResult,
   modelToConvert: SMLModel,
   logger: Logger,
   doMapDatasetsToDims: boolean
-): Promise<ISnowModel> {
+): ISnowModel {
   // The deployed catalog has the branch appended. If the branch is main the deployed will be like: sml-tpcds_main
   // But we don't have the branch from the SML path.
   const snowModel = new ISnowModel(modelToConvert.unique_name);
