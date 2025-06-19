@@ -9,7 +9,7 @@ import {
     SMLObject
 } from 'sml-sdk'
 
-import YamlObjectTypeGuard from "../commands/sml-to-cortex/models/yaml/guards/yaml-object-type-guard";
+import SmlObjectTypeGuard from "../commands/sml-to-cortex/models/yaml/guards/SmlObjectTypeGuard";
 
 /**
  * Converts a composite model to a regular model if the original file is composite model.
@@ -18,7 +18,7 @@ import YamlObjectTypeGuard from "../commands/sml-to-cortex/models/yaml/guards/ya
  * @returns A new regular model if the original file is composite model, otherwise returns the original file.
  */
 export function convertCompositeModel(file: SMLCompositeModel, allFiles: Array<SMLModel>) {
-  return YamlObjectTypeGuard.isCompositeModel(file)
+  return SmlObjectTypeGuard.isCompositeModel(file)
     ? {
         ...file,
         data: generateCompositeModelData(file, allFiles),
@@ -38,7 +38,7 @@ export function generateCompositeModelData(
   compositeModel: SMLCompositeModel, 
   smlObjects: Array<SMLModel>
 ): SMLModel {
-  const yamlModel: SMLModel = {
+  const smlModel: SMLModel = {
     relationships: [],
     metrics: compositeModel.metrics ?? [],
     object_type: SMLObjectType.Model,
@@ -57,22 +57,22 @@ export function generateCompositeModelData(
 
     const innerModelData = innerModel as SMLModel;
 
-    yamlModel.metrics = yamlModel.metrics.concat(innerModelData.metrics);
-    yamlModel.dimensions = yamlModel.dimensions?.concat(innerModelData.dimensions ?? []);
-    yamlModel.relationships = yamlModel.relationships.concat(innerModelData.relationships);
-    yamlModel.overrides = mergeOverrides(yamlModel, innerModelData);
+    smlModel.metrics = smlModel.metrics.concat(innerModelData.metrics);
+    smlModel.dimensions = smlModel.dimensions?.concat(innerModelData.dimensions ?? []);
+    smlModel.relationships = smlModel.relationships.concat(innerModelData.relationships);
+    smlModel.overrides = mergeOverrides(smlModel, innerModelData);
   });
 
   // Clean up any empty properties
-  if (!yamlModel.dimensions?.length) {
-    yamlModel.dimensions = undefined;
+  if (!smlModel.dimensions?.length) {
+    smlModel.dimensions = undefined;
   }
 
-  if (!yamlModel.overrides || !Object.values(yamlModel.overrides).length) {
-    yamlModel.overrides = undefined;
+  if (!smlModel.overrides || !Object.values(smlModel.overrides).length) {
+    smlModel.overrides = undefined;
   }
 
-  return yamlModel;
+  return smlModel;
 }
 
 function mergeOverrides(model1: SMLModel, model2: SMLModel): SMLModelOverride {

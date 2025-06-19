@@ -16,7 +16,7 @@ const isType = (input: SMLTypedObject, objType: SMLObjectType): boolean => {
   return input.object_type === objType;
 };
 
-const YamlObjectTypeGuard = {
+const SmlObjectTypeGuard = {
   isConnection(input: SMLTypedObject): input is SMLConnection {
     return isType(input, SMLObjectType.Connection);
   },
@@ -46,4 +46,4 @@ const YamlObjectTypeGuard = {
   },
 };
 
-export default YamlObjectTypeGuard;
+export default SmlObjectTypeGuard;

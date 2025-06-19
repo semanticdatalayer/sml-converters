@@ -9,7 +9,7 @@ import {
 } from "sml-sdk";
 import TypeGuardUtil from "./type-guard-util";
 
-export default class YamlDatasetTypeGuard {
+export default class SmlDatasetTypeGuard {
   static isSimpleColumn(column: SMLDatasetColumn): column is SMLDatasetColumnSimple {
     return (
       TypeGuardUtil.hasProps<SMLDatasetColumnSimple>(column, "data_type") &&
@@ -19,7 +19,7 @@ export default class YamlDatasetTypeGuard {
 
   static isCalculatedColumn(column: SMLDatasetColumn): column is SMLDatasetColumnSimple {
     return (
-      YamlDatasetTypeGuard.isSimpleColumn(column) &&
+      SmlDatasetTypeGuard.isSimpleColumn(column) &&
       (TypeGuardUtil.hasProps<SMLDatasetColumnSimple>(column, "sql") ||
         TypeGuardUtil.hasProps<SMLDatasetColumnSimple>(column, "dialects"))
     );
