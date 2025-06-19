@@ -36,7 +36,6 @@ type CortexConverterDependencies = {
 };
 
 export default class CortexConverter {
-  // dependencies: CortexConverterDependencies;
   private logger: Logger;
   private smlFilesPath?: string;
   private smlFiles?: Array<IYamlFile>;

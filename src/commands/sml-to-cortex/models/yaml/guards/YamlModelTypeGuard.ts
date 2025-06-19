@@ -4,7 +4,6 @@ import {
   SMLModelRelationship,
   SMLModelSecurityRelationship,
 } from "sml-sdk";
-// import { IYamlModelRegularRelationship, IYamlModelRelationship, IYamlModelSecurityRelationship } from "../IYamlModel";
 import { modelOrphanRegularSchema, modelOrphanSecuritySchema } from "../schemas/orphanRelationship.schema";
 import TypeGuardUtil from "./type-guard-util";
 

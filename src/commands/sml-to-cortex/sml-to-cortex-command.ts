@@ -25,7 +25,6 @@ export class SMLToCortex extends Command {
     }),
   };
 
-  // static examples = ["<%= config.bin %> <%= command.id %> ./sml-input-path", "<%= config.bin %> <%= command.id %> ./sml-input-path "];
   static examples = [
     "<%= config.bin %> <%= command.id %> ./sml-input-path",
     '<%= config.bin %> <%= command.id %> ./sml-input-path --output-path="path-to-cortex-file"',

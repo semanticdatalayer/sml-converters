@@ -395,7 +395,7 @@ function mapToSnowDim(
     namingRules(roleplay.replace("{0}", attribute.unique_name)),
     attrUniqueNames,
     logger
-  ); // role.replace("{0}", a.unique_name).replaceAll(" ", "_");
+  ); 
   return {
     name: updatedUniqueName,
     synonyms: [roleplay.replace("{0}", attribute.label)],
@@ -417,7 +417,7 @@ function mapToSnowTimeDim(
     namingRules(role.replace("{0}", attribute.unique_name)),
     attrUniqueNames,
     logger
-  ); // role.replace("{0}", a.unique_name).replaceAll(" ", "_");
+  ); 
   return {
     name: updatedUniqueName,
     synonyms: [role.replace("{0}", attribute.label)],
@@ -427,69 +427,6 @@ function mapToSnowTimeDim(
     unique: "is_unique_key" in attribute ? attribute.is_unique_key : false,
   } as ISnowTimeDimension;
 }
-
-// function processValidation(validationResult: IRepoValidatorResult, logger: Logger): string {
-//   let msgs = "";
-//   let warns = "";
-//   validationResult.filesOutput.forEach((validationMsg) =>
-//     validationMsg.compilationOutput.forEach((compiled) => {
-//       if (compiled.severity === "error") {
-//         if (!DEBUG || compiled.message !== "must have required property 'relationships'") {
-//           msgs += `\n   File '${validationMsg.relativePath}': ${compiled.message}`;
-//         }
-//       }
-//       if (compiled.severity.includes("warn")) {
-//         warns += `\n   File '${validationMsg.relativePath}': ${compiled.message}`;
-//       }
-//     })
-//   );
-//   if (msgs.length > 1) {
-//     msgs = "The following validation errors were found in the incoming SML and must be addressed:" + msgs;
-//   }
-//   if (warns.length > 1) {
-//     logger.warn("The following validation warnings were found in the incoming SML:" + warns);
-//   }
-//   return msgs;
-// }
-
-// export function makeResultFromFileList(smlFiles: Array<IYamlFile>, logger: Logger): SmlConverterResult {
-//   const result = new SmlConvertResultBuilder;
-//   smlFiles.forEach((smlFile) => {
-//     switch (smlFile.type) {
-//       case "catalog":
-//         result.catalog = smlFile.data as SMLCatalog;
-//         break;
-//       case "model":
-//         result.addModel(smlFile.data as SMLModel);
-//         break;
-//       case "dataset":
-//         result.addDatasets(smlFile.data as SMLDataset);
-//         break;
-//       case "dimension":
-//         result.addDimension(smlFile.data as SMLDimension);
-//         break;
-//       case "metric":
-//         result.addMeasures(smlFile.data as SMLMetric);
-//         break;
-//       case "metric_calc":
-//         result.addMeasuresCalc(smlFile.data as SMLMetricCalculated);
-//         break;
-//       case "connection":
-//         result.addConnection(smlFile.data as SMLConnection);
-//         break;
-//       case "row_security":
-//         result.addRowSecurity(smlFile.data as SMLRowSecurity);
-//         break;
-//       case "composite_model":
-//         result.addCompositeModel(smlFile.data as SMLCompositeModel);
-//         break;
-//       default:
-//         logger.warn(`Object type of ${smlFile.type} not recognized so object will be skipped`);
-//         break;
-//     }
-//   });
-//   return result;
-// }
 
 export function writeYamlToFile(snowModel: ISnowModel, exportFile: string, logger: Logger) {
   // The expr property needs to be formatted with both single and double quotes but the marshaller
