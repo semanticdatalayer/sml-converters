@@ -16,7 +16,7 @@ import { Logger } from "../../../shared/logger";
 import { convertCompositeModel } from "../../../shared/composite-model-util";
 
 import { CortexConverterResult } from "../cortex-models/CortexConverterResult";
-import { Convert } from "./snow-converter";
+import { convertSmlModelToCortexModel } from "./snow-converter";
 import { CortexModel } from "../cortex-models/CortexModel";
 
 export const Constants = {
@@ -36,22 +36,22 @@ export default class CortexConverter {
 
     const smlReader = new SmlFolderReader(this.logger);
     const smlConverterResult = await smlReader.readSmlObjects(rootFolder);
-    const cortexConversionOutput: Array<CortexModel> = await this.createCortexOutput(smlConverterResult);
+    const cortexConversionOutput: Array<CortexModel> = this.createCortexOutput(smlConverterResult);
 
     return { models: cortexConversionOutput };
   }
 
-  async createCortexOutput(smlObjects: SmlConverterResult): Promise<CortexModel[]> {
+  createCortexOutput(smlObjects: SmlConverterResult): CortexModel[] {
     const cortexConversionOutput = new Array<CortexModel>();
 
     for (const model of smlObjects.models) {
-      const snowModel: CortexModel = await Convert(
+      const cortexModel: CortexModel = convertSmlModelToCortexModel(
         smlObjects,
         model,
         this.logger,
         Constants.DO_MAP_DATASETS_TO_DIMS
       );
-      cortexConversionOutput.push(snowModel);
+      cortexConversionOutput.push(cortexModel);
     }
 
     for (const compositeModelFile of smlObjects.compositeModels) {
@@ -62,13 +62,13 @@ export default class CortexConverter {
       );
 
       const modelFromComposite = fullCompositeModelFile as SMLModel;
-      const snowModel: CortexModel = Convert(
+      const cortexModel: CortexModel = convertSmlModelToCortexModel(
         smlObjects,
         modelFromComposite,
         this.logger,
         Constants.DO_MAP_DATASETS_TO_DIMS
       );
-      cortexConversionOutput.push(snowModel);
+      cortexConversionOutput.push(cortexModel);
     }
 
     return cortexConversionOutput;

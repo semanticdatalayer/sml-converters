@@ -4,7 +4,6 @@ import { Stats } from "fs";
 import fileSystem from 'fs/promises';
 import path from 'path';
 import { Logger } from "./logger";
-import { Command } from "@oclif/core";
 
 export type convertInput = {
   sourcePath: string;
@@ -14,8 +13,7 @@ export type convertInput = {
 
 export async function parseInput(
     input: convertInput,
-    logger: Logger,
-    command: Command
+    logger: Logger
   ): Promise<{
     absoluteSourcePath: string;
     absoluteOutputPath: string;

@@ -34,7 +34,7 @@ import { dimNameOnly, ensureUnique, fmtForMsg, namingRules } from "./util/naming
 
 const DEBUG = true;
 
-export function Convert(
+export function convertSmlModelToCortexModel(
   smlObjects: SmlConverterResult,
   modelToConvert: SMLModel,
   logger: Logger,
@@ -42,7 +42,7 @@ export function Convert(
 ): CortexModel {
   // The deployed catalog has the branch appended. If the branch is main the deployed will be like: sml-tpcds_main
   // But we don't have the branch from the SML path.
-  const snowModel = new CortexModel(modelToConvert.unique_name);
+  const cortexModel = new CortexModel(modelToConvert.unique_name);
 
   const smlModel = createSMLModel(smlObjects, modelToConvert.unique_name, logger);
   if (!smlModel) throw new Error(`No model found with unique_name '${modelToConvert.unique_name}' to convert`);
@@ -55,8 +55,8 @@ export function Convert(
   let mapDatasetsToDims = new Map<string, Set<string>>();
   if (doMapDatasetsToDims) mapDatasetsToDims = createMapDatasetsToDims(modelObjects, models);
 
-  snowModel.description = `Snowflake semantic model generated from the SML model '${smlModel.unique_name}'`;
-  snowModel.tables = new Array<CortexTable>();
+  cortexModel.description = `Snowflake semantic model generated from the SML model '${smlModel.unique_name}'`;
+  cortexModel.tables = new Array<CortexTable>();
   const newTable = {
     name: smlModel.unique_name,
     description: `Logical table based on an SML semantic model`,
@@ -75,8 +75,8 @@ export function Convert(
 
   addDimensions(smlObjects, modelObjects, newTable, rolePlays, mapDatasetsToDims, attrUniqueNames, logger);
 
-  snowModel.tables.push(newTable);
-  return snowModel;
+  cortexModel.tables.push(newTable);
+  return cortexModel;
 }
 
 function listTimeColumns(smlObjects: SmlConverterResult): Set<string> {

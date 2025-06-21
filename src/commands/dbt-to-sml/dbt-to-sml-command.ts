@@ -84,8 +84,7 @@ export class DbtToSmlCommand extends Command {
     const logger = CommandLogger.for(this);
     const { absoluteOutputPath, absoluteSourcePath } = await parseInput(
       input,
-      logger,
-      this
+      logger
     );
 
     logger.info(`Reading dbt from ${absoluteSourcePath}`);

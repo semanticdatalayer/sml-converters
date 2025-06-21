@@ -82,22 +82,27 @@ Converts SML to Snowflake Cortex
 
 ```
 USAGE
-  $ sml-converters sml-to-cortex [SOURCE] [--output <value>]
-
-ARGUMENTS
-  SOURCE                         Root directory of SML files
+  $ sml-converters sml-to-cortex [--source <value>] [--output <value>] [--clean]
 
 FLAGS
-  --output-path=<value>               [default: ./cortexOutput] Output folder
+  --clean                        Clean the output folder contents without the .git folder
+  --output=<value>               [default: ./cortex_output/] Output folder
+  --source=<value>               [default: ./] Source folder
 
 DESCRIPTION
   Converts SML to Snowflake Cortex
 
 
 EXAMPLES
-  $ sml-converters sml-to-cortex ./
+  $ sml-converters sml-to-cortex
 
-  $ sml-converters sml-to-cortex ./ --output-path="./CortexOutput"
+  $ sml-converters sml-to-cortex --clean
+
+  $ sml-converters sml-to-cortex -source ./sml-source-path -output ./cortex-output-path
+
+  $ sml-converters sml-to-cortex -s ./sml-source-path -o ./cortex-output-path
+
+  $ sml-converters sml-to-cortex -s ./sml-source-path -o ./dbt-output-path --clean
 
 ```
 
