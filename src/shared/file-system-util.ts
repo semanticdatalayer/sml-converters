@@ -4,6 +4,7 @@ import { Stats } from "fs";
 import fileSystem from 'fs/promises';
 import path from 'path';
 import { Logger } from "./logger";
+import { Command } from "@oclif/core";
 
 export type convertInput = {
   sourcePath: string;
@@ -13,7 +14,8 @@ export type convertInput = {
 
 export async function parseInput(
     input: convertInput,
-    logger: Logger
+    logger: Logger,
+    command: Command
   ): Promise<{
     absoluteSourcePath: string;
     absoluteOutputPath: string;
@@ -43,6 +45,7 @@ export async function parseInput(
         const outputNotEmptyMsg = `Output folder "${absoluteOutputPath}" is not empty.`;
         if (!input.clean) {
           logger.error(outputNotEmptyMsg);
+          command.error(outputNotEmptyMsg);
         } else {
           logger.warn(
             `${outputNotEmptyMsg}. --clean flag is provided to remove folder contents`,

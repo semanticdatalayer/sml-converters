@@ -54,7 +54,8 @@ export class SMLToCortexCommand extends Command {
 
     const { absoluteOutputPath, absoluteSourcePath } = await parseInput(
       input,
-      logger
+      logger,
+      this
     );
 
     const cortexConverter = new CortexConverter(logger);
