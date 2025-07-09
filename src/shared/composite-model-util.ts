@@ -1,15 +1,10 @@
-// Taken out of validator package from sml-cli
-// TODO: if validator package gets moved to SDK, remove this file
-
 import {
     SMLObjectType,
     SMLCompositeModel,
     SMLModel,
     SMLModelOverride,
-    SMLObject
+    SMLObjectTypeGuard
 } from 'sml-sdk'
-
-import SmlObjectTypeGuard from "../commands/sml-to-cortex/cortex-models/yaml/guards/SmlObjectTypeGuard";
 
 /**
  * Converts a composite model to a regular model if the original file is composite model.
@@ -18,7 +13,7 @@ import SmlObjectTypeGuard from "../commands/sml-to-cortex/cortex-models/yaml/gua
  * @returns A new regular model if the original file is composite model, otherwise returns the original file.
  */
 export function convertCompositeModel(file: SMLCompositeModel, allFiles: Array<SMLModel>) {
-  return SmlObjectTypeGuard.isCompositeModel(file)
+  return SMLObjectTypeGuard.isCompositeModel(file)
     ? {
         ...file,
         data: generateCompositeModelData(file, allFiles),
