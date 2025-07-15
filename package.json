@@ -11,10 +11,12 @@
     "@oclif/plugin-help": "^6",
     "chalk": "^4.1.2",
     "install": "^0.13.0",
+    "isomorphic-git": "^1.32.1",
     "js-yaml": "^4.1.0",
     "node": "^20.17.0",
     "run": "^1.5.0",
     "sml-sdk": "^1.0.1",
+    "snowflake-sdk": "^2.1.1",
     "zod": "3.22.3"
   },
   "devDependencies": {
@@ -47,6 +49,8 @@
     "semantic layer",
     "converters",
     "dbt",
+    "cortex",
+    "snowflake", 
     "cli"
   ],
   "license": "Apache-2.0",
