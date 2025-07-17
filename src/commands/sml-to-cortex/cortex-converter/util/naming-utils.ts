@@ -18,7 +18,7 @@ export function ensureUnique(input: string, attrUniqueNames: Set<string>, logger
   return newString;
 }
 
-export function namingRules(str: string) {
+export function transformName(str: string) {
   if (!str) return str;
   const originalStr = str;
   // Replace spaces with underscores
@@ -47,3 +47,12 @@ export function fmtForMsg(obj: SMLReferenceableObjectWithLabel): string {
   return obj.label == obj.unique_name ? `${obj.label}` : `${obj.label} (${obj.unique_name})`;
 }
 
+/**
+ * Replace '{0}' with the replacement variable
+ * @param roleplay string with the replacement {0}
+ * @param replacement string to replace {0}
+ * @returns roleplay string with the {0} replaced
+ */
+export function replacePlaceholder(roleplay: string, replacement: string): string {
+  return roleplay.replace("{0}", replacement);
+}

@@ -85,6 +85,9 @@ async function saveCortexYamlFiles(
   try {
     await Promise.all(
       cortexModels.models.map(async (obj) => {
+        // The expr property needs to be formatted with both single and double quotes but the marshaller
+        // wraps it in 2 single quotes. This replaceAll corrects that
+        // const yamlString = yaml.dump(obj).replaceAll("'''", "'");
         const yamlStr = yaml.dump(obj);
         const fileName = `${obj.name}.yml`;
         const filePath = path.join(outputDir, fileName);

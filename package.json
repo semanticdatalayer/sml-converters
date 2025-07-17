@@ -10,10 +10,7 @@
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
     "chalk": "^4.1.2",
-    "install": "^0.13.0",
     "js-yaml": "^4.1.0",
-    "node": "^20.17.0",
-    "run": "^1.5.0",
     "sml-sdk": "^1.0.1",
     "zod": "3.22.3"
   },
@@ -25,7 +22,6 @@
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8",
     "eslint-config-prettier": "^9",
-    "jest": "^30.0.0",
     "oclif": "^4",
     "shx": "^0.3.3",
     "ts-node": "^10",

@@ -19,20 +19,21 @@ import {
   SMLLevelAliasAttribute,
   SMLCalculationMethod,
   SMLMetric,
-  SMLMetricCalculated
+  SMLMetricCalculated,
+  SMLModelRegularRelationship,
+  SMLObjectTypeGuard
  } from "sml-sdk";
 
-import {  writeFile } from "fs";
-import yaml from "js-yaml";
-import { sortAlphabetically } from "./cortex-tools";
+ import SMLDatasetTypeGuard from "sml-sdk/dist/guards/SmlDatasetTypeGuard";
+
+import { sortAlphabetically } from "../../../shared/array-util";
 
 import { CortexDimension, CortexMeasure, CortexModel, CortexTable, CortexTimeDimension } from "../cortex-models/CortexModel";
-import { dimNameOnly, ensureUnique, fmtForMsg, namingRules } from "./util/naming-utils";
+import { dimNameOnly, ensureUnique, fmtForMsg, transformName, replacePlaceholder } from "./util/naming-utils";
 
+import { Guard } from "../../../shared/guard"
 // NOTES
 // data_type: Measures always have type NUMBER, while dimensions can be NUMBER, TEXT, or TIMESTAMP
-
-const DEBUG = true;
 
 export function convertSmlModelToCortexModel(
   smlObjects: SmlConverterResult,
@@ -40,8 +41,6 @@ export function convertSmlModelToCortexModel(
   logger: Logger,
   doMapDatasetsToDims: boolean
 ): CortexModel {
-  // The deployed catalog has the branch appended. If the branch is main the deployed will be like: sml-tpcds_main
-  // But we don't have the branch from the SML path.
   const cortexModel = new CortexModel(modelToConvert.unique_name);
 
   const smlModel = createSMLModel(smlObjects, modelToConvert.unique_name, logger);
@@ -82,12 +81,12 @@ export function convertSmlModelToCortexModel(
 function listTimeColumns(smlObjects: SmlConverterResult): Set<string> {
   const cols = new Set<string>();
   smlObjects.datasets.forEach((dataset) =>
-    dataset.columns.forEach((column) => {
+    dataset.columns.filter(SMLDatasetTypeGuard.isSimpleColumn).forEach((column) => {
       if (
-        "data_type" in column &&
-        (column.data_type === SMLColumnDataType.DateTime ||
-          column.data_type === SMLColumnDataType.TimeStamp ||
-          column.data_type === SMLColumnDataType.Date)
+        [SMLColumnDataType.DateTime,
+        SMLColumnDataType.TimeStamp, 
+        SMLColumnDataType.Date
+        ].includes(column.data_type as SMLColumnDataType)
       ) {
         cols.add(dataset.unique_name + "." + column.name);
       }
@@ -99,19 +98,18 @@ function listTimeColumns(smlObjects: SmlConverterResult): Set<string> {
 function listNumericColumns(smlObjects: SmlConverterResult): Set<string> {
   const cols = new Set<string>();
   smlObjects.datasets.forEach((dataset) =>
-    dataset.columns.forEach((column) => {
+    dataset.columns.filter(SMLDatasetTypeGuard.isSimpleColumn).forEach((column) => {
       if (
-        "data_type" in column &&
-        (column.data_type === SMLColumnDataType.BigInt ||
-          column.data_type === SMLColumnDataType.Int ||
-          column.data_type === SMLColumnDataType.Decimal ||
-          column.data_type === SMLColumnDataType.Double ||
-          column.data_type === SMLColumnDataType.Float ||
-          column.data_type === SMLColumnDataType.Long ||
-          column.data_type === SMLColumnDataType.Number ||
-          column.data_type === SMLColumnDataType.Numeric ||
-          column.data_type === SMLColumnDataType.TinyInt)
-      ) {
+        [SMLColumnDataType.BigInt,
+        SMLColumnDataType.Int,
+        SMLColumnDataType.Decimal,
+        SMLColumnDataType.Double,
+        SMLColumnDataType.Float,
+        SMLColumnDataType.Long,
+        SMLColumnDataType.Number,
+        SMLColumnDataType.Numeric,
+        SMLColumnDataType.TinyInt,
+        ].includes(column.data_type as SMLColumnDataType)) {
         cols.add(dataset.unique_name + "." + column.name);
       }
     })
@@ -148,8 +146,8 @@ function filterSMLForModel(
     // List all dimensions referenced by the model and their references recursively
     if (smlModel.relationships)
       smlModel.relationships.forEach((relationship) => {
-        if ("dimension" in relationship.to) {
-          const roleplay = "role_play" in relationship && relationship.role_play ? relationship.role_play : "";
+        if (isRegularRelationship(relationship)) {
+          const roleplay = relationship.role_play || "";
           const dimRef = fmtDimRef(relationship, "");
           rolePlays.add(dimRef);
           addDimRels(
@@ -165,7 +163,7 @@ function filterSMLForModel(
   // List all degenerate dimensions to include
   const degenSet: Set<string> = new Set();
   models.forEach((model) => {
-    if ("dimensions" in model) model.dimensions?.forEach((dim) => degenSet.add(dim));
+    (model.dimensions ?? []).forEach((dim) => degenSet.add(dim));
   });
 
   // Now add all the referenced dimensions (separately for role-played) to the new result
@@ -201,7 +199,7 @@ function createMapDatasetsToDims(smlObjects: SmlConverterResult, models: Array<S
       // List all dimensions referenced by the model and their references recursively
       if (smlModel.relationships) {
         smlModel.relationships.forEach((relationship) => {
-          if ("dimension" in relationship.to && relationship.from.dataset === dsName) {
+          if (isRegularRelationship(relationship) && relationship.from.dataset === dsName) {
             const roleplay = "role_play" in relationship && relationship.role_play ? relationship.role_play : "";
             const dimRef = fmtDimRef(relationship, ""); // r.to.dimension;
             rolePlays.add(dimRef);
@@ -228,10 +226,10 @@ function addToMapWithSet(map: Map<string, Set<string>>, key: string, value: stri
 }
 
 function fmtDimRef(relationship: SMLModelRelationship | SMLEmbeddedRelationship, roleplay: string): string {
-  if ("dimension" in relationship.to) {
-    if ("role_play" in relationship && relationship.role_play) {
+  if (isRegularRelationship(relationship)) {
+    if (relationship.role_play) {
       if (roleplay) {
-        return `${relationship.to.dimension}|${roleplay.replace("{0}", relationship.role_play)}`;
+        return `${relationship.to.dimension}|${replacePlaceholder(roleplay, relationship.role_play)}`;
       }
       return `${relationship.to.dimension}|${relationship.role_play}`;
     } else if (roleplay) {
@@ -239,7 +237,7 @@ function fmtDimRef(relationship: SMLModelRelationship | SMLEmbeddedRelationship,
     }
     return relationship.to.dimension;
   }
-  throw new Error(`Missing 'dimension' property in TO of relationship from ${relationship.from.dataset}`); // Should never hit this
+  throw new Error(`Missing 'dimension' property in TO of relationship from ${relationship.from.dataset}`); // TODO: Should never hit this
 }
 
 function addDimRels(
@@ -248,8 +246,8 @@ function addDimRels(
   dimList: Set<string>,
   roleplay: string
 ) {
-  if (dim?.relationships) {
-    dim.relationships.forEach((relationship) => {
+  if (dim) {
+    (dim.relationships ?? []).forEach((relationship) => {
       if ("dimension" in relationship.to && relationship.type == "embedded") {
         const dimRef = fmtDimRef(relationship, roleplay); // r.to.dimension;
         dimList.add(dimRef);
@@ -271,10 +269,10 @@ function mapToSnowMeasure(
   attrUniqueNames: Set<string>,
   logger: Logger
 ): CortexMeasure {
-  const updatedUniqueName = ensureUnique(namingRules(metric.unique_name), attrUniqueNames, logger);
+  const updatedUniqueName = ensureUnique(transformName(metric.unique_name), attrUniqueNames, logger);
   const newMeas: CortexMeasure = {
     name: updatedUniqueName,
-    description: "description" in metric ? metric.description : undefined,
+    description: metric.description,
     synonyms: [metric.label],
     expr: `'"${metric.unique_name}"'`,
     data_type: "NUMBER",
@@ -310,7 +308,7 @@ function addSnowDimsFromSmlDim(
     dim.level_attributes.forEach((attribute) =>
       addIfNotHidden(attribute, dimsAndColsToPass, "", msgs, attrUniqueNames, logger)
     );
-    allLevels(dim).forEach((level) => {
+    getAllLevels(dim).forEach((level) => {
       level.secondary_attributes?.forEach((secondary) =>
         addIfNotHidden(secondary, dimsAndColsToPass, "", msgs, attrUniqueNames, logger)
       );
@@ -326,7 +324,7 @@ function addSnowDimsFromSmlDim(
       dim.level_attributes.forEach((attribute) =>
         addIfNotHidden(attribute, dimsAndColsToPass, roleplay, msgs, attrUniqueNames, logger)
       );
-      allLevels(dim).forEach((level) => {
+      getAllLevels(dim).forEach((level) => {
         level.secondary_attributes?.forEach((secondary) =>
           addIfNotHidden(secondary, dimsAndColsToPass, roleplay, msgs, attrUniqueNames, logger)
         );
@@ -348,10 +346,9 @@ function addSnowDimsFromSmlDim(
     });
   }
   if (msgs.length > 0) {
-    if (logger)
-      logger.info(
-        `Attributes in dimension '${fmtForMsg(dim)}' found which are hidden so they will not be included in the conversion: ${sortAlphabetically(msgs, (n) => n).join(", ")}`
-      );
+    logger.info(
+      `Attributes in dimension '${fmtForMsg(dim)}' found which are hidden so they will not be included in the conversion: ${sortAlphabetically(msgs, (n) => n).join(", ")}`
+    );
   }
   if (dimsAndColsToPass.unsupported_aggregation.length > 0) {
     const sorted = sortAlphabetically(dimsAndColsToPass.unsupported_aggregation, (n) => n);
@@ -391,15 +388,15 @@ function mapToSnowDim(
   logger: Logger
 ): CortexDimension {
   const updatedUniqueName = ensureUnique(
-    namingRules(roleplay.replace("{0}", attribute.unique_name)),
+    transformName(replacePlaceholder(roleplay, attribute.unique_name)),
     attrUniqueNames,
     logger
   ); 
   return {
     name: updatedUniqueName,
-    synonyms: [roleplay.replace("{0}", attribute.label)],
+    synonyms: [replacePlaceholder(roleplay, attribute.label)],
     description: attribute.description ? attribute.description : undefined,
-    expr: `'"${roleplay.replace("{0}", attribute.unique_name)}"'`,
+    expr: `'"${replacePlaceholder(roleplay, attribute.unique_name)}"'`,
     data_type:
       "dataset" in attribute && numericColumns.has(`${attribute.dataset}.${attribute.name_column}`) ? "NUMBER" : "TEXT",
     unique: "is_unique_key" in attribute ? attribute.is_unique_key : false,
@@ -413,7 +410,7 @@ function mapToSnowTimeDim(
   logger: Logger
 ): CortexTimeDimension {
   const updatedUniqueName = ensureUnique(
-    namingRules(role.replace("{0}", attribute.unique_name)),
+    transformName(role.replace("{0}", attribute.unique_name)),
     attrUniqueNames,
     logger
   ); 
@@ -427,30 +424,13 @@ function mapToSnowTimeDim(
   } as CortexTimeDimension;
 }
 
-export function writeYamlToFile(snowModel: CortexModel, exportFile: string, logger: Logger) {
-  // The expr property needs to be formatted with both single and double quotes but the marshaller
-  // wraps it in 2 single quotes. This replaceAll corrects that
-  const yamlString = yaml.dump(snowModel).replaceAll("'''", "'");
-
-  try {
-    writeFile(exportFile, yamlString, (err) => {
-      if (err) {
-        logger.error("Error writing file:" + err?.message);
-        throw err;
-      }
-    });
-    logger.info("YAML file has been saved successfully to: " + exportFile);
-  } catch (error) {
-    logger.error(`Error writing yaml to file: ${error}`);
-  }
-}
-
 function listUsedModels(smlModel: SMLModel | SMLCompositeModel, smlObjects: SmlConverterResult): Array<SMLModel> {
   const models = new Array<SMLModel>(); // To support composite models
-  if ("models" in smlModel) {
-    smlModel.models.forEach((model) => {
-      const foundModel = smlObjects.models.find((findModel) => findModel.unique_name === model);
-      if (foundModel) models.push(foundModel);
+    if (SMLObjectTypeGuard.isCompositeModel(smlModel)) {
+      smlModel.models.forEach((model) => {
+      const foundModel = Guard.ensure(smlObjects.models.find((findModel) => findModel.unique_name === model), 
+      `Cannot find referenced model ${model} form complex model ${smlModel.unique_name}. Consider running validation`);
+      models.push(foundModel);
     });
   } else {
     models.push(smlModel);
@@ -471,17 +451,17 @@ function listAttributesInDim(smlObjects: SmlConverterResult, rolePlay: string): 
   );
   if (dim) {
     dim.level_attributes.forEach((levelAttr) =>
-      attributes.push(roleplay ? roleplay.replace("{0}", levelAttr.unique_name) : levelAttr.unique_name)
+      attributes.push(roleplay ? replacePlaceholder(roleplay, levelAttr.unique_name) : levelAttr.unique_name)
     );
-    allLevels(dim).forEach((level) => {
+    getAllLevels(dim).forEach((level) => {
       level.secondary_attributes?.forEach((secondary) =>
-        attributes.push(roleplay ? roleplay.replace("{0}", secondary.unique_name) : secondary.unique_name)
+        attributes.push(roleplay ? replacePlaceholder(roleplay, secondary.unique_name) : secondary.unique_name)
       );
       level.aliases?.forEach((alias) =>
-        attributes.push(roleplay ? roleplay.replace("{0}", alias.unique_name) : alias.unique_name)
+        attributes.push(roleplay ? replacePlaceholder(roleplay, alias.unique_name) : alias.unique_name)
       );
       level.metrics?.forEach((metric) =>
-        attributes.push(roleplay ? roleplay.replace("{0}", metric.unique_name) : metric.unique_name)
+        attributes.push(roleplay ? replacePlaceholder(roleplay, metric.unique_name) : metric.unique_name)
       );
     });
   }
@@ -495,7 +475,8 @@ function createSMLModel(smlObjects: SmlConverterResult, modelToConvert: string, 
   if (!smlModel) {
     smlModel = smlObjects.compositeModels.find((compositeModel) => compositeModel.unique_name == modelToConvert);
     if (!smlModel) {
-      smlModel = getDefaultModel(smlObjects, modelToConvert, DEBUG, logger);
+      // if no model found with modelToConvert name
+      smlModel = getDefaultModel(smlObjects, modelToConvert, logger);
     }
   }
   if (!smlModel) {
@@ -510,8 +491,9 @@ function dimFromName(smlObjects: SmlConverterResult, dimRef: string): SMLDimensi
 
 // Adds all the referenced dimensions (separately for role-played) to the new result
 function addReferencedDims(smlObjects: SmlConverterResult, rolePlays: Set<string>) {
+  const roleplayArr = Array.from(rolePlays);
   smlObjects.dimensions.forEach((dim) => {
-    if (Array.from(rolePlays).find((roleplay) => dimNameOnly(roleplay) === dim.unique_name)) {
+    if (roleplayArr.find((roleplay) => dimNameOnly(roleplay) === dim.unique_name)) {
       rolePlays.forEach((ref) => {
         if (ref.startsWith(dim.unique_name)) {
           // If role-played track instances
@@ -561,39 +543,29 @@ function addDimensions(
   if (dimsAndColsToPass.snowTimeDims.length > 0) newTable.time_dimensions = dimsAndColsToPass.snowTimeDims;
 }
 
-function allLevels(dim: SMLDimension): SMLDimensionLevel[] {
-  const levels: SMLDimensionLevel[] = [];
-  dim.hierarchies.forEach((hier) => {
-    hier.levels.forEach((level) => levels.push(level));
-  });
-  return levels;
+function getAllLevels(dim: SMLDimension): SMLDimensionLevel[] {
+    return dim.hierarchies.flatMap(hier => hier.levels);
 }
 
 function getDefaultModel(
   smlObjects: SmlConverterResult,
   modelToConvert: string,
-  DEBUG: boolean,
   logger: Logger
 ): modelType {
   let smlModel: SMLModel;
-  if (DEBUG) {
+  if (smlObjects.models.length == 1) {
     smlModel = smlObjects.models[0];
-    if (logger && modelToConvert) {
-      logger.info(
-        `Model with name '${modelToConvert}' not found in catalog, so converting first model, '${smlModel.unique_name}'`
-      );
-    } else {
-      throw new Error(`No model with unique_name '${modelToConvert}' found in catalog`);
-    }
-  } else if (smlObjects.models.length == 1) {
+    logger.warn(
+      `Model with name '${modelToConvert}' not found in catalog, however only 1 model exists, '${smlModel.unique_name}', so it will be converted`
+    );
+  } else if (smlObjects.models.length > 1){
     smlModel = smlObjects.models[0];
-    if (logger && modelToConvert) {
-      logger.warn(
-        `Model with name '${modelToConvert}' not found in catalog, however only 1 model exists, '${smlModel.unique_name}', so it will be converted`
-      );
-    }
+    logger.info(
+      `Model with name '${modelToConvert}' not found in catalog, so converting first model, '${smlModel.unique_name}'`
+    );
   } else {
-    throw new Error(`No model with unique_name '${modelToConvert}' found in catalog`);
+    // smlObjects.model has length of 0
+    throw new Error(`Catalog does not contain a model`)
   }
   return smlModel;
 }
@@ -607,7 +579,7 @@ function addCalculations(
 ) {
   const calcMsgs = new Array<string>();
   modelObjects.measuresCalculated.forEach((calc) => {
-    if (!("is_hidden" in calc) || !calc.is_hidden) {
+    if (!calc.is_hidden) {
       if (!newTable.measures) newTable.measures = [];
       // There's no default_aggregation in calculations so no messages are tracked for them
       newTable.measures.push(mapToSnowMeasure(calc, mapDatasetsToDims, new Array<string>(), attrUniqueNames, logger));
@@ -616,10 +588,9 @@ function addCalculations(
     }
   });
   if (calcMsgs.length > 0) {
-    if (logger)
-      logger.info(
-        `Calculations found which are hidden so they will not be included in the conversion: ${sortAlphabetically(calcMsgs, (n) => n).join(", ")}`
-      );
+    logger.info(
+      `Calculations found which are hidden so they will not be included in the conversion: ${sortAlphabetically(calcMsgs, (n) => n).join(", ")}`
+    );
   }
 }
 
@@ -644,10 +615,9 @@ function addMeasures(
     }
   });
   if (measMsgs.length > 0) {
-    if (logger)
-      logger.info(
-        `Measures found which are hidden so they will not be included in the conversion: ${sortAlphabetically(measMsgs, (n) => n).join(", ")}`
-      );
+    logger.info(
+      `Measures found which are hidden so they will not be included in the conversion: ${sortAlphabetically(measMsgs, (n) => n).join(", ")}`
+    );
   }
   if (unsupported_aggregation.length > 0) {
     unsupported_aggregation = unsupported_aggregation.sort((a, b) => a.localeCompare(b));
@@ -672,4 +642,8 @@ function toCortexAggregation(smlCalcMethod: SMLCalculationMethod): string {
     default: // Not supported by Cortex Analyst. Example is "count non-null"
       return "";
   }
+}
+
+function isRegularRelationship(relationship: SMLModelRelationship): relationship is SMLModelRegularRelationship {
+    return 'dimension' in relationship.to;
 }
