@@ -148,18 +148,9 @@ export const getFilesAndFolders = async (
     return result;
 }
 
-/**
- * Ensures that the specified directory exists. If the directory structure does not exist, it is created recursively.
- *
- * @param directory - The path of the directory to ensure exists.
- * @returns A promise that resolves when the directory exists or is created.
- * @throws Will throw an error if the directory cannot be created for reasons other than it already existing.
- */
-export async function ensureDir(directory: string) {
-  try {
-    await fs.mkdir(directory, { recursive: true });
-  } catch (error: any) {
-    // Ignore error if directory already exists
-    throw error;
-  }
+const invalidCharRegEx = /[/\\:*?"<>|]/g;
+const encodedChar = "_";
+
+export function encodeFileName(input: string): string {
+  return input.replaceAll(invalidCharRegEx, encodedChar);
 }

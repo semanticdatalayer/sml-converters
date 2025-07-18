@@ -6,7 +6,7 @@ import { CommandLogger } from "../../shared/command-logger";
 import { Logger } from "../../shared/logger";
 import CortexConverter from "./cortex-converter/cortex-converter";
 import { CortexConverterResult } from "./cortex-models/CortexConverterResult";
-import { convertInput, parseInput } from "../../shared/file-system-util";
+import { convertInput, parseInput, encodeFileName } from "../../shared/file-system-util";
 import { GitHubAuthentication } from "../../shared/git/githubAuth";
 import { SnowflakeConnection } from "./cortex-connect/cortex-connection";
 import { gitCredentials } from "../../shared/git/types";
@@ -302,7 +302,7 @@ async function saveCortexYamlFiles (
     await Promise.all(
       cortexModels.models.map(async (obj) => {
         const yamlStr = yaml.dump(obj);
-        const fileName = `${obj.name}.yml`;
+        const fileName = `${encodeFileName(obj.name)}.yml`;
         const filePath = path.join(outputDir, fileName);
         await fs.writeFile(filePath, yamlStr, "utf8");
         logger.info(`Wrote Cortex yaml file to: ${filePath}`);

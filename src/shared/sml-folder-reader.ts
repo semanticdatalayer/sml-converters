@@ -53,43 +53,53 @@ export class SmlFolderReader {
     });
 
     const smlObjectsOrNot = await Promise.all(readFilesPromises);
-    smlObjectsOrNot.forEach((smlObjectOrNot) => {
-    if(smlObjectOrNot != undefined) {
-      const objectType = smlObjectOrNot.object_type;
-        switch (objectType) {
-              case "catalog":
-                smlObjects.catalog = smlObjectOrNot as SMLCatalog;
-                break;
-              case "model":
-                smlObjects.addModel(smlObjectOrNot as SMLModel);
-                break;
-              case "dataset":
-                smlObjects.addDatasets(smlObjectOrNot as SMLDataset);
-                break;
-              case "dimension":
-                smlObjects.addDimension(smlObjectOrNot as SMLDimension);
-                break;
-              case "metric":
-                smlObjects.addMeasures(smlObjectOrNot as SMLMetric);
-                break;
-              case "metric_calc":
-                smlObjects.addMeasuresCalc(smlObjectOrNot as SMLMetricCalculated);
-                break;
-              case "connection":
-                smlObjects.addConnection(smlObjectOrNot as SMLConnection);
-                break;
-              case "row_security":
-                smlObjects.addRowSecurity(smlObjectOrNot as SMLRowSecurity);
-                break;
-              case "composite_model":
-                smlObjects.addCompositeModel(smlObjectOrNot as SMLCompositeModel);
-                break;
-              default:
-                this.logger.warn(`Object type of ${objectType} not recognized so object will be skipped`);
-                break;
-            }
-    }});
 
+    const addHandlers: Record<SMLObjectType, (smlObject: SMLObject) => void> = {
+      [SMLObjectType.Catalog]: (smlObject: SMLObject) => {
+        smlObjects.catalog = smlObject as SMLCatalog;
+      },
+      [SMLObjectType.Model]: (smlObject: SMLObject) => {
+        smlObjects.addModel(smlObject as SMLModel);
+      },
+      [SMLObjectType.ModelSettings]: (smlObject: SMLObject) => {
+        this.logger.warn(`Model Settings object not implemented - skipping object`)
+      },
+      [SMLObjectType.GlobalSettings]: (smlObject: SMLObject) => {
+        this.logger.warn(`Global Settings object not implemented - skipping object`)
+      },
+      [SMLObjectType.Dimension]: function (smlObject: SMLObject): void {
+        smlObjects.addDimension(smlObject as SMLDimension);
+      },
+      [SMLObjectType.Dataset]: function (smlObject: SMLObject): void {
+        smlObjects.addDatasets(smlObject as SMLDataset);
+      },
+      [SMLObjectType.Metric]: function (smlObject: SMLObject): void {
+        smlObjects.addMeasures(smlObject as SMLMetric);
+      },
+      [SMLObjectType.MetricCalc]: function (smlObject: SMLObject): void {
+        smlObjects.addMeasuresCalc(smlObject as SMLMetricCalculated);
+      },
+      [SMLObjectType.Connection]: function (smlObject: SMLObject): void {
+        smlObjects.addConnection(smlObject as SMLConnection);
+      },
+      [SMLObjectType.RowSecurity]: function (smlObject: SMLObject): void {
+        smlObjects.addRowSecurity(smlObject as SMLRowSecurity);
+      },
+      [SMLObjectType.CompositeModel]: function (smlObject: SMLObject): void {
+        smlObjects.addCompositeModel(smlObject as SMLCompositeModel);
+      },
+    };
+    smlObjectsOrNot.filter((smlObjectOrNot) => smlObjectOrNot != undefined).forEach((smlObject) => {
+      const handler = addHandlers[smlObject.object_type];
+        if (!handler) {
+            this.logger.warn(
+              `Object type of ${smlObject.object_type} not recognized so object will be skipped`,
+            );
+            return;
+        }
+        handler(smlObject);
+
+    });
     //run the same for subfolders
     await Promise.all(folders.map((folder) => this.readSmlObjectsRecursive(path.join(folderPath, folder), smlObjects, recursionDepth +1)))
   }
