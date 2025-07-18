@@ -3,27 +3,13 @@ import {
   SMLObject
 } from "sml-sdk";
 
-import {
-  SmlConverterResult,
-} from "../../../shared/sml-convert-result";
-
-import {
-  SmlFolderReader
-} from "../../../shared/sml-folder-reader"
-
+import { SmlConverterResult } from "../../../shared/sml-convert-result";
+import { SmlFolderReader } from "../../../shared/sml-folder-reader"
 import { Logger } from "../../../shared/logger";
-
 import { convertCompositeModel } from "../../../shared/composite-model-util";
-
 import { CortexConverterResult } from "../cortex-models/CortexConverterResult";
 import { convertSmlModelToCortexModel } from "./snow-converter";
 import { CortexModel } from "../cortex-models/CortexModel";
-
-export const Constants = {
-  DO_MAP_DATASETS_TO_DIMS: false,
-  PRINT_MESSAGES: true,
-  FILTER_VALUES: ["cs_list_price", "cs list price"],
-};
 
 export default class CortexConverter {
   private logger: Logger;
@@ -41,7 +27,7 @@ export default class CortexConverter {
     return { models: cortexConversionOutput };
   }
 
-  createCortexOutput(smlObjects: SmlConverterResult): CortexModel[] {
+  createCortexOutput(smlObjects: SmlConverterResult, mapDatasetsToDims : boolean = false): CortexModel[] {
     const cortexConversionOutput = new Array<CortexModel>();
 
     for (const model of smlObjects.models) {
@@ -49,7 +35,7 @@ export default class CortexConverter {
         smlObjects,
         model,
         this.logger,
-        Constants.DO_MAP_DATASETS_TO_DIMS
+        mapDatasetsToDims
       );
       cortexConversionOutput.push(cortexModel);
     }
@@ -66,12 +52,10 @@ export default class CortexConverter {
         smlObjects,
         modelFromComposite,
         this.logger,
-        Constants.DO_MAP_DATASETS_TO_DIMS
+        mapDatasetsToDims
       );
       cortexConversionOutput.push(cortexModel);
     }
-
     return cortexConversionOutput;
   }
 }
-

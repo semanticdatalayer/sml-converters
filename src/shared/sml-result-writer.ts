@@ -3,6 +3,7 @@ import { serializeToSML, SMLObject, SMLObjectType } from "sml-sdk";
 import fs from "fs/promises";
 import path from "path";
 import { SmlConverterResult } from "./sml-convert-result";
+import { encodeFileName } from "./file-system-util";
 
 const fileDefaultFolder: Record<SMLObjectType, string> = {
   [SMLObjectType.Catalog]: "/",
@@ -51,10 +52,7 @@ export class SmlResultWriter {
   }
 
   private encodeFileName(input: string): string {
-    return input.replaceAll(
-      SmlResultWriter.invalidCharRegEx,
-      SmlResultWriter.encodedChar,
-    );
+    return encodeFileName(input)
   }
 
   private async persistObject(

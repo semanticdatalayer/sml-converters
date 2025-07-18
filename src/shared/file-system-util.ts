@@ -147,3 +147,10 @@ export const getFilesAndFolders = async (
 
     return result;
 }
+
+const invalidCharRegEx = /[/\\:*?"<>|]/g;
+const encodedChar = "_";
+
+export function encodeFileName(input: string): string {
+  return input.replaceAll(invalidCharRegEx, encodedChar);
+}

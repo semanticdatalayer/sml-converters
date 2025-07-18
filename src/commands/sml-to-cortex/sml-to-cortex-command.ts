@@ -6,7 +6,7 @@ import { CommandLogger } from "../../shared/command-logger";
 import { Logger } from "../../shared/logger";
 import CortexConverter from "./cortex-converter/cortex-converter";
 import { CortexConverterResult } from "./cortex-models/CortexConverterResult";
-import { convertInput, parseInput } from "../../shared/file-system-util";
+import { convertInput, parseInput, encodeFileName } from "../../shared/file-system-util";
 
 export class SMLToCortexCommand extends Command {
   static description = "Convert from SML to Snowflake Cortex Analyst yaml";
@@ -85,11 +85,8 @@ async function saveCortexYamlFiles(
   try {
     await Promise.all(
       cortexModels.models.map(async (obj) => {
-        // The expr property needs to be formatted with both single and double quotes but the marshaller
-        // wraps it in 2 single quotes. This replaceAll corrects that
-        // const yamlString = yaml.dump(obj).replaceAll("'''", "'");
         const yamlStr = yaml.dump(obj);
-        const fileName = `${obj.name}.yml`;
+        const fileName = `${encodeFileName(obj.name)}.yml`;
         const filePath = path.join(outputDir, fileName);
         await fs.writeFile(filePath, yamlStr, "utf8");
         logger.info(`Wrote Cortex yaml file to: ${filePath}`);

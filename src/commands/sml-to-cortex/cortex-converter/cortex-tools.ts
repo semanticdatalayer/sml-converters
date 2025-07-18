@@ -1,6 +1,10 @@
-import { SMLReferenceableObjectWithLabel } from "sml-sdk";
-import { Logger } from "../../../../shared/logger";
-
+import { 
+  SMLEmbeddedRelationship, 
+  SMLModelRegularRelationship, 
+  SMLModelRelationship, 
+  SMLReferenceableObjectWithLabel 
+} from "sml-sdk";
+import { Logger } from "../../../shared/logger";
 
 export function ensureUnique(input: string, attrUniqueNames: Set<string>, logger: Logger): string {
   if (!attrUniqueNames.has(input)) {
@@ -55,4 +59,41 @@ export function fmtForMsg(obj: SMLReferenceableObjectWithLabel): string {
  */
 export function replacePlaceholder(roleplay: string, replacement: string): string {
   return roleplay.replace("{0}", replacement);
+}
+
+/**
+ * Adds one or more values to a Set stored in a Map. If the key doesn't exist,
+ * creates a new Set with the provided value(s). If the key exists, adds the
+ * value(s) to the existing Set.
+ * 
+ * @param map - The Map containing string keys and Set<string> values
+ * @param key - The key to add values to
+ * @param value - A single string or array of strings to add to the Set
+ */
+export function addToMapWithSet(map: Map<string, Set<string>>, key: string, value: string | string[]) {
+  let temp = new Set<string>();
+  const val = map.get(key);
+  if (val) temp = val;
+  if (Array.isArray(value)) value.forEach((val2) => temp.add(val2));
+  else temp.add(value);
+  map.set(key, temp);
+
+}
+export function isRegularRelationship(relationship: SMLModelRelationship): relationship is SMLModelRegularRelationship {
+  return 'dimension' in relationship.to;
+}
+
+export function fmtDimRef(relationship: SMLModelRelationship | SMLEmbeddedRelationship, roleplay: string): string {
+  if (isRegularRelationship(relationship)) {
+    if (relationship.role_play) {
+      if (roleplay) {
+        return `${relationship.to.dimension}|${replacePlaceholder(roleplay, relationship.role_play)}`;
+      }
+      return `${relationship.to.dimension}|${relationship.role_play}`;
+    } else if (roleplay) {
+      return `${relationship.to.dimension}|${roleplay}`;
+    }
+    return relationship.to.dimension;
+  }
+  throw new Error(`Missing 'dimension' property in TO of relationship from ${relationship.from.dataset}`);
 }
