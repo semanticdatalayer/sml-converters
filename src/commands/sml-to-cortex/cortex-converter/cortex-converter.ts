@@ -1,10 +1,7 @@
-import {
-  SMLModel,
-  SMLObject
-} from "sml-sdk";
+import { SMLModel, SMLObject } from "sml-sdk";
 
 import { SmlConverterResult } from "../../../shared/sml-convert-result";
-import { SmlFolderReader } from "../../../shared/sml-folder-reader"
+import { SmlFolderReader } from "../../../shared/sml-folder-reader";
 import { Logger } from "../../../shared/logger";
 import { convertCompositeModel } from "../../../shared/composite-model-util";
 import { CortexConverterResult } from "../cortex-models/CortexConverterResult";
@@ -19,15 +16,18 @@ export default class CortexConverter {
   }
 
   async convertYamlFiles(rootFolder: string): Promise<CortexConverterResult> {
-
     const smlReader = new SmlFolderReader(this.logger);
     const smlConverterResult = await smlReader.readSmlObjects(rootFolder);
-    const cortexConversionOutput: Array<CortexModel> = this.createCortexOutput(smlConverterResult);
+    const cortexConversionOutput: Array<CortexModel> =
+      this.createCortexOutput(smlConverterResult);
 
     return { models: cortexConversionOutput };
   }
 
-  createCortexOutput(smlObjects: SmlConverterResult, mapDatasetsToDims : boolean = false): CortexModel[] {
+  createCortexOutput(
+    smlObjects: SmlConverterResult,
+    mapDatasetsToDims: boolean = false,
+  ): CortexModel[] {
     const cortexConversionOutput = new Array<CortexModel>();
 
     for (const model of smlObjects.models) {
@@ -35,16 +35,15 @@ export default class CortexConverter {
         smlObjects,
         model,
         this.logger,
-        mapDatasetsToDims
+        mapDatasetsToDims,
       );
       cortexConversionOutput.push(cortexModel);
     }
 
     for (const compositeModelFile of smlObjects.compositeModels) {
-      
       const fullCompositeModelFile: SMLObject = convertCompositeModel(
         compositeModelFile,
-        smlObjects.models
+        smlObjects.models,
       );
 
       const modelFromComposite = fullCompositeModelFile as SMLModel;
@@ -52,7 +51,7 @@ export default class CortexConverter {
         smlObjects,
         modelFromComposite,
         this.logger,
-        mapDatasetsToDims
+        mapDatasetsToDims,
       );
       cortexConversionOutput.push(cortexModel);
     }
