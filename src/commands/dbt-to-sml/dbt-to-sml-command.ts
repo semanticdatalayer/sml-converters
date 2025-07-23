@@ -1,23 +1,15 @@
 import { Flags, Command } from "@oclif/core";
-import path from "path";
-import fs from "fs/promises";
 import { DbtParser } from "./dbt-converter/dbt-parser";
 import { CommandLogger } from "../../shared/command-logger";
 import { DbtConverter } from "./dbt-converter/dbt-converter";
 import { DWType } from "../../shared/dw-types";
 import { SmlResultWriter } from "../../shared/sml-result-writer";
-import { fileSystemUtil } from "../../shared/file-system-util";
-import Guard from "../../shared/guard";
+import { parseInput, convertInput } from "../../shared/file-system-util";
 import { SmlConverterResult } from "../../shared/sml-convert-result";
 import { enumUtil } from "../../shared/enum-util";
 import { IDbtConverterInput } from "./model";
-import { Logger } from "../../shared/logger";
 
-type ConvertInput = {
-  sourcePath: string;
-  outputPath: string;
-  clean: boolean;
-} & IDbtConverterInput;
+type DbtConvertInput = convertInput & IDbtConverterInput;
 
 export class DbtToSmlCommand extends Command {
   static summary = "Converts DBT to SML";
@@ -88,83 +80,12 @@ export class DbtToSmlCommand extends Command {
     });
   }
 
-  protected async parseInput(
-    input: ConvertInput,
-    logger: Logger,
-  ): Promise<{
-    absoluteSourcePath: string;
-    absoluteOutputPath: string;
-  }> {
-    const absoluteSourcePath = path.resolve(input.sourcePath);
-    const inputFolderExists = await fileSystemUtil.folderExists(
-      absoluteSourcePath,
-    );
-    Guard.should(
-      inputFolderExists,
-      `The source folder (${absoluteSourcePath}) does not exists`,
-    );
-
-    //TODO: validate folder is empty or ask confirmation the content to be cleared if not empty
-    //clear out the folder if user confirms
-    const absoluteOutputPath = path.resolve(input.outputPath);
-
-    const outputPathExists = await fileSystemUtil.folderExists(
-      absoluteOutputPath,
-    );
-
-    if (outputPathExists) {
-      const outputSubItems = await fs.readdir(absoluteOutputPath);
-      const contents = outputSubItems.filter((n) => n !== ".git");
-      const hasContents = contents.length > 0;
-
-      if (hasContents) {
-        const outputNotEmptyMsg = `Output folder "${absoluteOutputPath}" is not empty.`;
-        if (!input.clean) {
-          this.error(outputNotEmptyMsg);
-        } else {
-          logger.warn(
-            `${outputNotEmptyMsg}. --clean flag is provided to remove folder contents`,
-          );
-          await this.cleanUpOutputFolder(absoluteOutputPath, contents, logger);
-          logger.info("Output folder contents deleted");
-        }
-      }
-    } else {
-      await fs.mkdir(absoluteOutputPath);
-    }
-
-    return {
-      absoluteSourcePath,
-      absoluteOutputPath,
-    };
-  }
-
-  protected async cleanUpOutputFolder(
-    outputAbsolutePath: string,
-    contents: Array<string>,
-    logger: Logger,
-  ): Promise<void> {
-    for (const item of contents) {
-      if (item === ".git") continue;
-
-      const itemPath = path.join(outputAbsolutePath, item);
-      const stat = await fs.lstat(itemPath);
-
-      if (stat.isDirectory()) {
-        logger.info(`${itemPath} - deleting folder and all its contents`);
-        await fs.rm(itemPath, { recursive: true, force: true });
-      } else {
-        logger.info(`${itemPath} - deleting file`);
-        await fs.unlink(itemPath);
-      }
-    }
-  }
-
-  protected async convert(input: ConvertInput) {
+  protected async convert(input: DbtConvertInput) {
     const logger = CommandLogger.for(this);
-    const { absoluteOutputPath, absoluteSourcePath } = await this.parseInput(
+    const { absoluteOutputPath, absoluteSourcePath } = await parseInput(
       input,
       logger,
+      this
     );
 
     logger.info(`Reading dbt from ${absoluteSourcePath}`);

@@ -141,14 +141,14 @@ export class DbtParser {
     definedModelsPaths.forEach((modelPath) => {
       Guard.should(
         modelPath.indexOf("/") < 0,
-        `Nested models paths are nt yet supported. Path: "${modelPath}"`,
+        `Nested models paths are not yet supported. Path: "${modelPath}"`,
       );
       const existingPath = subFolders.find(
         (subFolder) => subFolder === modelPath,
       );
       Guard.should(
         existingPath !== undefined,
-        `Model path ${modelPath} does nto exists"`,
+        `Model path ${modelPath} does not exists"`,
       );
     });
 
