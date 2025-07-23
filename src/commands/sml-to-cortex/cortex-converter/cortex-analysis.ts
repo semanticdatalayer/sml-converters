@@ -1,5 +1,4 @@
-import { SMLColumnDataType, SMLModel } from "sml-sdk";
-import SMLDatasetTypeGuard from "sml-sdk/dist/guards/SmlDatasetTypeGuard";
+import { SMLColumnDataType, SMLModel, SMLDatasetTypeGuard } from "sml-sdk";
 import { SmlConverterResult } from "../../../shared/sml-convert-result";
 import {
   fmtDimRef,
