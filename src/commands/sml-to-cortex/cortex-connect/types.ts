@@ -1,6 +1,6 @@
 // Authentication types
 export interface PasswordAuth {
-  authenticator: 'snowflake' | 'SNOWFLAKE';
+  authenticator: "SNOWFLAKE";
   username: string;
   password: string;
 }
@@ -11,11 +11,11 @@ export interface PasswordAuth {
 // }
 
 export interface ExternalBrowserAuth {
-  authenticator: 'externalbrowser' | 'EXTERNALBROWSER';
+  authenticator: "EXTERNALBROWSER";
 }
 
 export interface OAuthAuth {
-  authenticator: 'oauth' | 'OAUTH';
+  authenticator: "OAUTH";
   token: string;
 }
 

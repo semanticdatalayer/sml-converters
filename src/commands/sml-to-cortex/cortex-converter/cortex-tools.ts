@@ -73,6 +73,10 @@ export function replacePlaceholder(
   return roleplay.replace("{0}", replacement);
 }
 
+export function wrapWith(value: string, wrapper: string = '"'): string {
+  return `${wrapper}${value}${wrapper}`
+}
+
 /**
  * Adds one or more values to a Set stored in a Map. If the key doesn't exist,
  * creates a new Set with the provided value(s). If the key exists, adds the
@@ -121,4 +125,18 @@ export function fmtDimRef(
   throw new Error(
     `Missing 'dimension' property in TO of relationship from ${relationship.from.dataset}`,
   );
+}
+
+const snowflakeReservedWords = [
+  "ALL", "ALTER", "AND", "ANY", "AS", "BETWEEN", "BY", "CASE", "CAST", "COLUMN",
+  "CONNECT", "CREATE", "CROSS", "CURRENT", "DELETE", "DISTINCT", "DROP", "ELSE",
+  "EXISTS", "FALSE", "FROM", "FULL", "GROUP", "HAVING", "IN", "INNER", "INSERT",
+  "INTERSECT", "INTO", "IS", "JOIN", "LEFT", "LIKE", "LIMIT", "MINUS", "NATURAL",
+  "NOT", "NULL", "ON", "OR", "ORDER", "OUTER", "REPLACE", "RIGHT", "SELECT",
+  "SET", "TABLE", "THEN", "TRUE", "UNION", "UPDATE", "USING", "VALUES", "WHEN",
+  "WHERE", "WITH", "QUALIFY", "ILIKE", "RLIKE", "REGEXP", "SAMPLE", "MATCH_RECOGNIZE"
+];
+
+export function isReservedWord(word: string) {
+  return snowflakeReservedWords.includes(word.toUpperCase());
 }

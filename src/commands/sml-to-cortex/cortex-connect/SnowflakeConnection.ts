@@ -2,14 +2,18 @@ import snowflake, { Connection, ConnectionOptions } from "snowflake-sdk";
 import * as fs from "fs";
 import { Logger } from "../../../shared/logger";
 import { SnowflakeAuth } from "./types";
+import { CortexModel } from "../cortex-models/CortexModel";
+import yaml from "js-yaml";
+import { fileSystemUtil } from "../../../shared/file-system-util";
+import Guard from "../../../shared/guard";
 
-snowflake.configure({
-  logLevel: "TRACE",
-  logFilePath: "./snowflake_password.log",
-  additionalLogToConsole: true,
-});
+// snowflake.configure({
+//   logLevel: "TRACE",
+//   logFilePath: "./snowflake_password.log",
+//   additionalLogToConsole: true,
+// });
 
-interface SnowflakeConfig {
+export interface SnowflakeConfig {
   account: string;
   role?: string;
   application?: any;
@@ -62,18 +66,13 @@ export class SnowflakeConnection {
       connectionOptions.authenticator?.toLowerCase() === "externalbrowser" ||
       connectionOptions.authenticator?.includes("okta.com")
     ) {
-      try {
-        await this.connection.connectAsync((err, conn) => {
-          if (err) {
-            throw err;
-          } else {
-            this.logger.info("Successfully connected to Snowflake.");
-          }
-        });
-      } catch (error) {
-        // this.logger.error(`Error connecting to Snowflake: ${error}`);
-        throw error;
-      }
+      await this.connection.connectAsync((err, conn) => {
+        if (err) {
+          throw err;
+        } else {
+          this.logger.info("Successfully connected to Snowflake.");
+        }
+      });
     } else {
       await new Promise<void>((resolve, reject) => {
         this.connection!.connect((error) => {
@@ -103,14 +102,6 @@ export class SnowflakeConnection {
     }
   }
 
-  async isValid(): Promise<boolean> {
-    if (!this.connection) {
-      this.logger.error("Connection is not established.");
-      return false;
-    }
-    return this.connection.isValidAsync();
-  }
-
   async addFilesToStage(
     filePaths: string[],
     overwrite: boolean = false,
@@ -123,27 +114,21 @@ export class SnowflakeConnection {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async addFileToStage(
+  private async addFileToStage(
     filePath: string,
     overwrite: boolean = false,
     removeFile: boolean = true,
   ): Promise<void> {
-    // Validate the file path
-    if (
-      !filePath ||
-      !fs.existsSync(filePath) ||
-      !fs.statSync(filePath).isFile()
-    ) {
-      this.logger.error(`File does not exist or is not a file: ${filePath}`);
-      return;
-    }
     if (!this.connection) {
       this.logger.error("Connection is not established.");
       return;
     }
 
     try {
+      // Validate the file path
+      const fileExists = await fileSystemUtil.fileExists(filePath);
+      Guard.should(fileExists, `The source file (${filePath}) does not exists`);
+
       let putCommand = `PUT file://${filePath} '@"${this.config.stage}"' AUTO_COMPRESS = FALSE`;
       if (overwrite) {
         putCommand += " OVERWRITE = TRUE";
@@ -178,6 +163,84 @@ export class SnowflakeConnection {
       );
     } catch (error) {
       this.logger.error(`Error uploading file to stage: ${error}`);
+    }
+  }
+
+  createTableCommand(tableName: string, factsMap: Map<string, string>): string {
+    let factsArray = Array.from(factsMap).map(([key, value]) => {
+      return `${key} ${
+        value === "NUMBER" ? "NUMBER(38,0)" : "VARCHAR(16777216)"
+      }`; //TODO: Figure out datetime
+    });
+    const tableCreate = `CREATE OR REPLACE TABLE ${this.config.database}.${
+      this.config.schema
+    }.${tableName} (
+\t${factsArray.join(`,\n\t`)}\n);`;
+    return tableCreate;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async addTableToStage(
+    createTableCommand: string,
+    tableName: string,
+    completeTable: (err: snowflake.SnowflakeError | undefined) => Promise<void>,
+  ) {
+    try {
+      // Validate Snowflake connection
+      if (!this.connection) {
+        this.logger.error("Connection is not established.");
+        return;
+      }
+
+      this.logger.info(`Creating table ${tableName} in Snowflake`);
+      this.connection.execute({
+        sqlText: createTableCommand,
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        complete: completeTable,
+      });
+    } catch (err) {
+      this.logger.error(`Error creating table: ${err}`);
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async writeSemanticModelYaml(cortexModel: CortexModel, baseTable: string) {
+    if (!cortexModel.tables) {
+      this.logger.error(
+        `Cortex Model ${cortexModel.name} does not have tables`,
+      );
+      return;
+    }
+
+    let writeCommand = `SELECT SYSTEM$WRITE_SEMANTIC_MODEL_YAML('${
+      this.config.database
+    }.${this.config.schema}',
+$$
+${yaml.dump(cortexModel)}
+$$);`;
+
+    try {
+      if (!this.connection) {
+        this.logger.error("Connection is not established.");
+        return;
+      }
+      this.logger.info(`Executing WRITE_SEMANTIC_MODEL_YAML command`);
+      this.connection.execute({
+        sqlText: writeCommand,
+        complete: (err) => {
+          if (err) {
+            this.logger.error(
+              `Error executing WRITE_SEMANTIC_MODEL_YAML command: ${err.message}`,
+            );
+          } else {
+            this.logger.info(
+              `Successfully created semantic model ${cortexModel.name} to stage: ${this.config.stage}`,
+            );
+          }
+        },
+      });
+    } catch (err) {
+      this.logger.error(`Error writing semantic model: ${err}`);
     }
   }
 }

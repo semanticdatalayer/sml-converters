@@ -28,15 +28,6 @@ export class GitHubAuthentication {
             // Parse repository URL and extract branch if specified
             const { url: gitUrl, branch } = parseRepoUrl(repoUrl);
 
-            // Test authentication first
-            // const authValid = await testAuthentication(auth);
-            // if (!authValid) {
-            //     return {
-            //         success: false,
-            //         message: 'Authentication failed. Please check your credentials.',
-            //     };
-            // }
-
             // Prepare local directory
             await prepareLocalDirectory(localDir, cleanDir);
 

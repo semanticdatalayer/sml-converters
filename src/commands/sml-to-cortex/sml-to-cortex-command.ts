@@ -12,9 +12,15 @@ import {
   encodeFileName,
 } from "../../shared/file-system-util";
 import { GitHubAuthentication } from "../../shared/git/githubAuth";
-import { SnowflakeConnection } from "./cortex-connect/cortex-connection";
+import {
+  SnowflakeConfig,
+  SnowflakeConnection,
+} from "./cortex-connect/SnowflakeConnection";
 import { gitCredentials } from "../../shared/git/types";
 import { GitPullError } from "../../shared/git/types";
+import { CortexAnalyzer } from "./cortex-connect/CortexAnalyzer";
+import snowflake from "snowflake-sdk";
+import { transformName } from "./cortex-converter/cortex-tools";
 
 class ConfigurationError extends Error {
   constructor(message: string) {
@@ -159,25 +165,8 @@ export class SMLToCortexCommand extends Command {
       });
 
       if (isSnowflakeConfigured(flags)) {
-        // if they want to add it to snowflake
-
-        const snowflakeConn = new SnowflakeConnection(logger, {
-          account: flags.snowflakeAccount,
-          database: flags.snowflakeDatabase,
-          schema: flags.snowflakeSchema,
-          stage: flags.snowflakeStage,
-          role: flags.snowflakeRole,
-          warehouse: flags.snowflakeWarehouse,
-        });
-
-        await snowflakeConn.connect({
-          authenticator: flags.snowflakeAuthenticator,
-          token: flags.snowflakeToken,
-          username: flags.snowflakeUsername || "",
-          password: flags.snowflakePassword || "",
-        });
-
-        await snowflakeConn.addFilesToStage(cortex_files, false, flags.clean);
+        // if the user wants to add it to snowflake
+        await this.addFilesToSnowflake(flags, cortex_files, logger);
       }
     } catch (error) {
       this.handleError(error, logger);
@@ -309,6 +298,102 @@ export class SMLToCortexCommand extends Command {
     // Exit with error code
     process.exit(1);
   }
+
+  private async addFilesToSnowflake(
+    flags: any,
+    cortexFiles: Array<string>,
+    logger: Logger,
+  ) {
+    const snowflakeConfig = {
+      account: flags.snowflakeAccount,
+      database: flags.snowflakeDatabase,
+      schema: flags.snowflakeSchema,
+      stage: flags.snowflakeStage,
+      role: flags.snowflakeRole,
+      warehouse: flags.snowflakeWarehouse,
+    } as SnowflakeConfig;
+
+    const snowflakeConn = new SnowflakeConnection(logger, snowflakeConfig);
+
+    logger.info("Connecting to Snowflake");
+    await snowflakeConn.connect({
+      authenticator: flags.snowflakeAuthenticator.toUpperCase(),
+      token: flags.snowflakeToken,
+      username: flags.snowflakeUsername || "",
+      password: flags.snowflakePassword || "",
+    });
+
+    const cortexAnalyzer = new CortexAnalyzer(logger, snowflakeConfig);
+    await Promise.all(
+      cortexFiles.map(async (cortexPath) => {
+        try {
+          // get the cortex Model from a file
+          let cortexModel = await cortexAnalyzer.getCortexModelFromFile(
+            cortexPath,
+          );
+          cortexModel.name = transformName(cortexModel.name);
+
+          // get all of its facts (dimensions, measures)
+          const factsMap = cortexAnalyzer.getFactsFromModel(cortexModel);
+
+          // choose a base table name
+          const baseTableName = `"ATSCALE_${cortexModel.name}"`;
+
+          // update existing cortex model with new base table name, database, and schema
+          cortexAnalyzer.updateCortexModel(cortexModel, baseTableName);
+
+          // create the table command
+          const createTableCommand = snowflakeConn.createTableCommand(
+            baseTableName,
+            factsMap,
+          );
+
+          // add table to stage
+          await snowflakeConn.addTableToStage(
+            createTableCommand,
+            baseTableName,
+            // wait until table is created to add semantic view to Snowflake
+            async (err: snowflake.SnowflakeError | undefined) => {
+              if (err) {
+                logger.error(
+                  `Error executing CREATE TABLE command: ${err.message}`,
+                );
+              } else {
+                logger.info(
+                  `Successfully created table ${baseTableName} to stage: ${snowflakeConfig.stage}`,
+                );
+                await snowflakeConn.writeSemanticModelYaml(
+                  cortexModel,
+                  baseTableName,
+                );
+              }
+            },
+          );
+        } catch (err) {
+          logger.error(`Error adding files to Snowflake: ${err}`);
+        }
+      }),
+    );
+    // cortexFiles.forEach(async (cortexPath) => {
+    //   // get the cortex Model from a file
+    //   let cortexModel = await cortexAnalyzer.getCortexModelFromFile(cortexPath);
+
+    //   // get all of its facts (dimensions, measures)
+    //   const factsMap = cortexAnalyzer.getFactsFromModel(cortexModel);
+
+    //   // choose a base table name
+    //   const baseTableName = `ATSCALE_${cortexModel.name}`
+
+    //   // update existing cortex model with new base table name, database, and schema
+    //   cortexAnalyzer.updateCortexModel(cortexModel, baseTableName);
+
+    //   // create the table command
+    //   const createTableCommand = snowflakeConn.createTableCommand(baseTableName, factsMap)
+
+    //   // add table to stage
+    //   await snowflakeConn.addTableToStage(createTableCommand, baseTableName)
+    // })
+  }
 }
 
 /**
@@ -325,20 +410,21 @@ async function saveCortexYamlFiles(
   logger: Logger,
 ): Promise<string[]> {
   let cortex_files: string[] = [];
-  try {
-    await Promise.all(
-      cortexModels.models.map(async (obj) => {
-        const yamlStr = yaml.dump(obj);
+  await Promise.all(
+    cortexModels.models.map(async (obj) => {
+      try {
+        const yamlStr = yaml.dump(obj).replaceAll("'''", "'");
+        // const yamlStr = yaml.dump(obj);
         const fileName = `${encodeFileName(obj.name)}.yml`;
         const filePath = path.join(outputDir, fileName);
         await fs.writeFile(filePath, yamlStr, "utf8");
         logger.info(`Wrote Cortex yaml file to: ${filePath}`);
         cortex_files.push(filePath);
-      }),
-    );
-  } catch (err) {
-    logger.error(`Error saving Cortex yaml file(s): ${err}`);
-  }
+      } catch (err) {
+        logger.error(`Error saving Cortex yaml file: ${err}`);
+      }
+    }),
+  );
   return cortex_files;
 }
 
@@ -374,26 +460,20 @@ function validateConfiguration(flags: any, logger: Logger): void {
         `Missing required Snowflake configuration: ${missing.join(", ")}`,
       );
     }
-
     // Validate Snowflake authentication
-    if (flags.snowflakeAuthenticator === "snowflake") {
+    if (flags.snowflakeAuthenticator.toUpperCase() === "SNOWFLAKE") {
       if (!flags.snowflakeUsername || !flags.snowflakePassword) {
         throw new ConfigurationError(
           "Snowflake username and password required when using 'snowflake' authenticator",
         );
       }
-    } else if (flags.snowflakeAuthenticator === "oauth") {
+    } else if (flags.snowflakeAuthenticator.toUpperCase() === "OAUTH") {
       if (!flags.snowflakeToken) {
         throw new ConfigurationError(
           "Snowflake token required when using 'oauth' authenticator",
         );
       }
     }
-  }
-
-  // Validate source directory exists if not using GitHub
-  if (!flags.gitURL && flags.source) {
-    logger.debug(`Using local source directory: ${flags.source}`);
   }
 }
 
