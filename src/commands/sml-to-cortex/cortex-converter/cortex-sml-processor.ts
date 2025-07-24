@@ -1,11 +1,20 @@
-import { 
-    SMLCompositeModel, 
-    SMLDimension, 
-    SMLDimensionLevel, 
-    SMLModel, 
-    SMLObjectTypeGuard } from "sml-sdk";
-import { SmlConverterResult, SmlConvertResultBuilder } from "../../../shared/sml-convert-result";
-import { dimNameOnly, replacePlaceholder, fmtDimRef, isRegularRelationship } from "./cortex-tools";
+import {
+  SMLCompositeModel,
+  SMLDimension,
+  SMLDimensionLevel,
+  SMLModel,
+  SMLObjectTypeGuard,
+} from "sml-sdk";
+import {
+  SmlConverterResult,
+  SmlConvertResultBuilder,
+} from "../../../shared/sml-convert-result";
+import {
+  dimNameOnly,
+  replacePlaceholder,
+  fmtDimRef,
+  isRegularRelationship,
+} from "./cortex-tools";
 import Guard from "../../../shared/guard";
 import { Logger } from "../../../shared/logger";
 
@@ -17,18 +26,31 @@ import { Logger } from "../../../shared/logger";
 export function filterSMLForModel(
   smlObjects: SmlConverterResult,
   models: Array<SMLModel>,
-  rolePlays: Set<string>): SmlConverterResult {
+  rolePlays: Set<string>,
+): SmlConverterResult {
   let result = new SmlConvertResultBuilder();
   models.forEach((smlModel) => {
     smlObjects.measures.forEach((smlObject) => {
-      if (smlModel.metrics.find((metric) => metric.unique_name === smlObject.unique_name) &&
-        !result.measures.find((resultMeas) => resultMeas.unique_name === smlObject.unique_name)) {
+      if (
+        smlModel.metrics.find(
+          (metric) => metric.unique_name === smlObject.unique_name,
+        ) &&
+        !result.measures.find(
+          (resultMeas) => resultMeas.unique_name === smlObject.unique_name,
+        )
+      ) {
         result.addMeasures(smlObject);
       }
     });
     smlObjects.measuresCalculated.forEach((smlObject) => {
-      if (smlModel.metrics.find((metric) => metric.unique_name === smlObject.unique_name) &&
-        !result.measuresCalculated.find((resultCalc) => resultCalc.unique_name === smlObject.unique_name)) {
+      if (
+        smlModel.metrics.find(
+          (metric) => metric.unique_name === smlObject.unique_name,
+        ) &&
+        !result.measuresCalculated.find(
+          (resultCalc) => resultCalc.unique_name === smlObject.unique_name,
+        )
+      ) {
         result.addMeasuresCalc(smlObject);
       }
     });
@@ -41,9 +63,11 @@ export function filterSMLForModel(
           rolePlays.add(dimRef);
           addDimRels(
             smlObjects,
-            smlObjects.dimensions.find((dim) => dim.unique_name === dimNameOnly(dimRef)),
+            smlObjects.dimensions.find(
+              (dim) => dim.unique_name === dimNameOnly(dimRef),
+            ),
             rolePlays,
-            roleplay
+            roleplay,
           );
         }
       });
@@ -59,7 +83,11 @@ export function filterSMLForModel(
   smlObjects.dimensions.forEach((dim) => {
     if (degenSet.has(dim.unique_name)) {
       result.addDimension(dim);
-    } else if (Array.from(rolePlays).find((roleplay) => dimNameOnly(roleplay) === dim.unique_name)) {
+    } else if (
+      Array.from(rolePlays).find(
+        (roleplay) => dimNameOnly(roleplay) === dim.unique_name,
+      )
+    ) {
       result.addDimension(dim);
       rolePlays.forEach((ref) => {
         if (ref.startsWith(dim.unique_name)) {
@@ -72,12 +100,17 @@ export function filterSMLForModel(
   return result;
 }
 
-export function listUsedModels(smlModel: SMLModel | SMLCompositeModel, smlObjects: SmlConverterResult): Array<SMLModel> {
+export function listUsedModels(
+  smlModel: SMLModel | SMLCompositeModel,
+  smlObjects: SmlConverterResult,
+): Array<SMLModel> {
   const models = new Array<SMLModel>(); // To support composite models
   if (SMLObjectTypeGuard.isCompositeModel(smlModel)) {
     smlModel.models.forEach((model) => {
-      const foundModel = Guard.ensure(smlObjects.models.find((findModel) => findModel.unique_name === model),
-        `Cannot find referenced model ${model} form complex model ${smlModel.unique_name}. Consider running validation`);
+      const foundModel = Guard.ensure(
+        smlObjects.models.find((findModel) => findModel.unique_name === model),
+        `Cannot find referenced model ${model} form complex model ${smlModel.unique_name}. Consider running validation`,
+      );
       models.push(foundModel);
     });
   } else {
@@ -88,10 +121,18 @@ export function listUsedModels(smlModel: SMLModel | SMLCompositeModel, smlObject
 
 export type modelType = SMLModel | SMLCompositeModel | undefined;
 
-export function getSMLModel(smlObjects: SmlConverterResult, modelToConvert: string, logger: Logger): modelType {
-  let smlModel: modelType = smlObjects.models.find((model) => model.unique_name === modelToConvert);
+export function getSMLModel(
+  smlObjects: SmlConverterResult,
+  modelToConvert: string,
+  logger: Logger,
+): modelType {
+  let smlModel: modelType = smlObjects.models.find(
+    (model) => model.unique_name === modelToConvert,
+  );
   if (!smlModel) {
-    smlModel = smlObjects.compositeModels.find((compositeModel) => compositeModel.unique_name == modelToConvert);
+    smlModel = smlObjects.compositeModels.find(
+      (compositeModel) => compositeModel.unique_name == modelToConvert,
+    );
     if (!smlModel) {
       // if no model found with modelToConvert name
       smlModel = getDefaultModel(smlObjects, modelToConvert, logger);
@@ -103,18 +144,18 @@ export function getSMLModel(smlObjects: SmlConverterResult, modelToConvert: stri
 function getDefaultModel(
   smlObjects: SmlConverterResult,
   modelToConvert: string,
-  logger: Logger
+  logger: Logger,
 ): modelType {
   let smlModel: SMLModel;
   if (smlObjects.models.length == 1) {
     smlModel = smlObjects.models[0];
     logger.warn(
-      `Model with name '${modelToConvert}' not found in catalog, however only 1 model exists, '${smlModel.unique_name}', so it will be converted`
+      `Model with name '${modelToConvert}' not found in catalog, however only 1 model exists, '${smlModel.unique_name}', so it will be converted`,
     );
   } else if (smlObjects.models.length > 1) {
     smlModel = smlObjects.models[0];
     logger.info(
-      `Model with name '${modelToConvert}' not found in catalog, so converting first model, '${smlModel.unique_name}'`
+      `Model with name '${modelToConvert}' not found in catalog, so converting first model, '${smlModel.unique_name}'`,
     );
   } else {
     // smlObjects.models has length of 0
@@ -127,7 +168,7 @@ export function addDimRels(
   smlObjects: SmlConverterResult,
   dim: SMLDimension | undefined,
   dimList: Set<string>,
-  roleplay: string
+  roleplay: string,
 ) {
   if (dim) {
     (dim.relationships ?? []).forEach((relationship) => {
@@ -136,9 +177,11 @@ export function addDimRels(
         dimList.add(dimRef);
         addDimRels(
           smlObjects,
-          smlObjects.dimensions.find((dim) => dim.unique_name == dimNameOnly(dimRef)),
+          smlObjects.dimensions.find(
+            (dim) => dim.unique_name == dimNameOnly(dimRef),
+          ),
           dimList,
-          roleplay
+          roleplay,
         );
       }
     });
@@ -146,10 +189,15 @@ export function addDimRels(
 }
 
 // Adds all the referenced dimensions (separately for role-played) to the new result
-export function addReferencedDims(smlObjects: SmlConverterResult, rolePlays: Set<string>) {
+export function addReferencedDims(
+  smlObjects: SmlConverterResult,
+  rolePlays: Set<string>,
+) {
   const roleplayArr = Array.from(rolePlays);
   smlObjects.dimensions.forEach((dim) => {
-    if (roleplayArr.find((roleplay) => dimNameOnly(roleplay) === dim.unique_name)) {
+    if (
+      roleplayArr.find((roleplay) => dimNameOnly(roleplay) === dim.unique_name)
+    ) {
       rolePlays.forEach((ref) => {
         if (ref.startsWith(dim.unique_name)) {
           // If role-played track instances
@@ -160,35 +208,66 @@ export function addReferencedDims(smlObjects: SmlConverterResult, rolePlays: Set
   });
 }
 
-export function listAttributesInDim(smlObjects: SmlConverterResult, rolePlay: string): string[] {
+export function listAttributesInDim(
+  smlObjects: SmlConverterResult,
+  rolePlay: string,
+): string[] {
   const attributes: string[] = [];
   const rpAry = rolePlay.split("|");
   let roleplay = "";
   if (rpAry.length == 2) roleplay = rpAry[1];
   if (rpAry.length == 0 || rpAry.length > 2) {
-    throw new Error(`Invalid format found for dimension reference with rolePlay: '${rolePlay}'`);
+    throw new Error(
+      `Invalid format found for dimension reference with rolePlay: '${rolePlay}'`,
+    );
   }
-  const dim = smlObjects.dimensions.find((findDim) => rolePlay.toLowerCase().startsWith(findDim.unique_name.toLowerCase())
+  const dim = smlObjects.dimensions.find((findDim) =>
+    rolePlay.toLowerCase().startsWith(findDim.unique_name.toLowerCase()),
   );
   if (dim) {
-    dim.level_attributes.forEach((levelAttr) => attributes.push(roleplay ? replacePlaceholder(roleplay, levelAttr.unique_name) : levelAttr.unique_name)
+    dim.level_attributes.forEach((levelAttr) =>
+      attributes.push(
+        roleplay
+          ? replacePlaceholder(roleplay, levelAttr.unique_name)
+          : levelAttr.unique_name,
+      ),
     );
     getAllLevels(dim).forEach((level) => {
-      level.secondary_attributes?.forEach((secondary) => attributes.push(roleplay ? replacePlaceholder(roleplay, secondary.unique_name) : secondary.unique_name)
+      level.secondary_attributes?.forEach((secondary) =>
+        attributes.push(
+          roleplay
+            ? replacePlaceholder(roleplay, secondary.unique_name)
+            : secondary.unique_name,
+        ),
       );
-      level.aliases?.forEach((alias) => attributes.push(roleplay ? replacePlaceholder(roleplay, alias.unique_name) : alias.unique_name)
+      level.aliases?.forEach((alias) =>
+        attributes.push(
+          roleplay
+            ? replacePlaceholder(roleplay, alias.unique_name)
+            : alias.unique_name,
+        ),
       );
-      level.metrics?.forEach((metric) => attributes.push(roleplay ? replacePlaceholder(roleplay, metric.unique_name) : metric.unique_name)
+      level.metrics?.forEach((metric) =>
+        attributes.push(
+          roleplay
+            ? replacePlaceholder(roleplay, metric.unique_name)
+            : metric.unique_name,
+        ),
       );
     });
   }
   return attributes;
 }
 
-export function dimFromName(smlObjects: SmlConverterResult, dimRef: string): SMLDimension | undefined {
-  return smlObjects.dimensions.find((dim) => dim.unique_name === dimNameOnly(dimRef));
+export function dimFromName(
+  smlObjects: SmlConverterResult,
+  dimRef: string,
+): SMLDimension | undefined {
+  return smlObjects.dimensions.find(
+    (dim) => dim.unique_name === dimNameOnly(dimRef),
+  );
 }
 
 export function getAllLevels(dim: SMLDimension): SMLDimensionLevel[] {
-  return dim.hierarchies.flatMap(hier => hier.levels);
+  return dim.hierarchies.flatMap((hier) => hier.levels);
 }
