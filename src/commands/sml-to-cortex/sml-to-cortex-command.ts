@@ -272,8 +272,6 @@ export class SMLToCortexCommand extends Command {
         }
       }),
     );
-    if (!flags.keepfiles)
-      await removeDirectory(path.dirname(cortexFiles[0]), {}, logger);
   }
 
   /**
