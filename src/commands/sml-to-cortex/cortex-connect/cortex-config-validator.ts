@@ -83,7 +83,7 @@ export function validateConfiguration(flags: any, logger: Logger): void {
           logger.warn(
             `'privateKeyPath' flag is a directory. Using: ${path.join(flags.privateKeyPath, "rsa_key.p8")}`,
           );
-          flags.privateKeyPath = `${flags.privateKeyPath}/rsa_key.p8`;
+          flags.privateKeyPath = path.join(flags.privateKeyPath, "rsa_key.p8");
         }
       },
       [SnowflakeAuthenticators.mfa]: (flags: any) => {
