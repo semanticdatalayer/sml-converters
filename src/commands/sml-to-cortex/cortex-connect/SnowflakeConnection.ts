@@ -1,17 +1,11 @@
 import snowflake, { Connection, ConnectionOptions } from "snowflake-sdk";
 import * as fs from "fs";
 import { Logger } from "../../../shared/logger";
-import { SnowflakeAuth } from "./types";
+import { SnowflakeAuth } from "./SnowflakeAuth";
 import { CortexModel } from "../cortex-models/CortexModel";
 import yaml from "js-yaml";
 import { fileSystemUtil } from "../../../shared/file-system-util";
 import Guard from "../../../shared/guard";
-
-// snowflake.configure({
-//   logLevel: "TRACE",
-//   logFilePath: "./snowflake_password.log",
-//   additionalLogToConsole: true,
-// });
 
 export interface SnowflakeConfig {
   account: string;
@@ -20,7 +14,7 @@ export interface SnowflakeConfig {
   warehouse?: string;
   database: string;
   schema: string;
-  stage: string;
+  stage?: string;
 }
 
 export class SnowflakeConnection {
@@ -37,7 +31,7 @@ export class SnowflakeConnection {
       warehouse: config?.warehouse,
       database: config?.database || "",
       schema: config?.schema || "",
-      stage: config?.stage || "",
+      stage: config?.stage,
     };
     this.logger = logger;
 
@@ -58,7 +52,7 @@ export class SnowflakeConnection {
       ...this.config,
       ...auth,
       application: "AtScale_SML_Converter",
-      browserActionTimeout: 6000, // TODO: how long to wait for okta or external browser, dev only
+      browserActionTimeout: 60000, // How long to wait for okta or external browser auth, 1 minute
     };
     this.connection = snowflake.createConnection(connectionOptions);
 
@@ -77,7 +71,6 @@ export class SnowflakeConnection {
       await new Promise<void>((resolve, reject) => {
         this.connection!.connect((error) => {
           if (error) {
-            // this.logger.error(`Unable to connect: ${error.message}`);
             reject(error);
           } else {
             this.logger.info("Successfully connected to Snowflake.");
@@ -89,35 +82,10 @@ export class SnowflakeConnection {
     return this;
   }
 
-  disconnect() {
-    if (this.connection) {
-      this.connection.destroy((err, conn) => {
-        if (err) {
-          this.logger.error(`Unable to disconnect: ${err.message}`);
-        } else {
-          this.logger.info("Successfully disconnected from Snowflake.");
-        }
-      });
-      this.connection = null;
-    }
-  }
-
-  async addFilesToStage(
-    filePaths: string[],
-    overwrite: boolean = false,
-    removeFiles: boolean = true,
-  ): Promise<void> {
-    await Promise.all(
-      filePaths.map((filePath) =>
-        this.addFileToStage(filePath, overwrite, removeFiles),
-      ),
-    );
-  }
-
-  private async addFileToStage(
+  async addFileToStage(
     filePath: string,
     overwrite: boolean = false,
-    removeFile: boolean = true,
+    removeFile: boolean = false,
   ): Promise<void> {
     if (!this.connection) {
       this.logger.error("Connection is not established.");
@@ -129,6 +97,7 @@ export class SnowflakeConnection {
       const fileExists = await fileSystemUtil.fileExists(filePath);
       Guard.should(fileExists, `The source file (${filePath}) does not exists`);
 
+      Guard.ensure(this.config.stage, `No 'snowflakeStage' flag given`);
       let putCommand = `PUT file://${filePath} '@"${this.config.stage}"' AUTO_COMPRESS = FALSE`;
       if (overwrite) {
         putCommand += " OVERWRITE = TRUE";
@@ -142,7 +111,7 @@ export class SnowflakeConnection {
             this.logger.error(`Error executing PUT command: ${err.message}`);
           } else {
             this.logger.info(
-              `Successfully uploaded file to stage: ${this.config.stage}`,
+              `Successfully uploaded YAML file to stage: ${this.config.stage}`,
             );
           }
           if (removeFile) {
@@ -168,19 +137,29 @@ export class SnowflakeConnection {
 
   createTableCommand(tableName: string, factsMap: Map<string, string>): string {
     let factsArray = Array.from(factsMap).map(([key, value]) => {
-      return `${key} ${
-        value === "NUMBER" ? "NUMBER(38,0)" : "VARCHAR(16777216)"
-      }`; //TODO: Figure out datetime
+      let newValue: string;
+      switch (value) {
+        case "NUMBER":
+          newValue = "NUMBER(30,0)";
+          break;
+        case "TIMESTAMP":
+          newValue = "TIMESTAMP_NTZ(9)";
+          break;
+        case "TEXT":
+        default:
+          newValue = "VARCHAR(16777216)";
+          break;
+      }
+      return `${key} ${newValue}`;
     });
     const tableCreate = `CREATE OR REPLACE TABLE ${this.config.database}.${
       this.config.schema
-    }.${tableName} (
-\t${factsArray.join(`,\n\t`)}\n);`;
+    }.${tableName} (\n\t${factsArray.join(`,\n\t`)}\n);`;
     return tableCreate;
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async addTableToStage(
+  async addTableToSchema(
     createTableCommand: string,
     tableName: string,
     completeTable: (err: snowflake.SnowflakeError | undefined) => Promise<void>,
@@ -214,11 +193,7 @@ export class SnowflakeConnection {
 
     let writeCommand = `SELECT SYSTEM$WRITE_SEMANTIC_MODEL_YAML('${
       this.config.database
-    }.${this.config.schema}',
-$$
-${yaml.dump(cortexModel)}
-$$);`;
-
+    }.${this.config.schema}',\n$$\n${yaml.dump(cortexModel)}\n$$);`;
     try {
       if (!this.connection) {
         this.logger.error("Connection is not established.");
@@ -234,7 +209,7 @@ $$);`;
             );
           } else {
             this.logger.info(
-              `Successfully created semantic model ${cortexModel.name} to stage: ${this.config.stage}`,
+              `Successfully created semantic model ${cortexModel.name} to schema: ${this.config.schema}`,
             );
           }
         },

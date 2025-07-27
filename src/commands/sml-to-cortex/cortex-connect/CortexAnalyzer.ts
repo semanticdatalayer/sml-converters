@@ -5,7 +5,10 @@ import { CortexModel } from "../cortex-models/CortexModel";
 import * as fs from "fs";
 import yaml from "js-yaml";
 import { SnowflakeConfig } from "./SnowflakeConnection";
-import { transformName, isReservedWord } from "../cortex-converter/cortex-tools";
+import {
+  transformName,
+  isReservedWord,
+} from "../cortex-converter/cortex-tools";
 
 export class CortexAnalyzer {
   private logger: Logger;
@@ -22,11 +25,6 @@ export class CortexAnalyzer {
 
     const fileContents = fs.readFileSync(cortexPath, "utf8");
     return yaml.load(fileContents) as CortexModel;
-  }
-
-  async getFacts(cortexPath: string): Promise<Map<string, string>> {
-    const cortexModel = await this.getCortexModelFromFile(cortexPath);
-    return this.getFactsFromModel(cortexModel);
   }
 
   getFactsFromModel(cortexModel: CortexModel): Map<string, string> {
@@ -53,42 +51,37 @@ export class CortexAnalyzer {
     return modelFacts;
   }
 
-  updateCortexModel(
-    cortexModel: CortexModel,
-    baseTableName: string,
-  ) {
-    // cortexModel.name = wrapWith(cortexModel.name)
+  updateCortexModel(cortexModel: CortexModel) {
     cortexModel.name = transformName(cortexModel.name);
+    const baseTableName = `"ATSCALE_${cortexModel.name}"`;
     cortexModel.tables?.forEach((cortexTable) => {
-      // cortexTable.name = wrapWith(cortexTable.name)
-      cortexTable.name = transformName(cortexTable.name)
+      cortexTable.name = transformName(cortexTable.name);
       cortexTable.baseTable.database = this.snowflakeConfig.database;
       cortexTable.baseTable.schema = this.snowflakeConfig.schema;
       cortexTable.baseTable.table = baseTableName;
       cortexTable.measures.forEach((cortexMeasure) => {
-        this.sanitizeReservedName(cortexMeasure)
+        this.sanitizeReservedName(cortexMeasure);
       });
       if (cortexTable.dimensions) {
         cortexTable.dimensions.forEach((cortexDimension) => {
-          this.sanitizeReservedName(cortexDimension)
+          this.sanitizeReservedName(cortexDimension);
         });
       }
       if (cortexTable.time_dimensions) {
         cortexTable.time_dimensions.forEach((cortexDimension) => {
-          this.sanitizeReservedName(cortexDimension)
+          this.sanitizeReservedName(cortexDimension);
         });
       }
     });
+    return baseTableName;
   }
 
-    sanitizeReservedName<T extends NamedSemanticEntity>(
-    fact: T,
-  ): void {
-    if (!fact || typeof fact.name !== 'string') return;
+  sanitizeReservedName<T extends CortexFact>(fact: T): void {
+    if (!fact || typeof fact.name !== "string") return;
 
     if (isReservedWord(fact.name)) {
       this.logger.warn(
-        `"${fact.name}" is a Snowflake/SQL reserved word. Renaming to "_${fact.name}"`
+        `"${fact.name}" is a Snowflake/SQL reserved word. Renaming to "_${fact.name}"`,
       );
 
       (fact.synonyms ??= []).push(fact.name);
@@ -102,7 +95,7 @@ export class CortexAnalyzer {
   }
 }
 
-interface NamedSemanticEntity {
+interface CortexFact {
   name: string;
   synonyms?: string[];
 }

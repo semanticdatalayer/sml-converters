@@ -73,10 +73,6 @@ export function replacePlaceholder(
   return roleplay.replace("{0}", replacement);
 }
 
-export function wrapWith(value: string, wrapper: string = '"'): string {
-  return `${wrapper}${value}${wrapper}`
-}
-
 /**
  * Adds one or more values to a Set stored in a Map. If the key doesn't exist,
  * creates a new Set with the provided value(s). If the key exists, adds the
@@ -98,6 +94,7 @@ export function addToMapWithSet(
   else temp.add(value);
   map.set(key, temp);
 }
+
 export function isRegularRelationship(
   relationship: SMLModelRelationship,
 ): relationship is SMLModelRegularRelationship {

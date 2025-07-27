@@ -1,32 +1,36 @@
 // Authentication types
 export interface UsernamePasswordAuth {
-  type: 'username-password';
+  type: "username-password";
   username: string;
   password: string;
 }
 
 export interface TokenAuth {
-  type: 'token';
+  type: "token";
   token: string;
 }
 
 export interface FineGrainedTokenAuth {
-  type: 'fine-grained-token';
+  type: "fine-grained-token";
   token: string;
 }
 
 export interface OAuthAuth {
-  type: 'oauth';
+  type: "oauth";
   token: string;
 }
 
-export type GitHubAuth = UsernamePasswordAuth | TokenAuth | FineGrainedTokenAuth | OAuthAuth;
+export type GitHubAuth =
+  | UsernamePasswordAuth
+  | TokenAuth
+  | FineGrainedTokenAuth
+  | OAuthAuth;
 
 export interface gitCredentials {
-  gitURL: URL | undefined,
-  gitUsername: string | undefined,
-  gitPassword: string | undefined,
-  gitToken: string | undefined
+  gitURL: URL | undefined;
+  gitUsername: string | undefined;
+  gitPassword: string | undefined;
+  gitToken: string | undefined;
 }
 
 // Configuration for repository pulling
@@ -46,13 +50,7 @@ export interface PullResult {
 export class GitPullError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'GitPullError';
+    this.name = "GitPullError";
     Object.setPrototypeOf(this, GitPullError.prototype);
   }
-}
-// OAuth configuration
-export interface OAuthConfig {
-  clientId: string;
-  clientSecret: string;
-  scopes?: string[];
 }
