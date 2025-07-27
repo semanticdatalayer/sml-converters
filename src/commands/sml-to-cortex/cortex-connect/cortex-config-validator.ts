@@ -1,6 +1,7 @@
 import { Logger } from "../../../shared/logger";
 import { SnowflakeAuthenticators } from "./SnowflakeAuth";
 import fs from "fs";
+import path from "path"
 
 export class ConfigurationError extends Error {
   constructor(message: string) {
@@ -80,7 +81,7 @@ export function validateConfiguration(flags: any, logger: Logger): void {
         if (fs.statSync(flags.privateKeyPath).isDirectory()) {
           // Path is directory, switch to rsa key file
           logger.warn(
-            `'privateKeyPath' flag is a directory. Using: ${flags.privateKeyPath}/rsa_key.p8`,
+            `'privateKeyPath' flag is a directory. Using: ${path.join(flags.privateKeyPath, "rsa_key.p8")}`,
           );
           flags.privateKeyPath = `${flags.privateKeyPath}/rsa_key.p8`;
         }
