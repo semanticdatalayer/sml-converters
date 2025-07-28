@@ -24,7 +24,6 @@ import { gitCredentials, GitPullError } from "../../shared/git/types";
 import { CortexAnalyzer } from "./cortex-connect/CortexAnalyzer";
 import snowflake from "snowflake-sdk";
 import { cortexFlags } from "./sml-to-cortex-flags";
-import { removeDirectory } from "../../shared/git/utils";
 
 export class SMLToCortexCommand extends Command {
   static description = "Convert from SML to Snowflake Cortex Analyst yaml";
@@ -239,12 +238,11 @@ export class SMLToCortexCommand extends Command {
           );
 
           // add yaml files to stage
-          if (flags.snowflakeSchema)
-            await snowflakeConn.addFileToStage(
-              cortexPath,
-              false,
-              !flags.keepfiles,
-            );
+          await snowflakeConn.addFileToStage(
+            cortexPath,
+            true,
+            !flags.keepfiles,
+          );
 
           // add table to schema
           await snowflakeConn.addTableToSchema(

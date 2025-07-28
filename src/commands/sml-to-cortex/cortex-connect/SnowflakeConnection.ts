@@ -1,7 +1,7 @@
 import snowflake, { Connection, ConnectionOptions } from "snowflake-sdk";
 import * as fs from "fs";
 import { Logger } from "../../../shared/logger";
-import { SnowflakeAuth } from "./SnowflakeAuth";
+import { SnowflakeAuth, SnowflakeAuthenticators } from "./SnowflakeAuth";
 import { CortexModel } from "../cortex-models/CortexModel";
 import yaml from "js-yaml";
 import { fileSystemUtil } from "../../../shared/file-system-util";
@@ -57,7 +57,8 @@ export class SnowflakeConnection {
     this.connection = snowflake.createConnection(connectionOptions);
 
     if (
-      connectionOptions.authenticator?.toLowerCase() === "externalbrowser" ||
+      connectionOptions.authenticator ===
+        SnowflakeAuthenticators.externalBrowser ||
       connectionOptions.authenticator?.includes("okta.com")
     ) {
       await this.connection.connectAsync((err, conn) => {

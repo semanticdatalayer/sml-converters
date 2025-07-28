@@ -84,8 +84,7 @@ export class CortexAnalyzer {
         `"${fact.name}" is a Snowflake/SQL reserved word. Renaming to "_${fact.name}"`,
       );
 
-      (fact.synonyms ??= []).push(fact.name);
-
+      fact.synonyms ??= [];
       if (!fact.synonyms.includes(fact.name)) {
         fact.synonyms.push(fact.name);
       }
