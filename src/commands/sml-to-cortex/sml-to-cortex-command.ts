@@ -1,16 +1,11 @@
 import { Flags, Command } from "@oclif/core";
-import fs from "fs/promises";
-import yaml from "js-yaml";
-import path from "path";
 import { CommandLogger } from "../../shared/command-logger";
-import { Logger } from "../../shared/logger";
 import { CortexConverter } from "./cortex-converter/cortex-converter";
-import { CortexConverterResult } from "./cortex-models/CortexConverterResult";
 import {
   convertInput,
   parseInput,
-  encodeFileName,
 } from "../../shared/file-system-util";
+import { saveCortexYamlFiles } from "../../shared/cortex-converter-util";
 
 export class SMLToCortexCommand extends Command {
   static description = "Convert from SML to Snowflake Cortex Analyst yaml";
@@ -58,7 +53,7 @@ export class SMLToCortexCommand extends Command {
    * @param input - The input parameters required for the conversion, including source and output paths.
    * @returns An array of file paths for the generated Cortex YAML files.
    */
-  private async convertToCortex(input: convertInput): Promise<void> {
+  private async convertToCortex(input: convertInput) {
     const logger = CommandLogger.for(this);
 
     const { absoluteOutputPath, absoluteSourcePath } = await parseInput(
@@ -88,36 +83,4 @@ export class SMLToCortexCommand extends Command {
       logger.error(`Error writing Cortex yaml file(s): ${err}`);
     }
   }
-}
-
-/**
- * Saves an array of Cortex model objects as YAML files to the specified output directory.
- *
- * @param cortexModels - The result object containing an array of Cortex models to be saved as YAML files.
- * @param outputDir - The directory where the YAML files will be saved.
- * @param logger - Logger instance used for logging information and errors.
- * @returns An array of file paths for the saved YAML files.
- */
-async function saveCortexYamlFiles(
-  cortexModels: CortexConverterResult,
-  outputDir: string,
-  logger: Logger,
-): Promise<string[]> {
-  let cortex_files: string[] = [];
-  await Promise.all(
-    cortexModels.models.map(async (obj) => {
-      try {
-        const yamlStr = yaml.dump(obj).replaceAll("'''", "'");
-        // const yamlStr = yaml.dump(obj);
-        const fileName = `${encodeFileName(obj.name)}.yml`;
-        const filePath = path.join(outputDir, fileName);
-        await fs.writeFile(filePath, yamlStr, "utf8");
-        logger.info(`Wrote Cortex yaml file to: ${filePath}`);
-        cortex_files.push(filePath);
-      } catch (err) {
-        logger.error(`Error saving Cortex yaml file: ${err}`);
-      }
-    }),
-  );
-  return cortex_files;
 }

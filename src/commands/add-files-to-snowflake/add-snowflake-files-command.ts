@@ -1,16 +1,12 @@
 import { Command, Flags } from "@oclif/core";
 import dotenv from "dotenv";
-import fs from "fs/promises";
-import yaml from "js-yaml";
 import path from "path";
 import snowflake from "snowflake-sdk";
 import { CommandLogger } from "../../shared/command-logger";
 import {
-  encodeFileName,
   getFilesAndFolders,
 } from "../../shared/file-system-util";
 import { Logger } from "../../shared/logger";
-import { CortexConverterResult } from "../sml-to-cortex/cortex-models/CortexConverterResult";
 import { CortexAnalyzer } from "./CortexAnalyzer";
 import {
   SnowflakeConfig,
@@ -18,6 +14,7 @@ import {
 } from "./cortex-connect/SnowflakeConnection";
 import { validateConfiguration } from "./cortex-connect/cortex-config-validator";
 import { SnowflakeAuth } from "./cortex-connect/SnowflakeAuth";
+import { saveCortexYamlFiles } from "../../shared/cortex-converter-util";
 
 dotenv.config();
 
@@ -185,36 +182,4 @@ export class AddFilesToSnowflakeCommand extends Command {
       }),
     );
   }
-}
-
-/**
- * Saves an array of Cortex model objects as YAML files to the specified output directory.
- *
- * @param cortexModels - The result object containing an array of Cortex models to be saved as YAML files.
- * @param outputDir - The directory where the YAML files will be saved.
- * @param logger - Logger instance used for logging information and errors.
- * @returns An array of file paths for the saved YAML files.
- */
-async function saveCortexYamlFiles(
-  cortexModels: CortexConverterResult,
-  outputDir: string,
-  logger: Logger,
-): Promise<string[]> {
-  let cortex_files: string[] = [];
-  await Promise.all(
-    cortexModels.models.map(async (obj) => {
-      try {
-        const yamlStr = yaml.dump(obj).replaceAll("'''", "'");
-        // const yamlStr = yaml.dump(obj);
-        const fileName = `${encodeFileName(obj.name)}.yml`;
-        const filePath = path.join(outputDir, fileName);
-        await fs.writeFile(filePath, yamlStr, "utf8");
-        logger.info(`Wrote Cortex yaml file to: ${filePath}`);
-        cortex_files.push(filePath);
-      } catch (err) {
-        logger.error(`Error saving Cortex yaml file: ${err}`);
-      }
-    }),
-  );
-  return cortex_files;
 }
