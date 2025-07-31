@@ -6,6 +6,7 @@
 /tmp
 /node_modules
 /build
+.env
 oclif.manifest.json
 tsconfig.tsbuildinfo
 sml-converters-*.tgz
