@@ -1,4 +1,4 @@
-import { Command } from "@oclif/core";
+import { Flags, Command } from "@oclif/core";
 import fs from "fs/promises";
 import yaml from "js-yaml";
 import path from "path";
@@ -11,24 +11,29 @@ import {
   parseInput,
   encodeFileName,
 } from "../../shared/file-system-util";
-import { GitHubAuthentication } from "../../shared/git/githubAuth";
-import {
-  SnowflakeConfig,
-  SnowflakeConnection,
-} from "./cortex-connect/SnowflakeConnection";
-import {
-  validateConfiguration,
-  ConfigurationError,
-} from "./cortex-connect/cortex-config-validator";
-import { gitCredentials, GitPullError } from "../../shared/git/types";
-import { CortexAnalyzer } from "./cortex-connect/CortexAnalyzer";
-import snowflake from "snowflake-sdk";
-import { cortexFlags } from "./sml-to-cortex-flags";
 
 export class SMLToCortexCommand extends Command {
   static description = "Convert from SML to Snowflake Cortex Analyst yaml";
 
-  static flags = cortexFlags;
+  static flags = {
+    source: Flags.directory({
+      description: "Source folder",
+      default: "./",
+      required: false,
+      aliases: ["s"],
+    }),
+    output: Flags.directory({
+      description: "Directory in which to write cortex yaml output file(s)",
+      required: false,
+      default: "./cortex_output/",
+      aliases: ["o"],
+    }),
+    clean: Flags.boolean({
+      description: "Clean the output folder contents without the .git folder",
+      required: false,
+      default: false,
+    }),
+  };
 
   static examples = [
     "<%= config.bin %> <%= command.id %> ",
@@ -36,102 +41,15 @@ export class SMLToCortexCommand extends Command {
     "<%= config.bin %> <%= command.id %> --source=./sml-source-path --output=./cortex-output-path",
     "<%= config.bin %> <%= command.id %> -s ./sml-source-path -o ./cortex-output-path",
     "<%= config.bin %> <%= command.id %> -s ./sml-source-path -o ./cortex-output-path --clean",
-    "<%= config.bin %> <%= command.id %> --github=https://github.com/<your-sml-model>.git --gitUsername=your-username --gitPassword=your-password",
-    "<%= config.bin %> <%= command.id %> --github=https://github.com/<your-sml-model>.git --gitToken=your-git-token",
-    "<%= config.bin %> <%= command.id %> --snowflakeAccount=SNOWFLAKE-ACCOUNT --snowflakeDatabase=DATABASE --snowflakeSchema=SCHEMA --snowflakeStage=STAGE --snowflakeAuthenticator=EXTERNALBROWSER",
-    "<%= config.bin %> <%= command.id %> --snowflakeAccount=SNOWFLAKE-ACCOUNT --snowflakeDatabase=DATABASE --snowflakeSchema=SCHEMA --snowflakeStage=STAGE --snowflakeAuthenticator=SNOWFLAKE --snowflakeUsername=username --snowflakePassword=password",
   ];
 
   async run() {
     const { flags } = await this.parse(SMLToCortexCommand);
-
-    const logger = CommandLogger.for(this);
-
-    try {
-      validateConfiguration(flags, logger);
-
-      let { localPath, githubAuth } = await this.getSmlFileDir(
-        flags,
-        "./tmp",
-        logger,
-      ); // pull git repo into directory, or files are already given
-
-      const cortex_files = await this.convertToCortex({
-        sourcePath: localPath,
-        outputPath: flags.output,
-        clean: flags.clean,
-      });
-
-      if (githubAuth && !flags.keepfiles) await githubAuth.removeRepository();
-
-      if (flags.snowflakeAccount) {
-        // if the user is adding it to snowflake
-        await this.addFilesToSnowflake(flags, cortex_files, logger);
-      }
-    } catch (error) {
-      this.handleError(error, logger);
-    }
-  }
-
-  /**
-   * Retrieves the directory containing the SML files, either by pulling from a GitHub repository
-   * or by using a local directory, based on the provided flags.
-   *
-   * If `flags.gitURL` is not specified, it assumes a local directory and returns the source path.
-   *
-   * @param flags - An object containing git credentials and the source path.
-   * @param localPath - The local directory path where the repository should be cloned or accessed.
-   * @param logger - Logger instance for logging operations.
-   * @returns An object containing the local path and, if applicable, the GitHub authentication instance.
-   * @throws {GitPullError} If pulling the GitHub repository fails.
-   */
-  private async getSmlFileDir(
-    flags: gitCredentials & { source: string },
-    localPath: string,
-    logger: Logger,
-  ): Promise<{ localPath: string; githubAuth?: GitHubAuthentication }> {
-    let githubAuth: GitHubAuthentication;
-    if (flags.gitURL) {
-      // if we are using github
-      logger.info(`Cloning SML model from Github: ${flags.gitURL}`);
-      if (flags.gitToken) {
-        githubAuth = new GitHubAuthentication(
-          {
-            repoUrl: flags.gitURL.toString(),
-            localDir: localPath,
-            auth: {
-              type: "token",
-              token: flags.gitToken,
-            },
-          },
-          logger,
-        );
-      } else {
-        // use username and password for authentication
-        githubAuth = new GitHubAuthentication(
-          {
-            repoUrl: flags.gitURL.toString(),
-            localDir: localPath,
-            auth: {
-              type: "username-password",
-              username: flags.gitUsername || "",
-              password: flags.gitPassword || "",
-            },
-          },
-          logger,
-        );
-      }
-      const response = await githubAuth.pullRepository(true); // pull github repo into localPath
-      if (response.success === false) {
-        throw new GitPullError(response.message);
-      }
-      logger.info(`Successfully cloned repository to: ${localPath}`);
-      return { localPath, githubAuth };
-    } else {
-      // we are using a local directory, which means the user will give us a source
-      logger.info(`Using local SML files from: ${flags.source}`);
-      return { localPath: flags.source };
-    }
+    await this.convertToCortex({
+      sourcePath: flags.source,
+      outputPath: flags.output,
+      clean: flags.clean,
+    });
   }
 
   /**
@@ -140,7 +58,7 @@ export class SMLToCortexCommand extends Command {
    * @param input - The input parameters required for the conversion, including source and output paths.
    * @returns An array of file paths for the generated Cortex YAML files.
    */
-  private async convertToCortex(input: convertInput): Promise<string[]> {
+  private async convertToCortex(input: convertInput): Promise<void> {
     const logger = CommandLogger.for(this);
 
     const { absoluteOutputPath, absoluteSourcePath } = await parseInput(
@@ -163,135 +81,12 @@ export class SMLToCortexCommand extends Command {
     );
 
     // Write to files
-    let cortex_files: string[] = [];
     try {
-      cortex_files = await saveCortexYamlFiles(
-        cortexModels,
-        absoluteOutputPath,
-        logger,
-      );
+      await saveCortexYamlFiles(cortexModels, absoluteOutputPath, logger);
       logger.info("Completed writing Cortex yaml files");
     } catch (err) {
       logger.error(`Error writing Cortex yaml file(s): ${err}`);
     }
-    return cortex_files;
-  }
-
-  private async addFilesToSnowflake(
-    flags: any,
-    cortexFiles: Array<string>,
-    logger: Logger,
-  ) {
-    const snowflakeConfig = {
-      account: flags.snowflakeAccount,
-      database: flags.snowflakeDatabase,
-      schema: flags.snowflakeSchema,
-      stage: flags.snowflakeStage,
-      role: flags.snowflakeRole,
-      warehouse: flags.snowflakeWarehouse,
-    } as SnowflakeConfig;
-
-    const snowflakeConn = new SnowflakeConnection(logger, snowflakeConfig);
-
-    logger.info("Connecting to Snowflake");
-    await snowflakeConn.connect({
-      authenticator: flags.snowflakeAuthenticator,
-      token: flags.snowflakeToken,
-      username: flags.snowflakeUsername,
-      password: flags.snowflakePassword,
-      passcode: flags.passcode,
-      privateKey: flags.privateKey,
-      privateKeyPath: flags.privateKeyPath,
-      privateKeyPass: flags.privateKeyPass,
-      oauthClientId: flags.oauthClientId,
-      oauthClientSecret: flags.oauthClientSecret,
-      oauthAuthorizationUrl: flags.oauthAuthorizationUrl,
-      oauthTokenRequestUrl: flags.oauthTokenRequestUrl,
-    });
-
-    const cortexAnalyzer = new CortexAnalyzer(logger, snowflakeConfig);
-    await Promise.all(
-      cortexFiles.map(async (cortexPath) => {
-        try {
-          // get the cortex Model from a file
-          let cortexModel = await cortexAnalyzer.getCortexModelFromFile(
-            cortexPath,
-          );
-
-          // get all of its facts (dimensions, measures, etc)
-          const factsMap = cortexAnalyzer.getFactsFromModel(cortexModel);
-
-          // update existing cortex model with new base table name, database, and schema
-          const baseTableName = cortexAnalyzer.updateCortexModel(cortexModel);
-
-          // create the table command
-          const createTableCommand = snowflakeConn.createTableCommand(
-            baseTableName,
-            factsMap,
-          );
-
-          // Update original yaml files
-          await saveCortexYamlFiles(
-            { models: [cortexModel] },
-            path.dirname(cortexPath),
-            logger,
-          );
-
-          // add yaml files to stage
-          await snowflakeConn.addFileToStage(
-            cortexPath,
-            true,
-            !flags.keepfiles,
-          );
-
-          // add table to schema
-          await snowflakeConn.addTableToSchema(
-            createTableCommand,
-            baseTableName,
-            // wait until table is created to add semantic view to Snowflake
-            async (err: snowflake.SnowflakeError | undefined) => {
-              if (err) {
-                logger.error(
-                  `Error executing CREATE TABLE command: ${err.message}`,
-                );
-              } else {
-                logger.info(
-                  `Successfully created table ${baseTableName} to schema: ${snowflakeConfig.schema}`,
-                );
-                await snowflakeConn.writeSemanticModelYaml(
-                  cortexModel,
-                  baseTableName,
-                );
-              }
-            },
-          );
-        } catch (err) {
-          logger.error(`Error adding files to Snowflake: ${err}`);
-        }
-      }),
-    );
-  }
-
-  /**
-   * Handles errors that occur during command execution.
-   *
-   * @param error - Error object to handle
-   * @param logger - Logger instance for error reporting
-   */
-  private handleError(error: unknown, logger: Logger): void {
-    if (error instanceof GitPullError) {
-      logger.error(`GitHub Error: ${error.message}`);
-      logger.error("Check your repository URL and authentication credentials");
-    } else if (error instanceof ConfigurationError) {
-      logger.error(`Configuration Error: ${error.message}`);
-      logger.error("Run with --help to see configuration options");
-    } else if (error instanceof Error) {
-      logger.error(`Error: ${error.message}`);
-    } else {
-      logger.error(`Unknown error: ${String(error)}`);
-    }
-    // Exit with error code
-    process.exit(1);
   }
 }
 

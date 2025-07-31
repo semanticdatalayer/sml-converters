@@ -123,17 +123,3 @@ export function fmtDimRef(
     `Missing 'dimension' property in TO of relationship from ${relationship.from.dataset}`,
   );
 }
-
-const snowflakeReservedWords = [
-  "ALL", "ALTER", "AND", "ANY", "AS", "BETWEEN", "BY", "CASE", "CAST", "COLUMN",
-  "CONNECT", "CREATE", "CROSS", "CURRENT", "DELETE", "DISTINCT", "DROP", "ELSE",
-  "EXISTS", "FALSE", "FROM", "FULL", "GROUP", "HAVING", "IN", "INNER", "INSERT",
-  "INTERSECT", "INTO", "IS", "JOIN", "LEFT", "LIKE", "LIMIT", "MINUS", "NATURAL",
-  "NOT", "NULL", "ON", "OR", "ORDER", "OUTER", "REPLACE", "RIGHT", "SELECT",
-  "SET", "TABLE", "THEN", "TRUE", "UNION", "UPDATE", "USING", "VALUES", "WHEN",
-  "WHERE", "WITH", "QUALIFY", "ILIKE", "RLIKE", "REGEXP", "SAMPLE", "MATCH_RECOGNIZE"
-];
-
-export function isReservedWord(word: string) {
-  return snowflakeReservedWords.includes(word.toUpperCase());
-}

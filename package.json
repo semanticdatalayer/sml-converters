@@ -10,6 +10,7 @@
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
     "chalk": "^4.1.2",
+    "dotenv": "^16.3.1",
     "isomorphic-git": "^1.32.1",
     "js-yaml": "^4.1.0",
     "sml-sdk": "^1.1.0",

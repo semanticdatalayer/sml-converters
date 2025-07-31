@@ -1,12 +1,12 @@
 // Authentication types
 export enum SnowflakeAuthenticators {
-  oauth = "OAUTH",
   password = "SNOWFLAKE",
   externalBrowser = "EXTERNALBROWSER",
   keypair = "SNOWFLAKE_JWT",
   mfa = "USERNAME_PASSWORD_MFA",
   pat = "PROGRAMMATIC_ACCESS_TOKEN",
   okta = "*.okta.com",
+  oauth = "OAUTH",
   oauthCode = "OAUTH_AUTHORIZATION_CODE",
   oauthClient = "OAUTH_CLIENT_CREDENTIALS",
 }

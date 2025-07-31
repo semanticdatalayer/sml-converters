@@ -1,11 +1,11 @@
-import snowflake, { Connection, ConnectionOptions } from "snowflake-sdk";
 import * as fs from "fs";
-import { Logger } from "../../../shared/logger";
-import { SnowflakeAuth, SnowflakeAuthenticators } from "./SnowflakeAuth";
-import { CortexModel } from "../cortex-models/CortexModel";
 import yaml from "js-yaml";
+import snowflake, { Connection, ConnectionOptions } from "snowflake-sdk";
 import { fileSystemUtil } from "../../../shared/file-system-util";
 import Guard from "../../../shared/guard";
+import { Logger } from "../../../shared/logger";
+import { CortexModel } from "../../sml-to-cortex/cortex-models/CortexModel";
+import { SnowflakeAuth, SnowflakeAuthenticators } from "./SnowflakeAuth";
 
 export interface SnowflakeConfig {
   account: string;
@@ -48,18 +48,18 @@ export class SnowflakeConnection {
       return this;
     }
 
-    const connectionOptions: ConnectionOptions = {
+    const connectionOptions = {
       ...this.config,
       ...auth,
       application: "AtScale_SML_Converter",
       browserActionTimeout: 60000, // How long to wait for okta or external browser auth, 1 minute
-    };
+    } satisfies ConnectionOptions;
     this.connection = snowflake.createConnection(connectionOptions);
 
     if (
       connectionOptions.authenticator ===
         SnowflakeAuthenticators.externalBrowser ||
-      connectionOptions.authenticator?.includes("okta.com")
+      connectionOptions.authenticator.includes("okta.com")
     ) {
       await this.connection.connectAsync((err, conn) => {
         if (err) {
@@ -184,7 +184,7 @@ export class SnowflakeConnection {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async writeSemanticModelYaml(cortexModel: CortexModel, baseTable: string) {
+  async writeSemanticModelYaml(cortexModel: CortexModel) {
     if (!cortexModel.tables) {
       this.logger.error(
         `Cortex Model ${cortexModel.name} does not have tables`,

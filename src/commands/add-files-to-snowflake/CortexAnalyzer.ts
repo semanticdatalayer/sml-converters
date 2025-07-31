@@ -1,14 +1,11 @@
-import { fileSystemUtil } from "../../../shared/file-system-util";
-import Guard from "../../../shared/guard";
-import { Logger } from "../../../shared/logger";
-import { CortexModel } from "../cortex-models/CortexModel";
 import * as fs from "fs";
 import yaml from "js-yaml";
-import { SnowflakeConfig } from "./SnowflakeConnection";
-import {
-  transformName,
-  isReservedWord,
-} from "../cortex-converter/cortex-tools";
+import { fileSystemUtil } from "../../shared/file-system-util";
+import Guard from "../../shared/guard";
+import { Logger } from "../../shared/logger";
+import { transformName } from "../sml-to-cortex/cortex-converter/cortex-tools";
+import { CortexModel } from "../sml-to-cortex/cortex-models/CortexModel";
+import { SnowflakeConfig } from "./cortex-connect/SnowflakeConnection";
 
 export class CortexAnalyzer {
   private logger: Logger;
@@ -97,4 +94,18 @@ export class CortexAnalyzer {
 interface CortexFact {
   name: string;
   synonyms?: string[];
+}
+
+const snowflakeReservedWords = [
+  "ALL", "ALTER", "AND", "ANY", "AS", "BETWEEN", "BY", "CASE", "CAST", "COLUMN",
+  "CONNECT", "CREATE", "CROSS", "CURRENT", "DELETE", "DISTINCT", "DROP", "ELSE",
+  "EXISTS", "FALSE", "FROM", "FULL", "GROUP", "HAVING", "IN", "INNER", "INSERT",
+  "INTERSECT", "INTO", "IS", "JOIN", "LEFT", "LIKE", "LIMIT", "MINUS", "NATURAL",
+  "NOT", "NULL", "ON", "OR", "ORDER", "OUTER", "REPLACE", "RIGHT", "SELECT",
+  "SET", "TABLE", "THEN", "TRUE", "UNION", "UPDATE", "USING", "VALUES", "WHEN",
+  "WHERE", "WITH", "QUALIFY", "ILIKE", "RLIKE", "REGEXP", "SAMPLE", "MATCH_RECOGNIZE"
+];
+
+export function isReservedWord(word: string) {
+  return snowflakeReservedWords.includes(word.toUpperCase());
 }
