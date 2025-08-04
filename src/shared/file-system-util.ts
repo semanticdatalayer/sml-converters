@@ -12,24 +12,14 @@ export type convertInput = {
   clean: boolean;
 }
 
-export async function parseInput(
-    input: convertInput,
-    logger: Logger,
-    command: Command
-  ): Promise<{
-    absoluteSourcePath: string;
-    absoluteOutputPath: string;
-  }> {
-    const absoluteSourcePath = path.resolve(input.sourcePath);
-    const inputFolderExists = await fileSystemUtil.folderExists(
-      absoluteSourcePath,
-    );
-    Guard.should(
-      inputFolderExists,
-      `The source folder (${absoluteSourcePath}) does not exists`,
-    );
-
-    const absoluteOutputPath = path.resolve(input.outputPath);
+async function parseOutput(
+  input: convertInput,
+  logger: Logger,
+  command: Command
+) : Promise<{
+  absoluteOutputPath: string;
+}> {
+  const absoluteOutputPath = path.resolve(input.outputPath);
 
     const outputPathExists = await fileSystemUtil.folderExists(
       absoluteOutputPath,
@@ -58,6 +48,51 @@ export async function parseInput(
       await fs.mkdir(absoluteOutputPath);
     }
 
+    return {
+      absoluteOutputPath
+    };
+}
+
+export async function parseInput(
+    input: convertInput,
+    logger: Logger,
+    command: Command
+  ): Promise<{
+    absoluteSourcePath: string;
+    absoluteOutputPath: string;
+  }> {
+    const absoluteSourcePath = path.resolve(input.sourcePath);
+    const inputFolderExists = await fileSystemUtil.folderExists(
+      absoluteSourcePath,
+    );
+    Guard.should(
+      inputFolderExists,
+      `The source folder (${absoluteSourcePath}) does not exists`,
+    );
+    const {absoluteOutputPath} = await parseOutput(input, logger, command);
+    return {
+      absoluteSourcePath,
+      absoluteOutputPath,
+    };
+  }
+
+ export async function parseInputFile(
+    input: convertInput,
+    logger: Logger,
+    command: Command
+  ): Promise<{
+    absoluteSourcePath: string;
+    absoluteOutputPath: string;
+  }> {
+    const absoluteSourcePath = path.resolve(input.sourcePath);
+    const inputFileExists = await fileSystemUtil.fileExists(
+      absoluteSourcePath,
+    );
+    Guard.should(
+      inputFileExists,
+      `The source file (${absoluteSourcePath}) does not exists`,
+    );
+    const {absoluteOutputPath} = await parseOutput(input, logger, command);
     return {
       absoluteSourcePath,
       absoluteOutputPath,
