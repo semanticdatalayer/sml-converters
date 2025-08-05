@@ -36,6 +36,7 @@ USAGE
 - [Commands](#commands)
   - [`sml-converters dbt-to-sml`](#sml-converters-dbt-to-sml)
   - [`sml-converters sml-to-cortex`](#sml-converters-sml-to-cortex)
+  - [`sml-converters add-files-to-snowflake`](#sml-converters-add-files-to-snowflake)
   - [`sml-converters help [COMMAND]`](#sml-converters-help-command)
 - [License](#license)
 
@@ -105,6 +106,56 @@ EXAMPLES
   $ sml-converters sml-to-cortex -s ./sml-source-path -o ./dbt-output-path --clean
 
 ```
+
+## `sml-converters add-files-to-snowflake`
+
+Add converted Snowflake Cortex Analyst yaml to Snowflake
+
+```
+USAGE
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator
+    OAUTH|SNOWFLAKE|EXTERNALBROWSER|SNOWFLAKE_JWT|USERNAME_PASSWORD_MFA|PROGRAMMATIC_ACCESS_TOKEN|
+    *.okta.com|OAUTH_AUTHORIZATION_CODE|OAUTH_CLIENT_CREDENTIALS --snowflakeAccount <value> 
+    --snowflakeDatabase <value> --snowflakeSchema <value> [--source <value>] [--snowflakeStage <value>]
+    [--snowflakeWarehouse <value>] [--snowflakeRole <value>]
+
+FLAGS
+  --snowflakeAccount=<value>         (required) Snowflake account identifier
+  --snowflakeAuthenticator=<option>  (required) [default: SNOWFLAKE] Snowflake authenticator type
+                                     <options: SNOWFLAKE|EXTERNALBROWSER|SNOWFLAKE_JWT|USERNAME_PASSWORD_MFA|PROGRAMMATIC_ACCESS_TOKEN|*.okta.com|OAUTH|>
+  --snowflakeDatabase=<value>        (required) Snowflake database name
+  --snowflakeRole=<value>            Snowflake role to use for the connection
+  --snowflakeSchema=<value>          (required) Snowflake schema name
+  --snowflakeStage=<value>           Snowflake stage name for uploading files
+  --snowflakeWarehouse=<value>       Snowflake warehouse name
+  --source=<value>                   [default: ./] Source folder
+
+DESCRIPTION
+  Snowflake authentication example can be found in .env.example. Types of SNOWFLAKE_AUTH will have different requirements.
+
+EXAMPLES
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE
+
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=EXTERNALBROWSER
+
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE_JWT
+```
+
+### REQUIRED ENV VARIABLES FOR AUTH TYPE
+| Authenticator | Required Environment Variables |
+|---------------|-------------------------------|
+| `SNOWFLAKE` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD` |
+| `EXTERNALBROWSER` | *(none - uses browser)* |
+| `SNOWFLAKE_JWT` | `SNOWFLAKE_PRIVATE_KEY_PATH`, `SNOWFLAKE_PRIVATE_KEY_PASS`(Only if rs8 file is encrypted) |
+| `USERNAME_PASSWORD_MFA` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD`, `SNOWFLAKE_PASSCODE` |
+| `*.okta.com` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD` |
+| `OAUTH` | `SNOWFLAKE_TOKEN` |
+| `PROGRAMMATIC_ACCESS_TOKEN` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD` |
+
+### Not yet supported
+`OAUTH_AUTHORIZATION_CODE` `OAUTH_CLIENT_CREDENTIALS`
+
+For more help go to  [https://docs.snowflake.com/en/developer-guide/node-js/nodejs-driver-authenticate](https://docs.snowflake.com/en/developer-guide/node-js/nodejs-driver-authenticate) for what parameters must be set
 
 ## `sml-converters help [COMMAND]`
 

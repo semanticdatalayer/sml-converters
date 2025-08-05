@@ -9,13 +9,11 @@ import {
 } from "sml-sdk";
 
 import { Logger } from "../../../shared/logger";
-
 import {
   CortexDimension,
   CortexMeasure,
   CortexTimeDimension,
 } from "../cortex-models/CortexModel";
-
 import {
   ensureUnique,
   replacePlaceholder,

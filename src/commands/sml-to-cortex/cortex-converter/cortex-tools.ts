@@ -94,6 +94,7 @@ export function addToMapWithSet(
   else temp.add(value);
   map.set(key, temp);
 }
+
 export function isRegularRelationship(
   relationship: SMLModelRelationship,
 ): relationship is SMLModelRegularRelationship {
