@@ -85,6 +85,11 @@ export class AddFilesToSnowflakeCommand extends Command {
 
     let { files } = await getFilesAndFolders(flags.source);
 
+    files = files.filter((fileName) => {
+      // filter for only yaml files
+      return fileName.endsWith(".yaml") || fileName.endsWith(".yml");
+    });
+
     files = files.map((fileName) => {
       return path.join(flags.source, fileName);
     });
