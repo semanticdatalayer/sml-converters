@@ -7,6 +7,7 @@ import {
   SMLObjectType,
   SMLUnrelatedDimensionsHandling,
 } from "sml-sdk";
+import { Logger } from "../../../shared/logger";
 import { SmlConverterResult } from "../../../shared/sml-convert-result";
 import {
   BimMeasure,
@@ -14,16 +15,15 @@ import {
   BimTable,
   BimTableColumn,
 } from "../bim-models/bim-model";
-import { shortAggFn } from "./bim-tools";
 import { Constants } from "../bim-models/constants";
-import { colsUsedByTbl, doCreateSummary } from "./converter-utils";
+import { AttributeMaps, TableLists } from "../bim-models/types-and-interfaces";
+import { colsUsedByTbl, doCreateSummary, shortAggFn } from "./converter-utils";
 import {
   aggFunctionAtStart,
   initialMetric,
   isSimpleCountRowsFunction,
   isSimpleFunctionWithCol,
 } from "./expression-parser";
-import { makeUniqueName } from "./tools";
 import {
   createUniqueAttrName,
   descriptionAsString,
@@ -33,10 +33,9 @@ import {
   isHidden,
   lookupAttrUniqueName,
   lowerNoSpace,
+  makeUniqueName,
   removeComments,
 } from "./tools";
-import { AttributeMaps, TableLists } from "../bim-models/types-and-interfaces";
-import { Logger } from "../../../shared/logger";
 
 export class MeasureConverter {
   private logger: Logger;
@@ -210,8 +209,10 @@ export class MeasureConverter {
       });
   }
 
-  // Create a measure from a column only if the column isn't used elsewhere, is visible, has summarizeBy
-  // and isn't a known naming pattern
+  /**
+   * Create a measure from a column only if the column isn't used elsewhere, is visible, has summarizeBy
+   * and isn't a known naming pattern
+   */
   measuresFromColumns(
     bim: BimRoot,
     result: SmlConverterResult,
@@ -296,7 +297,7 @@ export class MeasureConverter {
     // Change aggFn to sum
     let colToUse = c.name;
     if (aggFn.toLowerCase() === "countrows") {
-      colToUse = Constants.ROW_COUNT_COLUMN_NAME; // createColForCountRows(result, datasetUniqueName);
+      colToUse = Constants.ROW_COUNT_COLUMN_NAME;
       aggFn = "sum";
       this.logger.info(
         `An aggregation function of 'countrows' was found for column '${c.name}' on dataset '${datasetUniqueName}'. A calculated column named '${Constants.ROW_COUNT_COLUMN_NAME}' will be created in the SML with a value of '1' and the converted metric will be a 'sum'`,
@@ -502,6 +503,10 @@ export class MeasureConverter {
     return undefined;
   }
 
+  /**
+   * Converts BIM divide calculation measure to SML calculated metric.
+   * @returns SMLMetricCalculated object if conversion successful, undefined otherwise
+   */
   convertDivideCalc(
     bim: BimRoot,
     meas: BimMeasure,
@@ -544,7 +549,6 @@ export class MeasureConverter {
               denominator.str1.lastIndexOf(")"),
             );
             if (denominator.str2.replace(/[' ]/g, "").length == 0) {
-              // replace(")", "").
               // Nothing after simple divide
               try {
                 const calc_unique_name = createUniqueAttrName(
@@ -610,7 +614,7 @@ export class MeasureConverter {
     );
     const mdxExpression = `0 /*${removeComments(
       expressionAsString(bimMeasure.expression),
-    )}*/`;
+    )} TODO: Update with valid MDX expression*/`;
 
     const measure: SMLMetricCalculated = {
       object_type: SMLObjectType.MetricCalc,
@@ -657,6 +661,13 @@ export class MeasureConverter {
     return SMLCalculationMethod.Sum;
   }
 
+  /**
+   * Converts a BIM format string to an SML format string.
+   * If the format is a known named format (case-insensitive), converts it to lowercase.
+   *
+   * @param fmt - The BIM format string to convert
+   * @returns The converted SML format string. Returns empty string if input is undefined
+   */
   smlFormatFromBim(fmt: string | undefined): string {
     if (!fmt) return "";
     if (Constants.NAMED_FORMATS.includes(fmt.toLowerCase()))

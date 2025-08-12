@@ -15,16 +15,16 @@ import {
   BimTablePartition,
 } from "../bim-models/bim-model";
 import { isMathOrWhite } from "./expression-parser";
-import { removeComments } from "./tools";
 import { MeasureConverter } from "./measure-converter";
-import { ReturnedMDX, queryFromExpression } from "./bim-tools";
-import { makeUniqueName } from "./tools";
+import { queryFromExpression, ReturnedMDX } from "./converter-utils";
 import {
   arrayToStringAlphabetical,
   descriptionAsString,
   expressionAsString,
   exprToComment,
   lowerNoSpace,
+  makeUniqueName,
+  removeComments,
   setToStringAlphabetical,
 } from "./tools";
 import {
@@ -58,7 +58,6 @@ export class DatasetConverter {
       rawCalcs: new Set<string>(),
     };
     for (const tbl of bim.model.tables) {
-      // if (!unusedTables.has(bim.model.tables[i].name)) {
       this.checkForMultiLayerComments(tbl);
 
       promises.push(
@@ -72,14 +71,8 @@ export class DatasetConverter {
         ),
       );
     }
-
     await Promise.all(promises);
-    // Use this block instead of simple await for debugging
-    // try {
-    //   const results = await Promise.all(promises);
-    // } catch (error) {
-    //   console.error("Error in Promise.all:", error);
-    // }
+
     if (messagesMap.customMsgs.size > 0)
       this.logger.info(
         `The following dataset(s) are defined using a custom calculation. They will be treated as tables that need to be materialized: ${setToStringAlphabetical(
@@ -105,6 +98,7 @@ export class DatasetConverter {
 
   // Creates the dataset and adds to SML. For bim measures creates as SML metricCalcs when the logic
   // is simple such as using math logic on other measures or divide measures
+  // eslint-disable-next-line @typescript-eslint/require-await
   async convertToDatasetAndMetrics(
     bimTable: BimTable,
     bim: BimRoot,
@@ -112,7 +106,7 @@ export class DatasetConverter {
     messagesMap: MessagesMap,
     tableLists: TableLists,
     attrMaps: AttributeMaps,
-  ): Promise<void> {
+  ) {
     const model = result.models[0];
     const dataset_unique_name = makeUniqueName(`dataset.${bimTable.name}`);
     messagesMap.rawCalcs = new Set<string>();
@@ -131,7 +125,6 @@ export class DatasetConverter {
 
     if (bimTable.measures != undefined) {
       // Now handle the Calculated Measures
-      const promises: Promise<void>[] = [];
       for (const element of bimTable.measures) {
         const bimMeasure = element;
         if (
@@ -151,17 +144,22 @@ export class DatasetConverter {
           );
 
           if (smlMetric) {
-            this.measureConverter.addSMLCalc(smlMetric, model, result, attrMaps, bimTable);
+            this.measureConverter.addSMLCalc(
+              smlMetric,
+              model,
+              result,
+              attrMaps,
+              bimTable,
+            );
           }
         }
       }
-      await Promise.all(promises);
     }
     if (messagesMap.rawCalcs.size > 0)
       this.logger.info(
         `The following measures defined in original table '${
           bimTable.name
-        }' are being created as SML calculations with an initial value of 0. The original expressions are commented out. The definitions need to be updated to use valid MDX expressions: ${
+        }' are being created as SML calculations with an initial value of 0. The original expressions are commented out with a 'TODO' appended for searchability. The definitions need to be updated to use valid MDX expressions: ${
           messagesMap.rawCalcs.size < 4
             ? setToStringAlphabetical(messagesMap.rawCalcs, ", ")
             : setToStringAlphabetical(messagesMap.rawCalcs, ", ", 3)
@@ -201,12 +199,12 @@ export class DatasetConverter {
         unknownMsgs,
       );
     }
-    if (!sql && !this.tableFromPartitions(bimTable) && msgObj.str2) {
+    if (!sql && !this.hasTablePartitions(bimTable) && msgObj.str2) {
       this.logger.info(msgObj.str2);
       msgObj.str2 = "";
     }
 
-    const dataset = {
+    const dataset: SMLDataset = {
       object_type: SMLObjectType.Dataset,
       unique_name: datasetUniqueName,
       description: descriptionAsString(bimTable.description),
@@ -218,9 +216,8 @@ export class DatasetConverter {
           : this.mapYamlColumn(c),
       ),
       connection_id: connection_unique_name,
-      sql: sql,
-      table: bimTable.name,
-    } satisfies SMLDataset;
+    };
+    this.setSource(sql ? { sql: sql } : { table: bimTable.name }, dataset);
     // Create a calculated column to support "countrows" aggregation
     dataset.columns.push(this.createCountRowsCol());
 
@@ -233,7 +230,6 @@ export class DatasetConverter {
           ", ",
         )}`,
       );
-
     return dataset;
   }
 
@@ -266,7 +262,8 @@ export class DatasetConverter {
           );
           if (sql2) sql += ` UNION ALL ${sql2}`;
           if (msgObj.str2) {
-            this.logger.info(msgObj.str2);
+            // Code should never reach this point
+            this.logger.warn(msgObj.str2);
             msgObj.str2 = "";
           }
         }
@@ -292,7 +289,6 @@ export class DatasetConverter {
       } else if (partition.source.query) {
         const queryStr = expressionAsString(partition.source.query);
         if (queryStr.toLowerCase().startsWith("select ")) {
-          // See in POC, PTM, PFM, magalu
           return queryStr;
         } else {
           unknownMsgs.add(passObject.str1);
@@ -306,12 +302,11 @@ export class DatasetConverter {
           unknownMsgs,
         );
       } else if (partition.source.expressionSource !== "table") {
-        // Hit this in TPCDS
         unknownMsgs.add(passObject.str1);
         return "";
       }
     } else {
-      // Don't hit this in test files
+      // Code should never reach this point
       passObject.str2 = `Dataset '${passObject.str1}' does not contain a source definition. It will be treated as a table that needs to be materialized`;
       return "";
     }
@@ -321,7 +316,10 @@ export class DatasetConverter {
   mapYamlColumn(bimColumn: BimTableColumn): SMLDatasetColumnSimple {
     return {
       name: bimColumn.name,
-      data_type: this.mapBimToSMLColDataType(bimColumn.name, bimColumn.dataType),
+      data_type: this.mapBimToSMLColDataType(
+        bimColumn.name,
+        bimColumn.dataType,
+      ),
     };
   }
 
@@ -332,11 +330,14 @@ export class DatasetConverter {
   ): SMLDatasetColumnSimple {
     const returnVal: SMLDatasetColumnSimple = {
       name: bimColumn.name,
-      data_type: this.mapBimToSMLColDataType(bimColumn.name, bimColumn.dataType),
+      data_type: this.mapBimToSMLColDataType(
+        bimColumn.name,
+        bimColumn.dataType,
+      ),
       sql:
         bimColumn.expression != undefined
           ? this.newColExpr(bimColumn, bimTable, calculatedCols)
-          : bimColumn.name, // replaceQuotes(bimColumn.expression)
+          : bimColumn.name,
     };
     return returnVal;
   }
@@ -448,7 +449,7 @@ export class DatasetConverter {
     } satisfies SMLDatasetColumnSimple;
   }
 
-  tableFromPartitions(bimTable: BimTable): boolean {
+  hasTablePartitions(bimTable: BimTable): boolean {
     if (
       bimTable.partitions?.length > 0 &&
       bimTable.partitions[0].source.expressionSource == "table"
@@ -528,5 +529,23 @@ export class DatasetConverter {
     calculatedCols.add(bimColumn.name);
     passable.doReturn = true;
     passable.expr = exprToComment(bimColumn.expression) ?? "";
+  }
+
+  /**
+   * Sets the source of data for a dataset by specifying either SQL query or table name.
+   * @param input - The input object containing either sql or table property
+   * @param dataset - The SMLDataset object to be modified
+   * @throws {Error} If neither sql nor table is defined in the input
+   */
+  setSource(input: any, dataset: SMLDataset) {
+    if (input.sql) {
+      dataset.sql = input.sql;
+      dataset.table = undefined; // Clear table if sql is provided
+    } else if (input.table) {
+      dataset.table = input.table;
+      dataset.sql = undefined; // Clear sql if table is provided
+    } else {
+      throw new Error("Dataset must have either 'sql' or 'table' defined");
+    }
   }
 }

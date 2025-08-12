@@ -1,11 +1,7 @@
-import { Logger } from "../../../shared/logger";
-
 import { SMLCatalog, SMLModel, SMLObjectType } from "sml-sdk";
-
+import { Logger } from "../../../shared/logger";
 import { SmlConverterResult } from "../../../shared/sml-convert-result";
-
 import { BimRoot, BimTable } from "../bim-models/bim-model";
-
 import { Constants } from "../bim-models/constants";
 import { orderProperties } from "../bim-models/order-properties";
 import {
@@ -35,7 +31,7 @@ export class BimToYamlConverter {
       unique_name: makeUniqueName(bim.name),
       version: 1.0,
       label: bim.name,
-      aggressive_agg_promotion: false, // TODO: made this false based on dbt converter
+      aggressive_agg_promotion: false,
       build_speculative_aggs: false,
     };
 
@@ -86,7 +82,12 @@ export class BimToYamlConverter {
     tableConverter.listUnusedBimTables(bim, tableLists, this.logger);
 
     const measureConverter = new MeasureConverter(this.logger);
-    measureConverter.measuresFromSimpleMeasures(bim, result, attrMaps, tableLists.unusedTables);
+    measureConverter.measuresFromSimpleMeasures(
+      bim,
+      result,
+      attrMaps,
+      tableLists.unusedTables,
+    );
 
     const datasetConverter = new DatasetConverter(this.logger);
     await datasetConverter.createDatasetsAndMetrics(
@@ -96,12 +97,12 @@ export class BimToYamlConverter {
       attrMaps,
     );
 
-    tableConverter.populateTableLists(bim, tableLists); // leftTables, rightTables, measTables, factTables, dimTables, tableLists.unusedTables);
+    tableConverter.populateTableLists(bim, tableLists);
 
     const dimensionConverter = new DimensionConverter(this.logger);
     dimensionConverter.createDimensions(tableLists, bim, attrMaps, result);
-    const relationshipConverter = new RelationshipConverter(this.logger);
 
+    const relationshipConverter = new RelationshipConverter(this.logger);
     relationshipConverter.createRelationships(
       bim,
       tableLists,
@@ -110,7 +111,13 @@ export class BimToYamlConverter {
       result,
     );
 
-    measureConverter.measuresFromColumns(bim, result, model, attrMaps, tableLists.unusedTables);
+    measureConverter.measuresFromColumns(
+      bim,
+      result,
+      model,
+      attrMaps,
+      tableLists.unusedTables,
+    );
 
     relationshipConverter.addMissingRelationships(result, model);
 
@@ -124,12 +131,8 @@ export class BimToYamlConverter {
       result,
     );
 
+    // Order properties in the SML result
     orderProperties(result);
-
-    // TODO: These calls are for investigations and debugging
-    // listRealCalcs(result);
-    // messageOnResult(result, tableLists);
-    // messageOnResultOnly(result);
 
     checkForTimeDim(result, this.logger);
 

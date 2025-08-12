@@ -5,13 +5,12 @@ import {
   SMLModelRelationship,
   SMLUnrelatedDimensionsHandling,
 } from "sml-sdk";
+import { Logger } from "../../../shared/logger";
 import { SmlConverterResult } from "../../../shared/sml-convert-result";
 import { BimRelationship, BimRoot, BimTable } from "../bim-models/bim-model";
-import { datasetsInDim, dimFromDataset, getKeyColumn } from "./converter-utils";
-import { makeUniqueName } from "./tools";
-import { lookupAttrUniqueName } from "./tools";
 import { TableLists } from "../bim-models/types-and-interfaces";
-import { Logger } from "../../../shared/logger";
+import { datasetsInDim, dimFromDataset, getKeyColumn } from "./converter-utils";
+import { lookupAttrUniqueName, makeUniqueName } from "./tools";
 
 export class RelationshipConverter {
   private logger: Logger;
@@ -89,21 +88,13 @@ export class RelationshipConverter {
     const level_unique_name =
       makeUniqueName(`dimension.${bimRelationship.toTable}.attr.`) +
       bimRelationship.toColumn;
-    const lookup = lookupAttrUniqueName(attrNameMap, level_unique_name, true, this.logger);
+    const lookup = lookupAttrUniqueName(
+      attrNameMap,
+      level_unique_name,
+      true,
+      this.logger,
+    );
 
-    // const relationship = YamlModelRelationBuilder.create()
-    //   .with({
-    //     unique_name: relationship_unique_name,
-    //     from: {
-    //       dataset: dataset_unique_name_from,
-    //       join_columns: [bimRelationship.fromColumn],
-    //     },
-    //     to: {
-    //       dimension: dimension_unique_name_to,
-    //       level: lookup ?? level_unique_name,
-    //     },
-    //   })
-    //   .build();
     const relationship = {
       unique_name: relationship_unique_name,
       from: {
@@ -145,8 +136,6 @@ export class RelationshipConverter {
       dataset_unique_name_from + "." + dimension_unique_name_to,
     );
 
-    // No builder exists for embedded relationships. When trying to use YamlModelRelationBuilder it won't allow
-    // it to be returned as an embedded relationship.
     const dimRel: SMLEmbeddedRelationship = {
       unique_name: relationship_unique_name,
       from: {
@@ -187,6 +176,7 @@ export class RelationshipConverter {
       );
     }
   }
+
   createRelationshipSameTable(
     bimTable: BimTable,
     model: SMLModel,
@@ -235,12 +225,17 @@ export class RelationshipConverter {
       to: {
         dimension: dimension_unique_name_to,
         level:
-          lookupAttrUniqueName(attrNameMap, level_unique_name, true, this.logger) ??
-          level_unique_name,
+          lookupAttrUniqueName(
+            attrNameMap,
+            level_unique_name,
+            true,
+            this.logger,
+          ) ?? level_unique_name,
       },
     };
     model.relationships.push(relationship);
   }
+
   // If measures exist on a table that is not on the left side of a join, add the relationship
   // to itself and update the measures to use unrelated dimensions handling: repeat
   addMissingRelationships(result: SmlConverterResult, model: SMLModel) {
@@ -251,7 +246,7 @@ export class RelationshipConverter {
       leftDatasets.add(rel.from.dataset);
       const dim: string = "dimension" in rel.to ? rel.to.dimension : "";
       if (dim) {
-        datasetsInDim(result, dim)?.forEach((ds) => rightDatasets.set(ds, dim)); // addValueToMapWithSet(rightDatasets, ds, dim));
+        datasetsInDim(result, dim)?.forEach((ds) => rightDatasets.set(ds, dim));
       }
     });
     // Add embedded dimensions
@@ -262,7 +257,7 @@ export class RelationshipConverter {
           if ("dimension" in rel.to)
             datasetsInDim(result, dim)?.forEach((ds) =>
               rightDatasets.set(ds, dim),
-            ); // addValueToMapWithSet(rightDatasets, ds, dim));
+            );
         }
       });
     });
@@ -290,19 +285,6 @@ export class RelationshipConverter {
             (la) => la.unique_name === levelUniqueName,
           );
 
-          // const relation = YamlModelRelationBuilder.create()
-          //   .with({
-          //     unique_name: makeUniqueName(ds + "." + dimension.unique_name),
-          //     from: {
-          //       dataset: ds,
-          //       join_columns:
-          //         leafAttr && "key_columns" in leafAttr
-          //           ? leafAttr.key_columns
-          //           : [],
-          //     },
-          //     to: { dimension: dimension.unique_name, level: levelUniqueName },
-          //   })
-          //   .build();
           const relation = {
             unique_name: makeUniqueName(ds + "." + dimension.unique_name),
             from: {
@@ -320,6 +302,7 @@ export class RelationshipConverter {
       });
     }
   }
+
   hierNameFromColumn(
     result: SmlConverterResult,
     tbl: string,
@@ -344,6 +327,7 @@ export class RelationshipConverter {
     );
     return dim.hierarchies[0].unique_name;
   }
+
   levelNameFromColumn(
     result: SmlConverterResult,
     tbl: string,

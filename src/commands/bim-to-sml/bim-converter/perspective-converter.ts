@@ -4,6 +4,7 @@ import {
   SMLPerspectiveDimension,
   SMLPerspectiveHierarchy,
 } from "sml-sdk";
+import { Logger } from "../../../shared/logger";
 import { SmlConverterResult } from "../../../shared/sml-convert-result";
 import {
   BimMeasure,
@@ -12,20 +13,14 @@ import {
   BimTable,
   BimTableColumn,
 } from "../bim-models/bim-model";
-import { uniqueNameForCreatedMeas } from "./converter-utils";
-import { lookupAttrUniqueName } from "./tools";
-import { findColumn } from "./converter-utils";
-import { findMeasure } from "./converter-utils";
-import { findAttrUse } from "./converter-utils";
-import { makeUniqueName } from "./tools";
 import {
   AttributeMaps,
   DimAttrsType,
   TableLists,
 } from "../bim-models/types-and-interfaces";
+import { findAttrUse, findColumn, findMeasure, uniqueNameForCreatedMeas } from "./converter-utils";
 import { aggFunctionAtStart } from "./expression-parser";
-import { expressionAsString } from "./tools";
-import { Logger } from "../../../shared/logger";
+import { expressionAsString, lookupAttrUniqueName, makeUniqueName } from "./tools";
 
 export class PerspectiveConverter {
   private logger: Logger;
@@ -249,7 +244,6 @@ export class PerspectiveConverter {
     }
 
     let hierUniqueName = makeUniqueName(`dimension.${key}.hierarchy.${key}`);
-    // let hierUniqueName = hierNameFromDimAnd
     if (val?.levels && val.levels.length > 0) {
       const smlDim = result.dimensions.find((d) => d.label === key);
       if (smlDim) {
@@ -262,7 +256,7 @@ export class PerspectiveConverter {
       }
       const perspectiveHier: SMLPerspectiveHierarchy = {
         name: hierUniqueName,
-        level: val.levels[0], // TODO: use level intead of deprecated levels
+        level: val.levels[0], // Use level instead of deprecated levels for SMLPerspectiveHierarchy
       };
       if (!smlPerspectiveDim.hierarchies)
         smlPerspectiveDim.hierarchies = new Array<SMLPerspectiveHierarchy>();

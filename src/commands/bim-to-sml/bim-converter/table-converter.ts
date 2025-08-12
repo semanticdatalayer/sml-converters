@@ -1,7 +1,7 @@
 import { Logger } from "../../../shared/logger";
 import { BimRoot, BimTable } from "../bim-models/bim-model";
-import { arrayToStringAlphabetical, setToStringAlphabetical } from "./tools";
 import { TableLists } from "../bim-models/types-and-interfaces";
+import { arrayToStringAlphabetical, setToStringAlphabetical } from "./tools";
 
 export class TableConverter {
   private logger: Logger;
@@ -28,7 +28,7 @@ export class TableConverter {
       tablesVariationsOnly.forEach((tbl) => tableLists.unusedTables.add(tbl));
     }
 
-    // These checks are run multiple times. In PTM we have a case where the listing of tables with all hidden objects
+    // These checks are run multiple times. There are cases where the listing of tables with all hidden objects
     // updates the list of unused tables which then means a different table needs to be removed
     this.listUnusedNoRelationships(bim, tableLists, logger);
     this.listTablesAllColsHidden(bim, tableLists, logger);
@@ -36,6 +36,7 @@ export class TableConverter {
     this.listTablesAllColsHidden(bim, tableLists, logger);
     this.listUnusedNoRelationships(bim, tableLists, logger);
   }
+
   listTablesVariationsOnly(
     bim: BimRoot,
     unusedTables: Set<string>,
@@ -48,6 +49,7 @@ export class TableConverter {
     });
     return tablesToRm;
   }
+
   listUnusedNoRelationships(
     bim: BimRoot,
     tableLists: TableLists,
@@ -83,6 +85,7 @@ export class TableConverter {
         )}`,
       );
   }
+
   listTablesAllColsHidden(
     bim: BimRoot,
     tableLists: TableLists,
@@ -108,6 +111,7 @@ export class TableConverter {
       );
     }
   }
+
   // There are quite a few tables that are used by relationships and have all columns hidden
   // In some cases those columns are referenced by calculations, almost always when on left of join
   // During conversion don't include tables that have all columns hidden, are not used on left of relationship,
@@ -161,6 +165,7 @@ export class TableConverter {
     });
     return tablesToRm;
   }
+
   populateTableLists(bim: BimRoot, tableLists: TableLists) {
     // If table is on left and not right, then fact
     // else if measures are on it then both fact and dim

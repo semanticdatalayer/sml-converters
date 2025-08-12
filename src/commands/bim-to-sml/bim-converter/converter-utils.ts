@@ -1,15 +1,36 @@
-import { SMLDimension, SMLDimensionalAttribute, SMLDimensionLevelAttribute, SMLDimensionRelationship, SMLDimensionType, SMLMetric, SMLModel } from "sml-sdk";
-import { SmlConverterResult } from "../../../shared/sml-convert-result";
-import { BimMeasure, BimModel, BimRoot, BimTable, BimTableColumn } from "../bim-models/bim-model";
-import { makeUniqueName } from "./tools";
-import { lookupAttrUniqueName, lowerNoSpace } from "./tools";
-import { aggFunctionAtStart, isSimpleFunctionWithCol } from "./expression-parser";
+import {
+  SMLDimension,
+  SMLDimensionalAttribute,
+  SMLDimensionLevelAttribute,
+  SMLDimensionRelationship,
+  SMLDimensionType,
+  SMLMetric,
+  SMLModel,
+} from "sml-sdk";
 import { Logger } from "../../../shared/logger";
-
+import { SmlConverterResult } from "../../../shared/sml-convert-result";
+import {
+  BimMeasure,
+  BimModel,
+  BimRoot,
+  BimTable,
+  BimTableColumn,
+} from "../bim-models/bim-model";
+import {
+  aggFunctionAtStart,
+  isSimpleFunctionWithCol,
+} from "./expression-parser";
+import {
+  expressionAsString,
+  lookupAttrUniqueName,
+  lowerNoSpace,
+  makeUniqueName,
+  replaceAll,
+} from "./tools";
 
 export function listRelationshipColumns(
   bimModel: BimModel,
-  bimTable: BimTable
+  bimTable: BimTable,
 ): Array<string> {
   const columnsInOrder = new Array<string>();
   const relationshipColumns = new Set<string>();
@@ -32,13 +53,14 @@ export function listRelationshipColumns(
   }
   return columnsInOrder;
 }
+
 export function colsUsedByTbl(
   bim: BimRoot,
   result: SmlConverterResult,
-  bimTblName: string
+  bimTblName: string,
 ): Set<string> {
   const usedCols = new Set<string>();
-  const datasetName = makeUniqueName(`dataset.${bimTblName}`); // result.datasets.filter(ds => ds.unique_name === makeUniqueName(`dataset.${bimTblName}`));
+  const datasetName = makeUniqueName(`dataset.${bimTblName}`);
 
   result.measures.forEach((meas: SMLMetric) => {
     if (meas.dataset === datasetName) {
@@ -71,24 +93,20 @@ export function colsUsedByTbl(
   return usedCols;
 }
 
-export function gatherAttrCols(
-  attr: SMLDimensionalAttribute
-): Set<string> {
+export function gatherAttrCols(attr: SMLDimensionalAttribute): Set<string> {
   const usedCols = new Set<string>();
   if ("name_column" in attr) usedCols.add(attr.name_column);
   if ("key_columns" in attr)
     attr.key_columns?.forEach((keyCol) => usedCols.add(keyCol));
-  if ("sort_column" in attr && attr.sort_column)
-    usedCols.add(attr.sort_column);
+  if ("sort_column" in attr && attr.sort_column) usedCols.add(attr.sort_column);
   return usedCols;
 }
 
 export function doCreateSummary(
   colName: string,
-  summarizeBy: string | undefined
+  summarizeBy: string | undefined,
 ): boolean {
-  if (!summarizeBy || summarizeBy.toLocaleLowerCase() === "none")
-    return false;
+  if (!summarizeBy || summarizeBy.toLocaleLowerCase() === "none") return false;
 
   const suffixes = ["_sk", "_id", "year", "hour", "month"];
   suffixes.forEach((suffix) => {
@@ -109,7 +127,7 @@ export function getKeyColumn(bimTable: BimTable): string | undefined {
 
 export function dimFromDataset(
   result: SmlConverterResult,
-  dsName: string
+  dsName: string,
 ): SMLDimension | undefined {
   let dimToReturn;
   result.dimensions?.forEach((dim) => {
@@ -124,7 +142,7 @@ export function dimFromDataset(
  * Extracts all levels from each hierarchy in a dimension into a single array.
  */
 export function dimLevels(dim: SMLDimension) {
-  const levels = dim.hierarchies.flatMap(hier => hier.levels);
+  const levels = dim.hierarchies.flatMap((hier) => hier.levels);
   return levels;
 }
 
@@ -140,7 +158,7 @@ export function dimLevels(dim: SMLDimension) {
  */
 export function datasetsInDim(
   result: SmlConverterResult,
-  dimName: string
+  dimName: string,
 ): Set<string> {
   const datasets = new Set<string>();
   result.dimensions
@@ -173,24 +191,25 @@ export function uniqueNameForCreatedMeas(
   measName: string,
   bim: BimRoot,
   attrNameMap: Map<string, string[]>,
-  logger: Logger, 
+  logger: Logger,
 ): string | undefined {
   const meas = findMeasure(measName, bim);
   if (meas?.expression /*  && !Array.isArray(meas.expression)*/) {
     const exprLowerNoSpace = lowerNoSpace(meas.expression);
     const aggFn = aggFunctionAtStart(exprLowerNoSpace);
     if (aggFn !== "none" && isSimpleFunctionWithCol(exprLowerNoSpace)) {
-      const tbl = bim.model.tables.find((t) => exprLowerNoSpace.includes("(" + lowerNoSpace(t.name) + "[")
+      const tbl = bim.model.tables.find((t) =>
+        exprLowerNoSpace.includes("(" + lowerNoSpace(t.name) + "["),
       );
       if (tbl) {
         return lookupAttrUniqueName(
           attrNameMap,
           makeUniqueName(`metric.${tbl.name}.`) +
-          meas.name +
-          makeUniqueName(`.${aggFn}`) +
-          "",
+            meas.name +
+            makeUniqueName(`.${aggFn}`) +
+            "",
           true,
-          logger
+          logger,
         );
       }
     }
@@ -200,17 +219,17 @@ export function uniqueNameForCreatedMeas(
 
 export function checkForTimeDim(result: SmlConverterResult, logger: Logger) {
   const foundTime = result.dimensions.find(
-    (dim) => dim.type && dim.type === SMLDimensionType.Time
+    (dim) => dim.type && dim.type === SMLDimensionType.Time,
   );
   if (!foundTime)
     logger.info(
-      `No time dimension found in resulting SML so one should be identified and created/updated in Design Center`
+      `No time dimension found in resulting SML so one should be identified and created/updated in Design Center`,
     );
 }
 
 export function findAttrUse(
   bimAttrName: string,
-  result: SmlConverterResult
+  result: SmlConverterResult,
 ): string {
   for (const d of result.dimensions) {
     for (const l of d.level_attributes) {
@@ -230,7 +249,7 @@ export function findAttrUse(
 
 export function findMeasure(
   bimMeasName: string,
-  bim: BimRoot
+  bim: BimRoot,
 ): BimMeasure | undefined {
   for (const tbl of bim.model.tables) {
     if (tbl.measures)
@@ -246,7 +265,7 @@ export function findMeasure(
 export function findColumn(
   bimTblName: string,
   bimColName: string,
-  bim: BimRoot
+  bim: BimRoot,
 ): BimTableColumn | undefined {
   for (const tbl of bim.model.tables) {
     if (tbl.name === bimTblName && tbl.columns)
@@ -255,4 +274,151 @@ export function findColumn(
       }
   }
   return undefined;
+}
+
+export function addRenamedColumns(expression: string, sql: string): string {
+  if (!sql) return sql;
+  const columnMapping: Map<string, string> | undefined =
+    extractColumnMapping(expression);
+  if (columnMapping) {
+    // Add outer query to map the column names
+    let prefix = "select *, ";
+    columnMapping.forEach((v, k) => (prefix += `'${k}' as '${v}', `));
+    prefix = prefix.slice(0, -2) + " from (\n";
+    return `${prefix}${sql}\n)`;
+  }
+  return sql;
+}
+
+export type ReturnedMDX = {
+  str1: string;
+  str2: string;
+};
+
+/**
+ * Extracts and processes a query from an MDX expression string.
+ *
+ * @param expression - The MDX expression as a string or array of strings
+ * @param passObject - Object containing MDX query information
+ * @param complexMsgs - Set to store complex query messages
+ * @param unknownMsgs - Set to store unknown query messages
+ * @returns The processed query string, or empty string if query cannot be processed
+ *
+ * @remarks
+ * The function handles three types of expressions:
+ * - Direct SELECT statements (returned as-is)
+ * - LET SOURCE statements with NATIVEQUERY
+ * - LET SOURCE statements with QUERY
+ * If the expression doesn't match these patterns, it adds messages to the provided Sets and returns empty string.
+ */
+export function queryFromExpression(
+  expression: string | string[],
+  passObject: ReturnedMDX,
+  complexMsgs: Set<string>,
+  unknownMsgs: Set<string>,
+): string {
+  const exprStr = expressionAsString(expression);
+  if (exprStr.toLowerCase().startsWith("select ")) {
+    // Don't see this in current test files
+    return exprStr;
+  } else if (exprStr.toLowerCase().startsWith("let source")) {
+    if (exprStr.toLowerCase().includes("nativequery")) {
+      return addRenamedColumns(exprStr, nativeQueryString(exprStr));
+    } else if (exprStr.toLowerCase().includes("query=")) {
+      return addRenamedColumns(exprStr, queryString(exprStr));
+    } else {
+      complexMsgs.add(passObject.str1);
+      return "";
+    }
+  } else {
+    unknownMsgs.add(passObject.str1);
+    return "";
+  }
+}
+
+// Needs to extract the select statement from the full string
+export function nativeQueryString(inputString: string): string {
+  const startMarker = '[data], "'; // Start of the SQL query
+  const endMarker = '", null,'; // End of the SQL query
+  const startIndex = inputString.toLowerCase().indexOf(startMarker);
+  const endIndex = inputString.toLowerCase().indexOf(endMarker, startIndex);
+
+  if (startIndex !== -1 && endIndex !== -1) {
+    return inputString
+      .substring(startIndex + startMarker.length, endIndex)
+      .trim();
+  }
+  return "";
+}
+
+// Needs to extract the select statement from the full string where query starts with "Query="
+export function queryString(inputString: string): string {
+  const startMarker = '[query="'; // Start of the SQL query
+  const endMarker = '"])'; // End of the SQL query
+  const startIndex = inputString.toLowerCase().indexOf(startMarker);
+  const endIndex = inputString.toLowerCase().indexOf(endMarker, startIndex);
+
+  let result = inputString
+    .substring(startIndex + startMarker.length, endIndex)
+    .trim();
+  result = replaceAll(result, "#(lf)", "\n");
+  if (startIndex !== -1 && endIndex !== -1) {
+    return result;
+  }
+  return "";
+}
+
+// Look for first "{" after "Table.RenameColumns". Find closing "}" by counting bracket pairs
+function extractColumnMapping(
+  expression: string,
+): Map<string, string> | undefined {
+  const start = expression.indexOf("Table.RenameColumns");
+  if (start > 0) {
+    let subStr = expression.substring(expression.indexOf("{", start));
+    let count = 0;
+    for (let i = 1; i < subStr.length; i++) {
+      if (subStr[i] == "{") count++;
+      if (subStr[i] == "}") count--;
+      if (count < 0) {
+        subStr = subStr.slice(1, i);
+        const pairs = subStr.split("}, {");
+
+        // Clean up and parse each key-value pair
+        const colMap = new Map(
+          pairs.map((pair) => {
+            // Remove the curly braces and split by the comma to get key and value
+            const [key, value] = pair.replace(/[{}"]/g, "").split(", ");
+            return [key, value]; // Return as a key-value tuple for the map
+          }),
+        );
+        return colMap;
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Converts a given aggregation function name to its abbreviated form.
+ *
+ * @param aggFn - The aggregation function name to be shortened
+ * @returns The abbreviated form of the aggregation function name in lowercase
+ */
+export function shortAggFn(aggFn: string): string {
+  if (aggFn.length <= 3) return aggFn.toLowerCase();
+  switch (aggFn.toLowerCase()) {
+    case "minimum":
+      return "min";
+    case "maximum":
+      return "max";
+    case "average":
+      return "avg";
+    case "countdistinct":
+    case "distinctcount":
+      return "dc";
+    case "count":
+    case "nondistinctcount":
+      return "ndc";
+  }
+  return aggFn.toLowerCase();
 }

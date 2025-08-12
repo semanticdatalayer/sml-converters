@@ -1,14 +1,14 @@
+import { Logger } from "../../../shared/logger";
 import { SmlConverterResult } from "../../../shared/sml-convert-result";
 import { BimRoot } from "../bim-models/bim-model";
-import { ReturnedMDX } from "./bim-tools";
 import { Constants } from "../bim-models/constants";
-import { MeasureConverter } from "./measure-converter";
-import { lowerNoSpace, noQuotes } from "./tools";
 import {
   AttributeMaps,
   ExtractedMeasure,
 } from "../bim-models/types-and-interfaces";
-import { Logger } from "../../../shared/logger";
+import { ReturnedMDX } from "./converter-utils";
+import { MeasureConverter } from "./measure-converter";
+import { lowerNoSpace, noQuotes } from "./tools";
 
 // Returns the initial MDX measure as str1 and remaining DAX expression as str2
 // Example: str1: "[Measures].[HasOneCurrency]", str2: ",[TestSimpleMinMeas])"
@@ -290,6 +290,11 @@ export function extractDivideFromExpression(
   return undefined;
 }
 
+/**
+ * Checks if a string starts with an aggregation function name followed by an opening parenthesis
+ * @param val - The string to check for an aggregation function
+ * @returns The name of the aggregation function if found, "none" otherwise
+ */
 export function aggFunctionAtStart(val: string): string {
   let returnVal = "none";
   Constants.AGG_FNS.forEach((agg) => {

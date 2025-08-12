@@ -102,7 +102,7 @@ export function exprToComment(
   expression: string | undefined,
 ): string | undefined {
   if (!expression) return undefined;
-  return `null /*${expression}*/`;
+  return `null /*${expression} TODO: Replace with valid SQL*/`;
 }
 
 export function incrementNumberMap(

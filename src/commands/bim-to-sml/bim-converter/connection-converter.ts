@@ -69,7 +69,6 @@ export class ConnectionConverter {
         );
       }
     });
-    // }
   }
 
   listUsedConnections(result: SmlConverterResult): Set<string> {

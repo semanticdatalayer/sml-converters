@@ -19,12 +19,12 @@ import {
   BimTableHierarchyLevel,
 } from "../bim-models/bim-model";
 import { dimLevels, listRelationshipColumns } from "./converter-utils";
-import { makeUniqueName } from "./tools";
 import {
   createUniqueAttrName,
   descriptionAsString,
   isHidden,
   lookupAttrUniqueName,
+  makeUniqueName,
 } from "./tools";
 import {
   AttributeMaps,
@@ -57,6 +57,7 @@ export class DimensionConverter {
       }
     });
   }
+
   convertDimension(
     bimTable: BimTable,
     bimModel: BimModel,
@@ -74,8 +75,8 @@ export class DimensionConverter {
         ? SMLDimensionType.Time
         : SMLDimensionType.Standard,
       description: descriptionAsString(bimTable.description),
-      hierarchies: [], // TODO: use normal dimension instead of degenerate dimensions
-      level_attributes: new Array<SMLLevelFromOneDataset>(), // TODO: it doesn't like when I just use []
+      hierarchies: [],
+      level_attributes: new Array<SMLLevelFromOneDataset>(),
     } satisfies SMLNormalDimension;
 
     const joinColumns: Array<string> = listRelationshipColumns(
@@ -137,7 +138,7 @@ export class DimensionConverter {
 
     result.dimensions.push(dimension);
   }
-  
+
   // Used when hierarchies are defined in the BIM file. Returns {str1: <leaf unique_name>, str2: ""}
   convertHierarchy(
     bimTable: BimTable,
@@ -186,8 +187,8 @@ export class DimensionConverter {
     }
     dimension.hierarchies.push(hierarchy);
   }
-  // Called when bim table doesn't define a hierarchy. Returns {str1: <leaf name>, str2: ""}
 
+  // Called when bim table doesn't define a hierarchy. Returns {str1: <leaf name>, str2: ""}
   createDefaultHierarchy(
     bimTable: BimTable,
     bimHierarchy: BimTableHierarchy,
@@ -237,9 +238,9 @@ export class DimensionConverter {
     });
     dimension.hierarchies.push(hierarchy);
   }
+
   // Adds level to hierarchy along with level_attribute
   // Note: In BIM a hierarchy level can have a different name and column while in a BIM column there is only 1 value
-
   convertAndAddLevel(
     bimColumnDetail: BimColumnDetail,
     levelToAdd: BimTableHierarchyLevel, // Used for levels defined in hierarchies
@@ -262,18 +263,18 @@ export class DimensionConverter {
         attrNameMap,
         default_level_unique_name,
         false,
-        this.logger
-      ); // levelToAdd.name
+        this.logger,
+      );
       if (existingName) {
         // Create new attribute for this level since it uses a different column from other attribute with same name
         level_unique_name = createUniqueAttrName(
           attrNameMap,
           levelToAdd.column,
-          default_level_unique_name, // levelToAdd.name,
+          default_level_unique_name,
           "level attribute",
           bimColumnDetail.table.name,
           "",
-          this.logger
+          this.logger,
         );
       } else {
         attrNameMap.set(level_unique_name.toLowerCase(), [
@@ -331,6 +332,7 @@ export class DimensionConverter {
       is_unique_key: bimColumnDetail.column?.isKey,
     });
   }
+
   convertSecondaryAttribute(
     bimTable: BimTable,
     bimColumn: BimTableColumn,
@@ -347,7 +349,7 @@ export class DimensionConverter {
       attrNameMap,
       default_attr_name,
       false,
-      this.logger
+      this.logger,
     );
     if (!attribute_unique_name) {
       attribute_unique_name = createUniqueAttrName(
@@ -439,6 +441,7 @@ export class DimensionConverter {
       }
     });
   }
+
   convertTimeUnit(levelName: string): SMLDimensionTimeUnit {
     if (levelName.toLowerCase().includes("day"))
       return SMLDimensionTimeUnit.Day;

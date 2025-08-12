@@ -140,7 +140,6 @@ function orderDimensions(result: SmlConverterResult) {
 
         // Secondary attributes
         const attributes = level.secondary_attributes;
-        // if (result.dimensions[di].hierarchies[hi].levels[li].secondary_attributes) {
         if (attributes) {
           for (let si = 0; si < attributes.length; si++) {
             const secondaryObjectOrder = {

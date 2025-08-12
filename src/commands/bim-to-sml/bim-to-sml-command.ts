@@ -7,9 +7,8 @@ import { SmlConverterResult } from "../../shared/sml-convert-result";
 import { BimToYamlConverter } from "./bim-converter/bim-to-sml-converter";
 
 export class BimToSmlCommand extends Command {
-  static summary = "Converts Power BI to SML";
-  static description = `
-  `;
+  static summary = "Converts a Power BI Model to SML";
+  static description = ` `;
 
   static flags = {
     source: Flags.directory({
@@ -34,7 +33,7 @@ export class BimToSmlCommand extends Command {
   static examples = [
     "<%= config.bin %> <%= command.id %>",
     "<%= config.bin %> <%= command.id %> --clean",
-    "<%= config.bin %> <%= command.id %> -source ./bim-source-path -output ./sml-output-path",
+    "<%= config.bin %> <%= command.id %> --source=./bim-source-path --output=./sml-output-path",
     "<%= config.bin %> <%= command.id %> -s ./bim-source-path -o ./sml-output-path",
     "<%= config.bin %> <%= command.id %> -s ./bim-source-path -o ./sml-output-path --clean",
   ];
