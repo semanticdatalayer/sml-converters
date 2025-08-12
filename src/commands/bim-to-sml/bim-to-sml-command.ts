@@ -28,6 +28,11 @@ export class BimToSmlCommand extends Command {
       required: false,
       default: false,
     }),
+    asConnection: Flags.string({
+      description: "External Connection ID for the Data Source to be used",
+      required: false,
+      default: "snowflake",
+    }),
   };
 
   static examples = [
@@ -44,10 +49,11 @@ export class BimToSmlCommand extends Command {
       sourcePath: flags.source,
       outputPath: flags.output,
       clean: flags.clean,
+      asConnection: flags.asConnection,
     });
   }
 
-  protected async convert(input: convertInput) {
+  protected async convert(input: convertInput & { asConnection: string }) {
     const logger = CommandLogger.for(this);
     const { absoluteOutputPath, absoluteSourcePath } = await parseInputFile(
       input,
@@ -65,7 +71,7 @@ export class BimToSmlCommand extends Command {
 
     const bimConverter = new BimToYamlConverter(logger);
 
-    const smlResult = await bimConverter.convert(bimParsedFile, "snowflake");
+    const smlResult = await bimConverter.convert(bimParsedFile, input.asConnection);
 
     logger.info(`SML objects are prepared`);
     await SmlResultWriter.create(logger).persist(absoluteOutputPath, smlResult);
