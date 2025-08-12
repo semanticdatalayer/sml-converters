@@ -8,7 +8,7 @@ import { CortexConverterResult } from "../cortex-models/CortexConverterResult";
 import { convertSmlModelToCortexModel } from "./snow-converter";
 import { CortexModel } from "../cortex-models/CortexModel";
 
-export default class CortexConverter {
+export class CortexConverter {
   private logger: Logger;
 
   constructor(logger: Logger) {
