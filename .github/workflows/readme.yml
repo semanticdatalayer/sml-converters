@@ -1,0 +1,48 @@
+name: "Generate :: oclif README"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: "Generate :: oclif README"
+    steps:
+      - name: "Git :: Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Setup :: Git"
+        run: |
+          git config --global user.email ${{ secrets.GH_EMAIL }}
+          git config --global user.name ${{ secrets.GH_USERNAME }}
+
+      - name: "Setup :: Node"
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: "Setup :: PNPM"
+        uses: pnpm/action-setup@v3
+        with:
+          version: latest
+          run_install: false
+
+      - name: "PNPM :: Install"
+        run: pnpm install
+
+      - name: "Generate :: oclif README"
+        run: |
+          pnpm exec oclif readme
+          if [ -n "$(git status --porcelain)" ]; then
+            git add README.md
+            git commit -m "chore: update README.md"
+            git push origin HEAD:main
+          fi
