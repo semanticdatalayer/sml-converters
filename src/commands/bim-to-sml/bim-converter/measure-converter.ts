@@ -496,7 +496,7 @@ export class MeasureConverter {
           return newCalc;
         } catch (e) {
           const msg = errorUtil.getErrorMessage(e);
-          console.log(`ERROR message: ${msg}`);
+          this.logger.error(msg);
         }
       }
     }
@@ -587,7 +587,7 @@ export class MeasureConverter {
                 return newCalc;
               } catch (e) {
                 const msg = errorUtil.getErrorMessage(e);
-                console.log(`ERROR message: ${msg}`);
+                this.logger.error(msg);
               }
             }
           }

@@ -3,7 +3,7 @@ import { BimFileParser } from "./bim-file-parser";
 import { CommandLogger } from "../../shared/command-logger";
 import { SmlResultWriter } from "../../shared/sml-result-writer";
 import { parseInputFile, convertInput } from "../../shared/file-system-util";
-import { SmlConverterResult } from "../../shared/sml-convert-result";
+import { logSmlConverterResult } from "../../shared/sml-convert-result";
 import { BimToYamlConverter } from "./bim-converter/bim-to-sml-converter";
 
 export class BimToSmlCommand extends Command {
@@ -28,10 +28,11 @@ export class BimToSmlCommand extends Command {
       required: false,
       default: false,
     }),
-    asConnection: Flags.string({
-      description: "External Connection ID for the Data Source to be used",
+    atscaleConnectionId: Flags.string({
+      description:
+        "AtScale connection id. The connection id of the data warehouse in AtScale.",
       required: false,
-      default: "snowflake",
+      default: "con1",
     }),
   };
 
@@ -41,6 +42,7 @@ export class BimToSmlCommand extends Command {
     "<%= config.bin %> <%= command.id %> --source=./bim-source-path --output=./sml-output-path",
     "<%= config.bin %> <%= command.id %> -s ./bim-source-path -o ./sml-output-path",
     "<%= config.bin %> <%= command.id %> -s ./bim-source-path -o ./sml-output-path --clean",
+    "<%= config.bin %> <%= command.id %> -s ./bim-source-path -o ./sml-output-path --atscaleConnectionId=con1 --clean",
   ];
 
   async run() {
@@ -49,11 +51,13 @@ export class BimToSmlCommand extends Command {
       sourcePath: flags.source,
       outputPath: flags.output,
       clean: flags.clean,
-      asConnection: flags.asConnection,
+      atscaleConnectionId: flags.atscaleConnectionId,
     });
   }
 
-  protected async convert(input: convertInput & { asConnection: string }) {
+  protected async convert(
+    input: convertInput & { atscaleConnectionId: string },
+  ) {
     const logger = CommandLogger.for(this);
     const { absoluteOutputPath, absoluteSourcePath } = await parseInputFile(
       input,
@@ -71,19 +75,15 @@ export class BimToSmlCommand extends Command {
 
     const bimConverter = new BimToYamlConverter(logger);
 
-    const smlResult = await bimConverter.convert(bimParsedFile, input.asConnection);
+    const smlResult = await bimConverter.convert(
+      bimParsedFile,
+      input.atscaleConnectionId,
+    );
 
     logger.info(`SML objects are prepared`);
     await SmlResultWriter.create(logger).persist(absoluteOutputPath, smlResult);
 
     logger.info(`SML file persisted at ${absoluteOutputPath}`);
-    logger.info(`Summary of SML objects created`);
-
-    Object.keys(smlResult).forEach((smlObjectType) => {
-      const value = smlResult[smlObjectType as keyof SmlConverterResult];
-      if (Array.isArray(value)) {
-        logger.info(`${smlObjectType}: ${value.length}`);
-      }
-    });
+    logSmlConverterResult(smlResult, logger);
   }
 }

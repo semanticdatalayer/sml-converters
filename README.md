@@ -31,14 +31,82 @@ USAGE
 # Commands
 
 <!-- commands -->
-- [sml-converters](#sml-converters)
-- [Usage](#usage)
-- [Commands](#commands)
-  - [`sml-converters dbt-to-sml`](#sml-converters-dbt-to-sml)
-  - [`sml-converters sml-to-cortex`](#sml-converters-sml-to-cortex)
-  - [`sml-converters add-files-to-snowflake`](#sml-converters-add-files-to-snowflake)
-  - [`sml-converters help [COMMAND]`](#sml-converters-help-command)
-- [License](#license)
+* [`sml-converters add-files-to-snowflake`](#sml-converters-add-files-to-snowflake)
+* [`sml-converters bim-to-sml`](#sml-converters-bim-to-sml)
+* [`sml-converters dbt-to-sml`](#sml-converters-dbt-to-sml)
+* [`sml-converters help [COMMAND]`](#sml-converters-help-command)
+* [`sml-converters sml-to-cortex`](#sml-converters-sml-to-cortex)
+
+## `sml-converters add-files-to-snowflake`
+
+Add converted Snowflake Cortex Analyst yaml to Snowflake
+
+```
+USAGE
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator <value> --snowflakeAccount <value> --snowflakeDatabase
+    <value> --snowflakeSchema <value> [--source <value>] [--snowflakeStage <value>] [--snowflakeWarehouse <value>]
+    [--snowflakeRole <value>]
+
+FLAGS
+  --snowflakeAccount=<value>        (required) Snowflake account identifier
+  --snowflakeAuthenticator=<value>  (required) [default: SNOWFLAKE] Snowflake authenticator type
+  --snowflakeDatabase=<value>       (required) Snowflake database name
+  --snowflakeRole=<value>           Snowflake role to use for the connection
+  --snowflakeSchema=<value>         (required) Snowflake schema name
+  --snowflakeStage=<value>          Snowflake stage name for uploading files
+  --snowflakeWarehouse=<value>      Snowflake warehouse name
+  --source=<value>                  [default: ./] Source folder
+
+DESCRIPTION
+  Add converted Snowflake Cortex Analyst yaml to Snowflake
+
+  Snowflake authentication can be found in .env.example. Types of snowflakeAuthenticator will have different
+  requirements.
+  Please read the README.md file to see how to use certain authentication methods.
+  Or see https://docs.snowflake.com/en/developer-guide/node-js/nodejs-driver-authenticate for what parameters must be
+  set.
+
+EXAMPLES
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE
+
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=EXTERNALBROWSER
+
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE_JWT
+```
+
+## `sml-converters bim-to-sml`
+
+Converts a Power BI Model to SML
+
+```
+USAGE
+  $ sml-converters bim-to-sml [--source <value>] [--output <value>] [--clean] [--atscaleConnectionId <value>]
+
+FLAGS
+  --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in
+                                 AtScale.
+  --clean                        Clean the output folder contents without the .git folder
+  --output=<value>               [default: ./bim_output] Output folder
+  --source=<value>               [default: ./] Source folder
+
+DESCRIPTION
+  Converts a Power BI Model to SML
+
+
+
+EXAMPLES
+  $ sml-converters bim-to-sml
+
+  $ sml-converters bim-to-sml --clean
+
+  $ sml-converters bim-to-sml --source=./bim-source-path --output=./sml-output-path
+
+  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path
+
+  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path --clean
+
+  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path --atscaleConnectionId=con1 --clean
+```
 
 ## `sml-converters dbt-to-sml`
 
@@ -51,7 +119,8 @@ USAGE
     <value>] [--clean]
 
 FLAGS
-  --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in AtScale.
+  --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in
+                                 AtScale.
   --clean                        Clean the output folder contents without the .git folder
   --database=<value>             [default: sample-db] Database name
   --dbType=<option>              [default: snowflake] Data Warehouse type
@@ -77,85 +146,6 @@ EXAMPLES
 
   $ sml-converters dbt-to-sml -s ./dbt-source-path -o ./sml-output-path --clean
 ```
-## `sml-converters sml-to-cortex`
-
-Converts SML to Snowflake Cortex
-
-```
-USAGE
-  $ sml-converters sml-to-cortex [--source <value>] [--output <value>] [--clean]
-
-FLAGS
-  --clean                        Clean the output folder contents without the .git folder
-  --output=<value>               [default: ./cortex_output/] Output folder
-  --source=<value>               [default: ./] Source folder
-
-DESCRIPTION
-  Converts SML to Snowflake Cortex
-
-
-EXAMPLES
-  $ sml-converters sml-to-cortex
-
-  $ sml-converters sml-to-cortex --clean
-
-  $ sml-converters sml-to-cortex -source ./sml-source-path -output ./cortex-output-path
-
-  $ sml-converters sml-to-cortex -s ./sml-source-path -o ./cortex-output-path
-
-  $ sml-converters sml-to-cortex -s ./sml-source-path -o ./dbt-output-path --clean
-
-```
-
-## `sml-converters add-files-to-snowflake`
-
-Add converted Snowflake Cortex Analyst yaml to Snowflake
-
-```
-USAGE
-  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator
-    OAUTH|SNOWFLAKE|EXTERNALBROWSER|SNOWFLAKE_JWT|USERNAME_PASSWORD_MFA|PROGRAMMATIC_ACCESS_TOKEN|
-    *.okta.com|OAUTH_AUTHORIZATION_CODE|OAUTH_CLIENT_CREDENTIALS --snowflakeAccount <value> 
-    --snowflakeDatabase <value> --snowflakeSchema <value> [--source <value>] [--snowflakeStage <value>]
-    [--snowflakeWarehouse <value>] [--snowflakeRole <value>]
-
-FLAGS
-  --snowflakeAccount=<value>         (required) Snowflake account identifier
-  --snowflakeAuthenticator=<option>  (required) [default: SNOWFLAKE] Snowflake authenticator type
-                                     <options: SNOWFLAKE|EXTERNALBROWSER|SNOWFLAKE_JWT|USERNAME_PASSWORD_MFA|PROGRAMMATIC_ACCESS_TOKEN|*.okta.com|OAUTH|>
-  --snowflakeDatabase=<value>        (required) Snowflake database name
-  --snowflakeRole=<value>            Snowflake role to use for the connection
-  --snowflakeSchema=<value>          (required) Snowflake schema name
-  --snowflakeStage=<value>           Snowflake stage name for uploading files
-  --snowflakeWarehouse=<value>       Snowflake warehouse name
-  --source=<value>                   [default: ./] Source folder
-
-DESCRIPTION
-  Snowflake authentication example can be found in .env.example. Types of SNOWFLAKE_AUTH will have different requirements.
-
-EXAMPLES
-  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE
-
-  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=EXTERNALBROWSER
-
-  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE_JWT
-```
-
-### REQUIRED ENV VARIABLES FOR AUTH TYPE
-| Authenticator | Required Environment Variables |
-|---------------|-------------------------------|
-| `SNOWFLAKE` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD` |
-| `EXTERNALBROWSER` | *(none - uses browser)* |
-| `SNOWFLAKE_JWT` | `SNOWFLAKE_PRIVATE_KEY_PATH`, `SNOWFLAKE_PRIVATE_KEY_PASS`(Only if rs8 file is encrypted) |
-| `USERNAME_PASSWORD_MFA` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD`, `SNOWFLAKE_PASSCODE` |
-| `*.okta.com` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD` |
-| `OAUTH` | `SNOWFLAKE_TOKEN` |
-| `PROGRAMMATIC_ACCESS_TOKEN` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD` |
-
-### Not yet supported
-`OAUTH_AUTHORIZATION_CODE` `OAUTH_CLIENT_CREDENTIALS`
-
-For more help go to  [https://docs.snowflake.com/en/developer-guide/node-js/nodejs-driver-authenticate](https://docs.snowflake.com/en/developer-guide/node-js/nodejs-driver-authenticate) for what parameters must be set
 
 ## `sml-converters help [COMMAND]`
 
@@ -175,7 +165,35 @@ DESCRIPTION
   Display help for sml-converters.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.28/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.31/src/commands/help.ts)_
+
+## `sml-converters sml-to-cortex`
+
+Convert from SML to Snowflake Cortex Analyst yaml
+
+```
+USAGE
+  $ sml-converters sml-to-cortex [--source <value>] [--output <value>] [--clean]
+
+FLAGS
+  --clean           Clean the output folder contents without the .git folder
+  --output=<value>  [default: ./cortex_output/] Directory in which to write cortex yaml output file(s)
+  --source=<value>  [default: ./] Source folder
+
+DESCRIPTION
+  Convert from SML to Snowflake Cortex Analyst yaml
+
+EXAMPLES
+  $ sml-converters sml-to-cortex 
+
+  $ sml-converters sml-to-cortex --clean
+
+  $ sml-converters sml-to-cortex --source=./sml-source-path --output=./cortex-output-path
+
+  $ sml-converters sml-to-cortex -s ./sml-source-path -o ./cortex-output-path
+
+  $ sml-converters sml-to-cortex -s ./sml-source-path -o ./cortex-output-path --clean
+```
 <!-- commandsstop -->
 
 # License
