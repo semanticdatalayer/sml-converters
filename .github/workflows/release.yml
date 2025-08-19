@@ -1,0 +1,35 @@
+name: "Release :: Workflow"
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    name: "Release :: Workflow"
+    steps:
+      - name: "Git :: Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Setup :: Node"
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      - name: "PNPM :: Install"
+        run: pnpm install
+
+      - name: "PNPM :: Build"
+        run: pnpm run build
+
+      - name: "PNPM :: Prepack"
+        run: pnpm run prepack
+
+      - name: "Setup :: JS-DevTools"
+        uses: JS-DevTools/npm-publish@19c28f1ef146469e409470805ea4279d47c3d35c
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+
+      - name: "PNPM :: Postpack"
+        run: pnpm run postpack
