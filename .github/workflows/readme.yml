@@ -36,6 +36,9 @@ jobs:
       - name: "PNPM :: Install"
         run: pnpm install
 
+      - name: "PNPM :: Build"
+        run: pnpm run build
+
       - name: "Generate :: oclif README"
         id: generate
         run: |
