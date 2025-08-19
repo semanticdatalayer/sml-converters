@@ -1,7 +1,6 @@
 name: "Generate :: oclif README"
 
 on:
-  workflow_dispatch:
   push:
     branches: [main]
     paths-ignore:
@@ -58,8 +57,9 @@ jobs:
 
       - name: "Git :: Commit"
         if: steps.generate.outputs.changes == 'true'
-        uses: actions-js/push@master
+        uses: tyriis/multi-file-commit@v0.3.14
         with:
-          github_token: ${{ steps.get_github_pat.outputs.token }}
-          branch: main 
-          message: "CI: update README.md"   
+          token: ${{ steps.get_github_pat.outputs.token }}
+          ref: main 
+          message: "CI: update README.md"
+          files: 'README.md'   
