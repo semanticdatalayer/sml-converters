@@ -58,8 +58,9 @@ jobs:
 
       - name: "Git :: Commit"
         if: steps.generate.outputs.changes == 'true'
-        uses: actions-js/push@master
+        uses: AtScaleInc/shared-actions/common/git/commit@main
         with:
-          github_token: ${{ steps.get_github_pat.outputs.token }}
-          branch: main 
-          message: "CI: update README.md"   
+          token: ${{ steps.get_github_pat.outputs.token }}
+          ref: main 
+          message: "CI: update README.md"
+          files: 'README.md'   
