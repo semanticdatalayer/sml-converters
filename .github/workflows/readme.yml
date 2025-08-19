@@ -58,7 +58,7 @@ jobs:
 
       - name: "Git :: Commit"
         if: steps.generate.outputs.changes == 'true'
-        uses: AtScaleInc/shared-actions/common/git/commit@main
+        uses: tyriis/multi-file-commit@v0.3.14
         with:
           token: ${{ steps.get_github_pat.outputs.token }}
           ref: main 
