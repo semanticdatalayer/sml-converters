@@ -7,9 +7,6 @@ on:
     paths-ignore:
       - 'README.md'
 
-permissions:
-  contents: write
-
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -26,8 +23,16 @@ jobs:
           application_private_key: ${{ secrets.SEMANTIC_AUTOMATE_CLIENT_SECRET }}
           organization: semanticdatalayer
 
+      - name: "Setup :: PNPM"
+        uses: pnpm/action-setup@v3
+        with:
+          version: latest
+      
       - name: "Setup :: Node"
         uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
 
       - name: "PNPM :: Install"
         run: pnpm install
