@@ -1,0 +1,65 @@
+name: "Generate :: oclif README"
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+
+permissions:
+  checks: write
+  contents: write
+  packages: write
+  id-token: write
+  actions: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: "Generate :: oclif README"
+    steps:
+      - name: "Git :: Checkout"
+        uses: actions/checkout@v4
+
+      - name: 'Git :: Get Token'
+        id: get_github_pat
+        uses: peter-murray/workflow-application-token-action@v2
+        with:
+          application_id: ${{ secrets.SEMANTIC_AUTOMATE_CLIENT_ID }}
+          application_private_key: ${{ secrets.SEMANTIC_AUTOMATE_CLIENT_SECRET }}
+          organization: semanticdatalayer
+
+      - name: "Setup :: PNPM"
+        uses: pnpm/action-setup@v3
+        with:
+          version: latest
+      
+      - name: "Setup :: Node"
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: "PNPM :: Install"
+        run: pnpm install
+
+      - name: "PNPM :: Build"
+        run: pnpm run build
+
+      - name: "Generate :: oclif README"
+        id: generate
+        run: |
+          pnpm exec oclif readme
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: "Git :: Commit"
+        if: steps.generate.outputs.changes == 'true'
+        uses: tyriis/multi-file-commit@v0.3.14
+        with:
+          token: ${{ steps.get_github_pat.outputs.token }}
+          ref: main 
+          message: "CI: update README.md"
+          files: 'README.md'   
