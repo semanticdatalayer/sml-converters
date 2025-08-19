@@ -7,6 +7,13 @@ on:
     paths-ignore:
       - 'README.md'
 
+permissions:
+  checks: write
+  contents: write
+  packages: write
+  id-token: write
+  actions: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
