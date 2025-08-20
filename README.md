@@ -73,8 +73,6 @@ FLAGS
 DESCRIPTION
   Converts a Power BI Model to SML
 
-
-
 EXAMPLES
   $ sml-converters bim-to-sml
 
@@ -113,9 +111,6 @@ FLAGS
 DESCRIPTION
   Converts DBT to SML
 
-
-
-
 EXAMPLES
   $ sml-converters dbt-to-sml
 
@@ -127,8 +122,6 @@ EXAMPLES
 
   $ sml-converters dbt-to-sml -s ./dbt-source-path -o ./sml-output-path --clean
 ```
-
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.32/src/commands/help.ts)_
 
 ## `sml-converters sml-to-cortex`
 
