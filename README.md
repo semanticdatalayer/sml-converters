@@ -32,7 +32,7 @@ USAGE
 
 <!-- commands -->
 * [`sml-converters help [COMMAND]`](#sml-converters-help-command)
-* [`sml-converters bim-to-sml`](#sml-converters-bim-to-sml)
+* [`sml-converters bim-to-sml`](#sml-converters-bim-to-sml) (Power BI)
 * [`sml-converters dbt-to-sml`](#sml-converters-dbt-to-sml)
 * [`sml-converters sml-to-cortex`](#sml-converters-sml-to-cortex)
 * [`sml-converters add-files-to-snowflake`](#sml-converters-add-files-to-snowflake)
