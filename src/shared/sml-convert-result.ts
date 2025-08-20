@@ -9,10 +9,11 @@ import {
   SMLNormalDimension,
   SMLObject,
   SMLRowSecurity,
-  SMLCompositeModel
+  SMLCompositeModel,
 } from "sml-sdk";
 
 import Guard from "./guard";
+import { Logger } from "./logger";
 
 export interface SmlConverterResult {
   connections: Array<SMLConnection>;
@@ -24,6 +25,19 @@ export interface SmlConverterResult {
   compositeModels: Array<SMLCompositeModel>;
   rowSecurity: Array<SMLRowSecurity>;
   catalog: SMLCatalog;
+}
+
+export function logSmlConverterResult(
+  smlResult: SmlConverterResult,
+  logger: Logger,
+): void {
+  logger.info(`Summary of SML objects created`);
+  Object.keys(smlResult).forEach((smlObjectType) => {
+    const value = smlResult[smlObjectType as keyof SmlConverterResult];
+    if (Array.isArray(value)) {
+      logger.info(`${smlObjectType}: ${value.length}`);
+    }
+  });
 }
 
 export class SmlConvertResultBuilder {
@@ -110,7 +124,7 @@ export class SmlConvertResultBuilder {
   addCompositeModel(compModel: SMLCompositeModel) {
     this.addObjectToArray(this._compositeModels, compModel);
   }
-  
+
   addRowSecurity(rowSecurity: SMLRowSecurity) {
     this.addObjectToArray(this._rowSecurity, rowSecurity);
   }

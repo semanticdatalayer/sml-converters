@@ -5,7 +5,7 @@ import { DbtConverter } from "./dbt-converter/dbt-converter";
 import { DWType } from "../../shared/dw-types";
 import { SmlResultWriter } from "../../shared/sml-result-writer";
 import { parseInput, convertInput } from "../../shared/file-system-util";
-import { SmlConverterResult } from "../../shared/sml-convert-result";
+import { logSmlConverterResult } from "../../shared/sml-convert-result";
 import { enumUtil } from "../../shared/enum-util";
 import { IDbtConverterInput } from "./model";
 
@@ -85,7 +85,7 @@ export class DbtToSmlCommand extends Command {
     const { absoluteOutputPath, absoluteSourcePath } = await parseInput(
       input,
       logger,
-      this
+      this,
     );
 
     logger.info(`Reading dbt from ${absoluteSourcePath}`);
@@ -104,13 +104,6 @@ export class DbtToSmlCommand extends Command {
     await SmlResultWriter.create(logger).persist(absoluteOutputPath, smlResult);
 
     logger.info(`SML file persisted at ${absoluteOutputPath}`);
-    logger.info(`Summary of SML objects created`);
-
-    Object.keys(smlResult).forEach((smlObjectType) => {
-      const value = smlResult[smlObjectType as keyof SmlConverterResult];
-      if (Array.isArray(value)) {
-        logger.info(`${smlObjectType}: ${value.length}`);
-      }
-    });
+    logSmlConverterResult(smlResult, logger);
   }
 }

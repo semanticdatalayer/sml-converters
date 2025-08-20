@@ -32,6 +32,7 @@ USAGE
 
 <!-- commands -->
 * [`sml-converters add-files-to-snowflake`](#sml-converters-add-files-to-snowflake)
+* [`sml-converters bim-to-sml`](#sml-converters-bim-to-sml)
 * [`sml-converters dbt-to-sml`](#sml-converters-dbt-to-sml)
 * [`sml-converters help [COMMAND]`](#sml-converters-help-command)
 * [`sml-converters sml-to-cortex`](#sml-converters-sml-to-cortex)
@@ -71,6 +72,40 @@ EXAMPLES
   $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=EXTERNALBROWSER
 
   $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE_JWT
+```
+
+## `sml-converters bim-to-sml`
+
+Converts a Power BI Model to SML
+
+```
+USAGE
+  $ sml-converters bim-to-sml [--source <value>] [--output <value>] [--clean] [--atscaleConnectionId <value>]
+
+FLAGS
+  --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in
+                                 AtScale.
+  --clean                        Clean the output folder contents without the .git folder
+  --output=<value>               [default: ./bim_output] Output folder
+  --source=<value>               [default: ./] Source folder
+
+DESCRIPTION
+  Converts a Power BI Model to SML
+
+
+
+EXAMPLES
+  $ sml-converters bim-to-sml
+
+  $ sml-converters bim-to-sml --clean
+
+  $ sml-converters bim-to-sml --source=./bim-source-path --output=./sml-output-path
+
+  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path
+
+  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path --clean
+
+  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path --atscaleConnectionId=con1 --clean
 ```
 
 ## `sml-converters dbt-to-sml`
@@ -130,7 +165,7 @@ DESCRIPTION
   Display help for sml-converters.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.32/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.31/src/commands/help.ts)_
 
 ## `sml-converters sml-to-cortex`
 
