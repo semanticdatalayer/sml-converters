@@ -37,41 +37,22 @@ USAGE
 * [`sml-converters sml-to-cortex`](#sml-converters-sml-to-cortex)
 * [`sml-converters add-files-to-snowflake`](#sml-converters-add-files-to-snowflake)
 
-## `sml-converters add-files-to-snowflake`
+## `sml-converters help [COMMAND]`
 
-Add converted Snowflake Cortex Analyst yaml to Snowflake
+Display help for sml-converters.
 
 ```
 USAGE
-  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator <value> --snowflakeAccount <value> --snowflakeDatabase
-    <value> --snowflakeSchema <value> [--source <value>] [--snowflakeStage <value>] [--snowflakeWarehouse <value>]
-    [--snowflakeRole <value>]
+  $ sml-converters help [COMMAND...] [-n]
+
+ARGUMENTS
+  COMMAND...  Command to show help for.
 
 FLAGS
-  --snowflakeAccount=<value>        (required) Snowflake account identifier
-  --snowflakeAuthenticator=<value>  (required) [default: SNOWFLAKE] Snowflake authenticator type
-  --snowflakeDatabase=<value>       (required) Snowflake database name
-  --snowflakeRole=<value>           Snowflake role to use for the connection
-  --snowflakeSchema=<value>         (required) Snowflake schema name
-  --snowflakeStage=<value>          Snowflake stage name for uploading files
-  --snowflakeWarehouse=<value>      Snowflake warehouse name
-  --source=<value>                  [default: ./] Source folder
+  -n, --nested-commands  Include all nested commands in the output.
 
 DESCRIPTION
-  Add converted Snowflake Cortex Analyst yaml to Snowflake
-
-  Snowflake authentication can be found in .env.example. Types of snowflakeAuthenticator will have different
-  requirements.
-  Please read the README.md file to see how to use certain authentication methods.
-  Or see https://docs.snowflake.com/en/developer-guide/node-js/nodejs-driver-authenticate for what parameters must be
-  set.
-
-EXAMPLES
-  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE
-
-  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=EXTERNALBROWSER
-
-  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE_JWT
+  Display help for sml-converters.
 ```
 
 ## `sml-converters bim-to-sml`
@@ -147,24 +128,6 @@ EXAMPLES
   $ sml-converters dbt-to-sml -s ./dbt-source-path -o ./sml-output-path --clean
 ```
 
-## `sml-converters help [COMMAND]`
-
-Display help for sml-converters.
-
-```
-USAGE
-  $ sml-converters help [COMMAND...] [-n]
-
-ARGUMENTS
-  COMMAND...  Command to show help for.
-
-FLAGS
-  -n, --nested-commands  Include all nested commands in the output.
-
-DESCRIPTION
-  Display help for sml-converters.
-```
-
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.32/src/commands/help.ts)_
 
 ## `sml-converters sml-to-cortex`
@@ -194,6 +157,44 @@ EXAMPLES
 
   $ sml-converters sml-to-cortex -s ./sml-source-path -o ./cortex-output-path --clean
 ```
+
+## `sml-converters add-files-to-snowflake`
+
+Add converted Snowflake Cortex Analyst yaml to Snowflake
+
+```
+USAGE
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator <value> --snowflakeAccount <value> --snowflakeDatabase
+    <value> --snowflakeSchema <value> [--source <value>] [--snowflakeStage <value>] [--snowflakeWarehouse <value>]
+    [--snowflakeRole <value>]
+
+FLAGS
+  --snowflakeAccount=<value>        (required) Snowflake account identifier
+  --snowflakeAuthenticator=<value>  (required) [default: SNOWFLAKE] Snowflake authenticator type
+  --snowflakeDatabase=<value>       (required) Snowflake database name
+  --snowflakeRole=<value>           Snowflake role to use for the connection
+  --snowflakeSchema=<value>         (required) Snowflake schema name
+  --snowflakeStage=<value>          Snowflake stage name for uploading files
+  --snowflakeWarehouse=<value>      Snowflake warehouse name
+  --source=<value>                  [default: ./] Source folder
+
+DESCRIPTION
+  Add converted Snowflake Cortex Analyst yaml to Snowflake
+
+  Snowflake authentication can be found in .env.example. Types of snowflakeAuthenticator will have different
+  requirements.
+  Please read the README.md file to see how to use certain authentication methods.
+  Or see https://docs.snowflake.com/en/developer-guide/node-js/nodejs-driver-authenticate for what parameters must be
+  set.
+
+EXAMPLES
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE
+
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=EXTERNALBROWSER
+
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE_JWT
+```
+
 <!-- commandsstop -->
 
 # License
