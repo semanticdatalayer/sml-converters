@@ -17,7 +17,19 @@ import {
 } from "../bim-models/bim-model";
 import { Constants } from "../bim-models/constants";
 import { AttributeMaps, TableLists } from "../bim-models/types-and-interfaces";
-import { colsUsedByTbl, doCreateSummary, shortAggFn } from "./converter-utils";
+import {
+  convertDaxToMDX,
+  getTableColumnFromDax,
+  replaceUsedMeasures,
+} from "./ai-dax-converter";
+import {
+  colsUsedByTbl,
+  doCreateSummary,
+  listRelationshipColumns,
+  shortAggFn,
+} from "./converter-utils";
+import { DaxTokenizer, FunctionToken, getMeasureName } from "./dax-converter";
+import { DimensionConverter } from "./dimension-converter";
 import {
   aggFunctionAtStart,
   initialMetric,
@@ -39,8 +51,12 @@ import {
 
 export class MeasureConverter {
   private logger: Logger;
-  constructor(logger: Logger) {
+  private llmName?: string;
+  private usedColumnsInDax: Set<string> = new Set();
+
+  constructor(logger: Logger, llmName?: string) {
     this.logger = logger;
+    this.llmName = llmName;
   }
 
   // If a calc uses an agg function and that's the only thing in the expression,
@@ -414,7 +430,7 @@ export class MeasureConverter {
     return measureUniqueName;
   }
 
-  metricFromCalc(
+  async metricFromCalc(
     bim: BimRoot,
     bimMeasure: BimMeasure,
     bimTable: BimTable,
@@ -422,7 +438,7 @@ export class MeasureConverter {
     attrMaps: AttributeMaps,
     rawCalcs: Set<string>,
     tableLists: TableLists,
-  ): SMLMetricCalculated | undefined {
+  ): Promise<SMLMetricCalculated | undefined> {
     let smlMetric: SMLMetricCalculated | undefined = this.convertDivideCalc(
       bim,
       bimMeasure,
@@ -441,7 +457,17 @@ export class MeasureConverter {
         tableLists.unusedTables,
       );
     if (!smlMetric) {
-      smlMetric = this.convertCalculatedMeasure(
+      smlMetric = await this.convertDaxMeasureWithAI(
+        bim,
+        bimMeasure,
+        bimTable.name,
+        result,
+        attrMaps,
+        tableLists,
+      );
+    }
+    if (!smlMetric) {
+      smlMetric = await this.convertCalculatedMeasure(
         bimTable,
         bimMeasure,
         rawCalcs,
@@ -597,12 +623,13 @@ export class MeasureConverter {
     return undefined;
   }
 
-  convertCalculatedMeasure(
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async convertCalculatedMeasure(
     bimTable: BimTable,
     bimMeasure: BimMeasure,
     rawCalcs: Set<string>,
     attrNameMap: Map<string, string[]>,
-  ): SMLMetricCalculated {
+  ): Promise<SMLMetricCalculated> {
     const calc_unique_name = createUniqueAttrName(
       attrNameMap,
       bimMeasure.name,
@@ -629,6 +656,115 @@ export class MeasureConverter {
 
     rawCalcs.add(bimMeasure.name);
     return measure;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async convertDaxMeasureWithAI(
+    bim: BimRoot,
+    meas: BimMeasure,
+    tableName: string,
+    result: SmlConverterResult,
+    attrMaps: AttributeMaps,
+    tableLists: TableLists,
+  ): Promise<SMLMetricCalculated | undefined> {
+    if (this.llmName) {
+      try {
+        let mdxExpression = await convertDaxToMDX(
+          removeComments(expressionAsString(meas.expression)),
+          this.llmName,
+          this.logger,
+        );
+
+        if (!mdxExpression) {
+          // It's empty, meaning low confidence and did not send conversion
+          return undefined;
+        }
+        const usedTableColumns: Set<[string, string]> = getTableColumnFromDax(
+          meas.expression,
+        );
+        for (const [tbl, col] of usedTableColumns) {
+          // Add columns not in a used dimension as a degenerate dimension
+          tableLists.degenDims.add(`${tbl}:${col}`);
+        }
+
+        const daxTokenizer = new DaxTokenizer();
+        const tokens = daxTokenizer.tokenize(
+          expressionAsString(meas.expression),
+        );
+        const functionTokens = daxTokenizer.getAllInstanceOf(
+          FunctionToken,
+          tokens,
+        );
+        for (const func of functionTokens) {
+          getMeasureName(
+            bim,
+            func,
+            tableName,
+            result,
+            attrMaps,
+            tableLists.unusedTables,
+            this,
+          );
+        }
+
+        const { usedMeasures, updatedMdxExpression } =
+          replaceUsedMeasures(mdxExpression);
+        usedMeasures.forEach(([table, column]) =>
+          this.usedColumnsInDax.add(`${table}:${column}`),
+        );
+        // Taken from Dimension Converter convertAndAddLevel
+        // Add to attrNameMap so can be found when creating calc
+        for (const [tbl, col] of usedMeasures) {
+          let level_unique_name = col;
+          const default_level_unique_name =
+            makeUniqueName(`dimension.${tbl}.attr.`) + col;
+          const existingName = lookupAttrUniqueName(
+            attrMaps.attrNameMap,
+            default_level_unique_name,
+            false,
+            this.logger,
+          );
+          if (!existingName) {
+            attrMaps.attrNameMap.set(level_unique_name.toLowerCase(), [
+              "level attribute",
+              tbl,
+            ]);
+            attrMaps.attrNameMap.set(default_level_unique_name.toLowerCase(), [
+              level_unique_name,
+            ]);
+          }
+        }
+
+        mdxExpression = updatedMdxExpression;
+
+        const calc_unique_name = createUniqueAttrName(
+          attrMaps.attrNameMap,
+          meas.name,
+          makeUniqueName(`calculation.${tableName}.`) + meas.name,
+          "calculation from BIM measure",
+          tableName,
+          "",
+          this.logger,
+        );
+
+        const newCalc: SMLMetricCalculated = {
+          object_type: SMLObjectType.MetricCalc,
+          unique_name: calc_unique_name,
+          description: descriptionAsString(meas.description),
+          label: meas.name,
+          folder: meas.displayFolder,
+          is_hidden: meas.isHidden,
+          format: this.smlFormatFromBim(meas.formatString),
+          expression: mdxExpression,
+        };
+        return newCalc;
+      } catch (e) {
+        this.logger.warn(
+          `AI DAX to MDX conversion failed for measure '${meas.name}'`,
+        );
+      }
+    }
+    return undefined;
   }
 
   mapBimToSMLCalculationType(
@@ -705,6 +841,55 @@ export class MeasureConverter {
           colName: bimMeasName,
           uniqueName: smlMetric.unique_name,
         },
+      );
+    }
+  }
+
+  /**
+   * Adds columns used in DAX expressions to the SML dimension as secondary attributes
+   */
+  addUsedColumnsToDimension(
+    bim: BimRoot,
+    result: SmlConverterResult,
+    attrMaps: AttributeMaps,
+  ) {
+    // Add used columns as secondary attributes of dimension
+    for (const key of this.usedColumnsInDax) {
+      const [tbl, col] = key.split(":");
+      const tableRef = bim.model.tables.find((table) => table.name === tbl);
+      if (tableRef) {
+        // Find the column within the table
+        const colRef = tableRef.columns.find((column) => column.name === col);
+        if (colRef) {
+          // Find the dimension that the table was converted into
+          const dimen = result.dimensions.find(
+            (dim) => dim.label === tableRef.name,
+          );
+          if (
+            dimen &&
+            !dimen.hierarchies[0].levels
+              .flatMap((l) => l.secondary_attributes)
+              .find((a) => a?.unique_name === colRef.name)
+          ) {
+            const joinColumns: Array<string> = listRelationshipColumns(
+              bim.model,
+              tableRef,
+            );
+            const dimConverter = new DimensionConverter(this.logger);
+            dimConverter.convertSecondaryAttribute(
+              tableRef,
+              colRef,
+              dimen,
+              attrMaps.attrNameMap,
+              joinColumns[0],
+              true,
+            );
+            return;
+          }
+        }
+      }
+      this.logger.warn(
+        `Column ${col} was unable to be added to dimension ${tbl}`,
       );
     }
   }

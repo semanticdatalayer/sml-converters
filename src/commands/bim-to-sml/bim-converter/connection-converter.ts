@@ -48,7 +48,7 @@ export class ConnectionConverter {
         } else if (dataSource.connectionDetails?.address) {
           if (dataSource.connectionDetails?.address.database)
             connectionProps["Database"] =
-              dataSource.connectionDetails?.address.database; // parseSnowflakeMExpression(dataSource.connectionDetails);
+              dataSource.connectionDetails?.address.database;
           if (dataSource.connectionDetails?.address.schema)
             connectionProps["Schema"] =
               dataSource.connectionDetails?.address.schema;

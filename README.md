@@ -61,12 +61,15 @@ Converts a Power BI Model to SML
 
 ```
 USAGE
-  $ sml-converters bim-to-sml [--source <value>] [--output <value>] [--clean] [--atscaleConnectionId <value>]
+  $ sml-converters bim-to-sml [--source <value>] [--output <value>] [--clean] [--atscaleConnectionId <value>] [--llmName <value>]
 
 FLAGS
   --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in
                                  AtScale.
   --clean                        Clean the output folder contents without the .git folder
+  --llmName=<value>              Name of the LLM to use for DAX to MDX conversion (e.g., 'openai', 'anthropic')
+                                 Must have the corresponding API key set in environment variables (e.g., OPENAI_API_KEY,
+                                 ANTHROPIC_API_KEY)
   --output=<value>               [default: ./bim_output] Output folder
   --source=<value>               [default: ./] Source folder
 
@@ -85,6 +88,8 @@ EXAMPLES
   $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path --clean
 
   $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path --atscaleConnectionId=con1 --clean
+
+  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path --atscaleConnectionId=con1 --llmName=openai --clean
 ```
 
 ## `sml-converters dbt-to-sml`
@@ -187,6 +192,18 @@ EXAMPLES
 
   $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE_JWT
 ```
+
+### REQUIRED ENV VARIABLES FOR AUTH TYPE
+| Authenticator | Required Environment Variables |
+|---------------|-------------------------------|
+| `SNOWFLAKE` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD` |
+| `EXTERNALBROWSER` | *(none - uses browser)* |
+| `SNOWFLAKE_JWT` | `SNOWFLAKE_PRIVATE_KEY_PATH`, `SNOWFLAKE_PRIVATE_KEY_PASS`(Only if rs8 file is encrypted) |
+| `USERNAME_PASSWORD_MFA` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD`, `SNOWFLAKE_PASSCODE` |
+| `*.okta.com` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD` |
+| `OAUTH` | `SNOWFLAKE_TOKEN` |
+| `PROGRAMMATIC_ACCESS_TOKEN` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD` |
+
 
 <!-- commandsstop -->
 

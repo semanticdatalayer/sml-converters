@@ -25,6 +25,7 @@ export class BimToYamlConverter {
   async convert(
     bim: BimRoot,
     asConnection: string,
+    llmName?: string,
   ): Promise<SmlConverterResult> {
     const repoSettings: SMLCatalog = {
       object_type: SMLObjectType.Catalog,
@@ -76,12 +77,13 @@ export class BimToYamlConverter {
       rightTables: new Set<string>(),
       factTables: new Array<BimTable>(),
       dimTables: new Array<BimTable>(),
+      degenDims: new Set<string>(),
     };
 
     const tableConverter = new TableConverter(this.logger);
     tableConverter.listUnusedBimTables(bim, tableLists, this.logger);
 
-    const measureConverter = new MeasureConverter(this.logger);
+    const measureConverter = new MeasureConverter(this.logger, llmName);
     measureConverter.measuresFromSimpleMeasures(
       bim,
       result,
@@ -89,7 +91,10 @@ export class BimToYamlConverter {
       tableLists.unusedTables,
     );
 
-    const datasetConverter = new DatasetConverter(this.logger);
+    const datasetConverter = new DatasetConverter(
+      this.logger,
+      measureConverter,
+    );
     await datasetConverter.createDatasetsAndMetrics(
       bim,
       result,
@@ -120,6 +125,9 @@ export class BimToYamlConverter {
     );
 
     relationshipConverter.addMissingRelationships(result, model);
+ 
+    measureConverter.addUsedColumnsToDimension(bim, result, attrMaps);
+    dimensionConverter.createDegenDimensions(tableLists, bim, attrMaps, result);
 
     const perspectiveConverter = new PerspectiveConverter(this.logger);
     perspectiveConverter.createPerspectives(bim, result, attrMaps, tableLists);

@@ -39,9 +39,9 @@ import { Logger } from "../../../shared/logger";
 export class DatasetConverter {
   private logger: Logger;
   private measureConverter: MeasureConverter;
-  constructor(logger: Logger) {
+  constructor(logger: Logger, measureConverter: MeasureConverter) {
     this.logger = logger;
-    this.measureConverter = new MeasureConverter(logger);
+    this.measureConverter = measureConverter;
   }
 
   async createDatasetsAndMetrics(
@@ -133,7 +133,7 @@ export class DatasetConverter {
           )
         ) {
           // Creates metricCalc when expression is math only logic
-          const smlMetric = this.measureConverter.metricFromCalc(
+          const smlMetric = await this.measureConverter.metricFromCalc(
             bim,
             bimMeasure,
             bimTable,

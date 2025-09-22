@@ -1,0 +1,160 @@
+import { ai, f, ax } from "@ax-llm/ax";
+import { makeUniqueName } from "./tools";
+import { Logger } from "../../../shared/logger";
+
+export async function convertDaxToMDX(
+  daxExpression: string,
+  llmName: any,
+  logger: Logger,
+): Promise<string> {
+  // const llm = ai({name: "openai", apiKey: process.env.OPENAI_API_KEY!});
+  // const llm = ai({name: "anthropic", apiKey: process.env.ANTHROPIC_API_KEY!});
+  const llm = ai({
+    name: llmName,
+    apiKey: process.env[
+      `${llmName.toString().toUpperCase()}_API_KEY`
+    ]! as string,
+  });
+
+  const sig = f()
+    .input(
+      "daxExpression",
+      f.string("DAX expression to be translated into MDX"),
+    )
+    .input("rules", f.string("Rules to follow for the conversion"))
+    .output("mdxExpression", f.string("Converted MDX expression"))
+    .output(
+      "difficulty",
+      f.number(
+        "Difficulty score 0-1 on how difficult the conversion is, 0 being easy and 1 being extremely difficult. Use 2 significant figures",
+      ),
+      true,
+    )
+    .output("reasoning", f.string("Internal reasoning").internal())
+    .description(
+      "Converts a Data Analysis Expressions(DAX) expression to a MultiDimentional Expression(MDX)",
+    )
+    .build();
+
+  const gen = ax(sig, { ai: llm });
+
+  const res = await gen.forward(llm, {
+    daxExpression: daxExpression,
+    rules:
+      "You are a converter that converts a Data Analysis Expressions(DAX) expression to a MultiDimentional Expression(MDX).\n" +
+      "All Aggregated DAX columns are columns within a Measures dimension. Ex: SUM('ABCD'[SalesCreditUSD]) --> [Measures].[SalesCreditUSD].\n" +
+      "All table names and column names maintain their spaces, periods, and other special characters. Ex: Sum('ABCD'[.Forecast Cost]) --> [Measures].[.Forecast Cost]\n" +
+      "DO NOT use the FILTER function in the MDX expression, instead use tuples to fix the context.\n" +
+      "Use MDX syntax standards.\n" +
+      "Do not use curly braces '{}' in the MDX expression.\n" +
+      "If the DAX expression uses variables, make the difficulty score 1 and return an empty MDX expression.\n",
+  });
+
+  if (res.difficulty > 0.7) {
+    return ""; // Too difficult to convert, ai most likely got it wrong
+  }
+
+  let mdxExpression = res.mdxExpression;
+  mdxExpression +=
+    " /* TODO: Converted from DAX To MDX using AI - please validate. Original DAX: " +
+    daxExpression +
+    " */";
+  return mdxExpression;
+}
+
+/**
+ * Processes an MDX expression to replace table references and track used measures.
+ *
+ * @param mdxExpression - The MDX expression to process
+ * @returns An object containing:
+ *  - usedMeasures: A Set of tuples containing [table, column] pairs that were found and validated
+ *  - updatedMdxExpression: The processed MDX expression with table references replaced
+ **/
+export function replaceUsedMeasures(mdxExpression: string): {
+  usedMeasures: Set<[string, string]>;
+  updatedMdxExpression: string;
+} {
+  const regex = /\[([^\]]+)\]\.\[([^\]]+)\]/g;
+
+  const tableColumnSet = new Set<[string, string]>();
+  let matches;
+  while ((matches = regex.exec(mdxExpression)) !== null) {
+    tableColumnSet.add([matches[1], matches[2]]);
+  }
+  const newTableColumnSet = new Set<[string, string]>();
+  for (const [tbl, col] of tableColumnSet) {
+    if (
+      hasValidParenthesesAndBrackets(tbl) &&
+      hasValidParenthesesAndBrackets(col) &&
+      tbl !== "Measures"
+    ) {
+      // Both key and value have valid parentheses
+      mdxExpression = mdxExpression.replaceAll(
+        `[${tbl}].[${col}]`,
+        `[${makeUniqueName(`dimension.${tbl}`)}].[${col}]`,
+      );
+      newTableColumnSet.add([tbl, col]);
+    }
+  }
+  return {
+    usedMeasures: newTableColumnSet,
+    updatedMdxExpression: mdxExpression,
+  };
+}
+
+/**
+ * Extracts table and column names from a DAX expression using regular expressions.
+ *
+ * The regex pattern matches expressions in the format "TableName[ColumnName]" where:
+ * - TableName must start with a letter or underscore, followed by letters, numbers, or underscores
+ * - ColumnName is any text between square brackets (excluding nested brackets)
+ *
+ * @param daxExpression - The DAX expression to parse
+ * @returns A Set of tuples containing [tableName, columnName] pairs found in the expression
+ */
+export function getTableColumnFromDax(
+  daxExpression: string,
+): Set<[string, string]> {
+  const regex = /\b([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*([^\[\]]+?)\s*\]/g;
+
+  const tableColumnSet = new Set<[string, string]>();
+  let matches;
+  while ((matches = regex.exec(daxExpression)) !== null) {
+    tableColumnSet.add([matches[1], matches[2]]);
+  }
+  return tableColumnSet;
+}
+
+export function getUsedMeasures(mdxExpression: string): string[] {
+  const usedMeasures: string[] = [];
+  const regex = /\[Measures\]\.\[(.*?)\]/g;
+  let match;
+  while ((match = regex.exec(mdxExpression)) !== null) {
+    if (match[1]) {
+      usedMeasures.push(match[1]);
+    }
+  }
+  return usedMeasures;
+}
+
+function hasValidParenthesesAndBrackets(input: string): boolean {
+  input = input.trim();
+  let parenCount = 0;
+  let bracketCount = 0;
+
+  for (const char of input) {
+    if (char === "(") {
+      parenCount++;
+    } else if (char === ")") {
+      parenCount--;
+      if (parenCount < 0) return false;
+    } else if (char === "[") {
+      bracketCount++;
+    } else if (char === "]") {
+      bracketCount--;
+      if (bracketCount < 0) return false;
+    }
+  }
+
+  return parenCount === 0 && bracketCount === 0;
+}
