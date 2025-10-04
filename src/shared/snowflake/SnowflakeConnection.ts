@@ -1,10 +1,10 @@
 import * as fs from "fs";
 import yaml from "js-yaml";
 import snowflake, { Connection, ConnectionOptions } from "snowflake-sdk";
-import { fileSystemUtil } from "../../../shared/file-system-util";
-import Guard from "../../../shared/guard";
-import { Logger } from "../../../shared/logger";
-import { CortexModel } from "../../sml-to-cortex/cortex-models/CortexModel";
+import { fileSystemUtil } from "../file-system-util";
+import Guard from "../guard";
+import { Logger } from "../logger";
+import { CortexModel } from "../../commands/sml-to-cortex/cortex-models/CortexModel";
 import { SnowflakeAuth, SnowflakeAuthenticators } from "./SnowflakeAuth";
 
 export interface SnowflakeConfig {

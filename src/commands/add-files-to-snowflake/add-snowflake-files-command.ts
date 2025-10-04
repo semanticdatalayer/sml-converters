@@ -3,25 +3,22 @@ import dotenv from "dotenv";
 import path from "path";
 import snowflake from "snowflake-sdk";
 import { CommandLogger } from "../../shared/command-logger";
-import {
-  getFilesAndFolders,
-} from "../../shared/file-system-util";
+import { getFilesAndFolders } from "../../shared/file-system-util";
 import { Logger } from "../../shared/logger";
 import { CortexAnalyzer } from "./CortexAnalyzer";
 import {
   SnowflakeConfig,
   SnowflakeConnection,
-} from "./cortex-connect/SnowflakeConnection";
-import { validateConfiguration } from "./cortex-connect/cortex-config-validator";
-import { SnowflakeAuth } from "./cortex-connect/SnowflakeAuth";
+} from "../../shared/snowflake/SnowflakeConnection";
+import { validateConfiguration } from "../../shared/snowflake/cortex-config-validator";
+import { SnowflakeAuth } from "../../shared/snowflake/SnowflakeAuth";
 import { saveCortexYamlFiles } from "../../shared/cortex-converter-util";
 
 dotenv.config();
 
 export class AddFilesToSnowflakeCommand extends Command {
   static summary = "Add converted Snowflake Cortex Analyst yaml to Snowflake";
-  static description =
-    `Snowflake authentication can be found in .env.example. Types of snowflakeAuthenticator will have different requirements.
+  static description = `Snowflake authentication can be found in .env.example. Types of snowflakeAuthenticator will have different requirements.
     Please read the README.md file to see how to use certain authentication methods.
     Or see https://docs.snowflake.com/en/developer-guide/node-js/nodejs-driver-authenticate for what parameters must be set.`;
 
@@ -38,7 +35,7 @@ export class AddFilesToSnowflakeCommand extends Command {
       description: "Snowflake authenticator type",
       required: true,
       default: "SNOWFLAKE",
-    //   options: enumUtil.getAllValues(SnowflakeAuthenticators, "string"),
+      //   options: enumUtil.getAllValues(SnowflakeAuthenticators, "string"),
       env: "SNOWFLAKE_AUTH",
     }),
     snowflakeAccount: Flags.string({
