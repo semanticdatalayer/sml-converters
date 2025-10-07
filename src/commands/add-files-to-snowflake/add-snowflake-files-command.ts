@@ -13,6 +13,7 @@ import {
 import { validateConfiguration } from "../../shared/snowflake/cortex-config-validator";
 import { SnowflakeAuth } from "../../shared/snowflake/SnowflakeAuth";
 import { saveCortexYamlFiles } from "../../shared/cortex-converter-util";
+import { AddFilesToSnowflake } from "./add-snowflake-files";
 
 dotenv.config();
 
@@ -144,8 +145,13 @@ export class AddFilesToSnowflakeCommand extends Command {
           // update existing cortex model with new base table name, database, and schema
           const baseTableName = cortexAnalyzer.updateCortexModel(cortexModel);
 
+          const addFilesToSnowflake = new AddFilesToSnowflake(
+            logger,
+            snowflakeConn,
+          );
+
           // create the table command
-          const createTableCommand = snowflakeConn.createTableCommand(
+          const createTableCommand = addFilesToSnowflake.createTableCommand(
             baseTableName,
             factsMap,
           );
@@ -158,10 +164,10 @@ export class AddFilesToSnowflakeCommand extends Command {
           );
 
           // add yaml files to stage
-          await snowflakeConn.addFileToStage(cortexPath, true, false);
+          await addFilesToSnowflake.addFileToStage(cortexPath, true, false);
 
           // add table to schema
-          await snowflakeConn.addTableToSchema(
+          await addFilesToSnowflake.addTableToSchema(
             createTableCommand,
             baseTableName,
             // wait until table is created to add semantic view to Snowflake
@@ -174,7 +180,7 @@ export class AddFilesToSnowflakeCommand extends Command {
                 logger.info(
                   `Successfully created table ${baseTableName} to schema: ${snowflakeConfig.schema}`,
                 );
-                await snowflakeConn.writeSemanticModelYaml(cortexModel);
+                await addFilesToSnowflake.writeSemanticModelYaml(cortexModel);
               }
             },
           );

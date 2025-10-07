@@ -361,7 +361,7 @@ export class DbtConstants {
           DATE_TRUNC('week', ${dateColumns.date_day}) as ${dateColumns.week},
           concat('Week ', EXTRACT(WEEK from ${dateColumns.date_day}), to_char(${dateColumns.date_day}, ', %Y')) as ${dateColumns.week_name},
           EXTRACT(DAYOFYEAR from ${dateColumns.date_day}) as ${dateColumns.day_of_year},
-          concat("Day ", EXTRACT(DAYOFYEAR from ${dateColumns.date_day})) as ${dateColumns.day_of_year_name},
+          concat('Day ', EXTRACT(DAYOFYEAR from ${dateColumns.date_day})) as ${dateColumns.day_of_year_name},
           EXTRACT(DAYOFWEEK from ${dateColumns.date_day}) as ${dateColumns.day_of_week},
           DAYNAME(${dateColumns.date_day}) as ${dateColumns.day_of_week_name},
           EXTRACT(WEEK from ${dateColumns.date_day}) as ${dateColumns.week_of_year},
@@ -369,7 +369,7 @@ export class DbtConstants {
           EXTRACT(MONTH from ${dateColumns.date_day}) as ${dateColumns.month_of_year},
           MONTHNAME(${dateColumns.date_day}) as ${dateColumns.month_of_year_name},
           EXTRACT(QUARTER from ${dateColumns.date_day}) as ${dateColumns.quarter_of_year},
-          concat("Quarter ", EXTRACT(QUARTER from ${dateColumns.date_day})) as ${dateColumns.quarter_of_year_name}
+          concat('Quarter ', EXTRACT(QUARTER from ${dateColumns.date_day})) as ${dateColumns.quarter_of_year_name}
           FROM ${connection.database}.${connection.schema}.metricflow_time_spine`;
       }
       return getTimeDatasetDefinition(dsName, sql, connection.unique_name);

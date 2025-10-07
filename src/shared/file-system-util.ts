@@ -12,7 +12,7 @@ export type convertInput = {
   clean: boolean;
 }
 
-async function parseOutput(
+export async function parseOutput(
   input: convertInput,
   logger: Logger,
   command: Command
