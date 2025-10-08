@@ -13,7 +13,7 @@ import {
   SMLDataset,
   SMLDegenerateDimension,
 } from "sml-sdk";
-import { DatasetConverter } from "./dataset-converter";
+import { SnowviewDatasetConverter } from "./dataset-converter";
 import {
   getColumnName,
   getDatasetName,
@@ -173,7 +173,7 @@ export class SnowviewDimensionConverter {
       // If the expression is a sql expression using a column in the correct table, we need to create a calculated column in the dataset first
     } else if (!isSimpleColumnExpr && !referenceOtherTable) {
       // Create calculated column in dataset
-      const datasetConverter = new DatasetConverter(this.logger);
+      const datasetConverter = new SnowviewDatasetConverter(this.logger);
       const smlDataset = result.datasets.find(
         (ds) => ds.label === snowviewDim.table,
       );
@@ -281,7 +281,7 @@ export class SnowviewDimensionConverter {
       );
     } else if (!isSimpleColumnExpr && !referenceOtherTable) {
       // Create calculated column in dataset
-      const datasetConverter = new DatasetConverter(this.logger);
+      const datasetConverter = new SnowviewDatasetConverter(this.logger);
       datasetConverter.addCalculatedColumn(snowviewDim, smlDataset, result);
       // Create degenerate dimension on calculated column
       this.createDegenerateDimension(snowviewDim, snowviewDim.name, result);

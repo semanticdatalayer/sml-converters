@@ -94,7 +94,10 @@ export class SnowviewConverter {
 
     const dimensionConverter = new SnowviewDimensionConverter(this.logger);
 
-    result.dimensions.push(DbtConstants.timeDimension());
+    result.dimensions.push(timeDimension());
+
+    const datasetConverter = new SnowviewDatasetConverter(this.logger);
+    datasetConverter.createTimeDataset("dim_time_dataset", result, result.connections[0].unique_name);
 
     dimensionConverter.createDimensions(tableLists, result);
     dimensionConverter.convertSnowviewDimensionsToSmlDimensions(
