@@ -8,9 +8,6 @@ import {
   ExtractedMeasure,
 } from "../bim-models/types-and-interfaces";
 import { MeasureConverter } from "./measure-converter";
-import { DimensionConverter } from "./dimension-converter";
-import { Logger } from "../../../shared/logger";
-import { listRelationshipColumns } from "./converter-utils";
 
 export enum TokenType {
   FUNCTION = "FUNCTION",

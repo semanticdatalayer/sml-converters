@@ -1,21 +1,107 @@
-import { ai, f, ax } from "@ax-llm/ax";
-import { makeUniqueName } from "./tools";
+import { ax, AxAI, f } from "@ax-llm/ax";
 import { Logger } from "../../../shared/logger";
+import { makeUniqueName } from "./tools";
 
-export async function convertDaxToMDX(
+const supportedLLMs = {
+  openai: "openai",
+  anthropic: "anthropic",
+  gemini: "gemini",
+};
+
+/**
+ * Interface representing a converter that transforms DAX expressions into MDX expressions using AI.
+ * 
+ * @interface AiDaxToMdxConverter
+ * @method convert - Converts a DAX expression to an MDX expression.
+ * @method validateConfig - Validates that the necessary configuration (like API keys) is set.
+ */
+interface AiDaxToMdxConverter {
+  /**
+   * Converts a DAX expression to an MDX expression.
+   * @param daxExpression - The DAX expression to be converted
+   */
+  convert(daxExpression: string): Promise<string | undefined>;
+  /**
+   * Validates that the necessary configuration (like API keys) is set.
+   * @Error is thrown if configuration is invalid.
+   */
+  validateConfig(): void;
+}
+
+export class AnthropicDaxToMdxConverter implements AiDaxToMdxConverter {
+  constructor(private readonly logger: Logger) {}
+
+  async convert(daxExpression: string): Promise<string | undefined> {
+    const llm = AxAI.create({
+      name: "anthropic",
+      apiKey: process.env.ANTHROPIC_API_KEY! as string,
+    });
+    return aiConvertDaxToMdx(llm, daxExpression);
+  }
+
+  validateConfig() {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      this.logger.error(
+        "Anthropic API key is not set. Please set the ANTHROPIC_API_KEY environment variable.",
+      );
+      throw new Error("Missing Anthropic API key");
+    }
+  }
+}
+
+export class OpenAIDaxToMdxConverter implements AiDaxToMdxConverter {
+  constructor(private readonly logger: Logger) {}
+
+  async convert(daxExpression: string): Promise<string | undefined> {
+    const llm = AxAI.create({
+      name: "openai",
+      apiKey: process.env.OPENAI_API_KEY! as string,
+    });
+    return aiConvertDaxToMdx(llm, daxExpression);
+  }
+
+  validateConfig() {
+    if (!process.env.OPENAI_API_KEY) {
+      this.logger.error(
+        "OpenAI API key is not set. Please set the OPENAI_API_KEY environment variable.",
+      );
+      throw new Error("Missing OpenAI API key");
+    }
+  }
+}
+
+export class GeminikDaxToMdxConverter implements AiDaxToMdxConverter {
+  constructor(private readonly logger: Logger) {}
+
+  async convert(daxExpression: string): Promise<string | undefined> {
+    const llm = AxAI.create({
+      name: "google-gemini",
+      apiKey: process.env.GEMINI_API_KEY! as string,
+    });
+    return aiConvertDaxToMdx(llm, daxExpression);
+  }
+
+  validateConfig() {
+    if (!process.env.GEMINI_API_KEY) {
+      this.logger.error(
+        "Gemini API key is not set. Please set the GEMINI_API_KEY environment variable.",
+      );
+      throw new Error("Missing Gemini API key");
+    }
+  }
+}
+
+const llmMap: Record<string, new (logger: Logger) => AiDaxToMdxConverter> = {
+  anthropic: AnthropicDaxToMdxConverter,
+  openai: OpenAIDaxToMdxConverter,
+  gemini: GeminikDaxToMdxConverter,
+};
+
+async function aiConvertDaxToMdx(
+  llm: AxAI,
   daxExpression: string,
-  llmName: any,
-  logger: Logger,
-): Promise<string> {
-  // const llm = ai({name: "openai", apiKey: process.env.OPENAI_API_KEY!});
-  // const llm = ai({name: "anthropic", apiKey: process.env.ANTHROPIC_API_KEY!});
-  const llm = ai({
-    name: llmName,
-    apiKey: process.env[
-      `${llmName.toString().toUpperCase()}_API_KEY`
-    ]! as string,
-  });
-
+  rules?: string,
+): Promise<string | undefined> {
   const sig = f()
     .input(
       "daxExpression",
@@ -40,18 +126,11 @@ export async function convertDaxToMDX(
 
   const res = await gen.forward(llm, {
     daxExpression: daxExpression,
-    rules:
-      "You are a converter that converts a Data Analysis Expressions(DAX) expression to a MultiDimentional Expression(MDX).\n" +
-      "All Aggregated DAX columns are columns within a Measures dimension. Ex: SUM('ABCD'[SalesCreditUSD]) --> [Measures].[SalesCreditUSD].\n" +
-      "All table names and column names maintain their spaces, periods, and other special characters. Ex: Sum('ABCD'[.Forecast Cost]) --> [Measures].[.Forecast Cost]\n" +
-      "DO NOT use the FILTER function in the MDX expression, instead use tuples to fix the context.\n" +
-      "Use MDX syntax standards.\n" +
-      "Do not use curly braces '{}' in the MDX expression.\n" +
-      "If the DAX expression uses variables, make the difficulty score 1 and return an empty MDX expression.\n",
+    rules: rules ? rules : basicRules,
   });
 
   if (res.difficulty > 0.7) {
-    return ""; // Too difficult to convert, ai most likely got it wrong
+    return undefined; // Too difficult to convert, ai most likely got it wrong
   }
 
   let mdxExpression = res.mdxExpression;
@@ -59,6 +138,49 @@ export async function convertDaxToMDX(
     " /* TODO: Converted from DAX To MDX using AI - please validate. Original DAX: " +
     daxExpression +
     " */";
+  return mdxExpression;
+}
+
+const basicRules =
+  "You are a converter that converts a Data Analysis Expressions(DAX) expression to a MultiDimentional Expression(MDX).\n" +
+  "All Aggregated DAX columns are columns within a Measures dimension. Ex: SUM('ABCD'[SalesCreditUSD]) --> [Measures].[SalesCreditUSD].\n" +
+  "All table names and column names maintain their spaces, periods, and other special characters. Ex: Sum('ABCD'[.Forecast Cost]) --> [Measures].[.Forecast Cost]\n" +
+  "DO NOT use the FILTER function in the MDX expression, instead use tuples to fix the context.\n" +
+  "Use MDX syntax standards.\n" +
+  "Do not use curly braces '{}' in the MDX expression.\n" +
+  "If the DAX expression uses variables, make the difficulty score 1 and return an empty MDX expression.\n";
+
+/**
+ * Creates an AI converter instance based on the specified LLM (Language Learning Model) name.
+ * 
+ * @param llmName - The name of the Language Learning Model to use for conversion
+ * @param logger - Logger instance for handling logging operations
+ * @returns An instance of AiDaxToMdxConverter if the LLM name is valid, undefined otherwise
+ */
+export function getAiConverter(
+  llmName: string,
+  logger: Logger
+): AiDaxToMdxConverter {
+  if (Object.keys(llmMap).includes(llmName.toLowerCase())) {
+    const AiConverterClass = llmMap[llmName.toLowerCase()];
+    return new AiConverterClass(logger);
+  }
+  logger.error(
+    `LLM name "${llmName}" is not supported. Supported LLMs are: ${Object.keys(
+      supportedLLMs,
+    ).join(", ")}`,
+  );
+  throw Error(`LLM name "${llmName}" is not supported.`);
+}
+
+export async function convertDaxToMdxWithAi(
+  daxExpression: string,
+  llmName: any,
+  logger: Logger,
+): Promise<string | undefined> {
+  let converter: AiDaxToMdxConverter = getAiConverter(llmName, logger)!;
+  converter.validateConfig();
+  const mdxExpression = await converter.convert(daxExpression);
   return mdxExpression;
 }
 

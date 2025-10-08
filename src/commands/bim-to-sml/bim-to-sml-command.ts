@@ -1,11 +1,12 @@
-import { Flags, Command } from "@oclif/core";
-import { BimFileParser } from "./bim-file-parser";
-import { CommandLogger } from "../../shared/command-logger";
-import { SmlResultWriter } from "../../shared/sml-result-writer";
-import { parseInputFile, convertInput } from "../../shared/file-system-util";
-import { logSmlConverterResult } from "../../shared/sml-convert-result";
-import { BimToYamlConverter } from "./bim-converter/bim-to-sml-converter";
+import { Command, Flags } from "@oclif/core";
 import dotenv from "dotenv";
+import { CommandLogger } from "../../shared/command-logger";
+import { convertInput, parseInputFile } from "../../shared/file-system-util";
+import { logSmlConverterResult } from "../../shared/sml-convert-result";
+import { SmlResultWriter } from "../../shared/sml-result-writer";
+import { getAiConverter } from "./bim-converter/ai-dax-converter";
+import { BimToYamlConverter } from "./bim-converter/bim-to-sml-converter";
+import { BimFileParser } from "./bim-file-parser";
 
 dotenv.config();
 
@@ -68,7 +69,10 @@ export class BimToSmlCommand extends Command {
   }
 
   protected async convert(
-    input: convertInput & { atscaleConnectionId: string; llmName: string | undefined },
+    input: convertInput & {
+      atscaleConnectionId: string;
+      llmName: string | undefined;
+    },
   ) {
     const logger = CommandLogger.for(this);
     const { absoluteOutputPath, absoluteSourcePath } = await parseInputFile(
@@ -79,13 +83,10 @@ export class BimToSmlCommand extends Command {
 
     // Check for llm API key if llmName provided
     if (input.llmName) {
-      const llmApiKey = process.env[
-        `${input.llmName.toString().toUpperCase()}_API_KEY`
-      ];
-      if (!llmApiKey || llmApiKey.length === 0) {
-        logger.error(
-          `LLM API key for ${input.llmName} not found. Please set the environment variable ${input.llmName.toString().toUpperCase()}_API_KEY.`,
-        );
+      try {
+        getAiConverter(input.llmName, logger)?.validateConfig();
+      } catch (err) {
+        // catch error from validateConfig, removes llmName to skip AI DAX to MDX conversion
         input.llmName = undefined;
       }
     }

@@ -18,7 +18,7 @@ import {
 import { Constants } from "../bim-models/constants";
 import { AttributeMaps, TableLists } from "../bim-models/types-and-interfaces";
 import {
-  convertDaxToMDX,
+  convertDaxToMdxWithAi,
   getTableColumnFromDax,
   replaceUsedMeasures,
 } from "./ai-dax-converter";
@@ -658,7 +658,6 @@ export class MeasureConverter {
     return measure;
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   async convertDaxMeasureWithAI(
     bim: BimRoot,
     meas: BimMeasure,
@@ -669,7 +668,7 @@ export class MeasureConverter {
   ): Promise<SMLMetricCalculated | undefined> {
     if (this.llmName) {
       try {
-        let mdxExpression = await convertDaxToMDX(
+        let mdxExpression = await convertDaxToMdxWithAi(
           removeComments(expressionAsString(meas.expression)),
           this.llmName,
           this.logger,
