@@ -1,26 +1,20 @@
+import { SMLCatalog, SMLModel, SMLObjectType } from "sml-sdk";
 import { Logger } from "../../../shared/logger";
 import { SmlConverterResult } from "../../../shared/sml-convert-result";
 import { SnowflakeCon } from "../snowflake-connect";
 import { SnowviewModel, SnowviewTable, TableLists } from "../SnowviewModel";
-
-import { SnowviewTableConverter } from "./table-converter";
-
-import * as fs from "fs";
-import { SMLCatalog, SMLObjectType, SMLModel, SMLConnection } from "sml-sdk";
 import { SnowviewConnectionConverter } from "./connection-converter";
+import { SnowviewDatasetConverter } from "./dataset-converter";
 import { SnowviewDimensionConverter } from "./dimension-converter";
-import { SnowviewRelationshipConverter } from "./relationship-converter";
-import { SnowviewMetricConverter } from "./metric-converter";
 import { SnowviewFactConverter } from "./fact-converter";
-import { DbtConstants } from "../../dbt-to-sml/dbt-converter/dbt-constants";
-import { DWType } from "../../../shared/dw-types";
-import { SmlResultWriter } from "../../../shared/sml-result-writer";
-import { SmlFolderReader } from "../../../shared/sml-folder-reader";
+import { SnowviewMetricConverter } from "./metric-converter";
+import { SnowviewRelationshipConverter } from "./relationship-converter";
+import { timeDimension } from "./snowflake-time-dimension";
+import { SnowviewTableConverter } from "./table-converter";
 
 export class SnowviewConverter {
   constructor(private readonly logger: Logger) {}
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   async convert(
     snowviewModel: SnowviewModel,
     snowflakeCon: SnowflakeCon,
@@ -61,7 +55,6 @@ export class SnowviewConverter {
     };
 
     const tableLists: TableLists = {
-      measTables: new Set<string>(),
       factTables: new Set<SnowviewTable>(),
       dimTables: new Set<SnowviewTable>(),
     };
@@ -69,37 +62,32 @@ export class SnowviewConverter {
     const connectionConverter = new SnowviewConnectionConverter(this.logger);
     connectionConverter.createConnections(asConnection, snowviewModel, result);
 
-    const mainConnection: SMLConnection = {
-      unique_name: "connection_AO",
-      label: "connection_AO",
-      object_type: SMLObjectType.Connection,
-      as_connection: asConnection,
-      database: "ATSCALE_SAMPLE_DATA",
-      schema: "STELLA_DBT_TEST",
-    };
-    result.connections.push(mainConnection);
-
-    result.datasets.push(
-      DbtConstants.timeDataset(mainConnection, DWType.Snowflake, false),
-    );
-
     const tableConverter = new SnowviewTableConverter(
       this.logger,
       snowflakeCon,
     );
     await tableConverter.mapTablesToSmlDatasets(snowviewModel.tables, result);
 
-
     tableConverter.identifyFactAndDimTables(snowviewModel, tableLists);
 
     const dimensionConverter = new SnowviewDimensionConverter(this.logger);
 
+    // Always add a time dimension
+    // because most models will need it
+    // and users can delete it if they don't want it
     result.dimensions.push(timeDimension());
 
+    // Add a fake time dataset for the time dimension
     const datasetConverter = new SnowviewDatasetConverter(this.logger);
-    datasetConverter.createTimeDataset("dim_time_dataset", result, result.connections[0].unique_name);
+    datasetConverter.createTimeDataset(
+      "dim_time_dataset",
+      result,
+      result.connections[0].unique_name,
+    );
 
+    // Create dimensions based on the identified dimension tables
     dimensionConverter.createDimensions(tableLists, result);
+    // Convert the dimensions defined in the snowview model
     dimensionConverter.convertSnowviewDimensionsToSmlDimensions(
       snowviewModel.dimensions,
       result,
@@ -108,7 +96,6 @@ export class SnowviewConverter {
     const relationshipConverter = new SnowviewRelationshipConverter(
       this.logger,
     );
-
     relationshipConverter.convertRelationships(
       snowviewModel.relationships,
       tableLists,
@@ -121,7 +108,7 @@ export class SnowviewConverter {
     );
 
     const factConverter = new SnowviewFactConverter(this.logger);
-    factConverter.convertFacts(snowviewModel, result);
+    factConverter.convertFacts(snowviewModel.facts, snowviewModel, result);
 
     const metricConverter = new SnowviewMetricConverter(this.logger);
     metricConverter.convertMetrics(snowviewModel.metrics, result);

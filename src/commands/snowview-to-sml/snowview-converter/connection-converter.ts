@@ -24,12 +24,12 @@ export class SnowviewConnectionConverter {
       const [database, schema] = source.split(".");
       const connection: SMLConnection = {
         object_type: SMLObjectType.Connection,
-        unique_name: `connection_${schema}`,  // connection.schema
-        label: `connection_${schema}`, 
+        unique_name: `connection_${schema}`,
+        label: `connection_${schema}`,
         as_connection: asConnection,
         database: database,
         schema: schema,
-      }
+      };
       result.connections.push(connection);
     }
   }

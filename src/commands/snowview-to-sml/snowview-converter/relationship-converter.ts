@@ -11,7 +11,7 @@ import {
   SnowviewTable,
   TableLists,
 } from "../SnowviewModel";
-import { getColumnName, getDatasetName } from "./converter-util";
+import { getColumnName, getDataset } from "./converter-util";
 
 export class SnowviewRelationshipConverter {
   constructor(private readonly logger: Logger) {}
@@ -62,10 +62,10 @@ export class SnowviewRelationshipConverter {
             dataset: relationshipFrom,
             join_columns: snowviewRelationship.foreign_key,
             hierarchy: `${relationshipFrom}_dimension_default_hierarchy`,
-            level: `${relationshipFrom}_Level`,
+            level: `${relationshipFrom}_level`,
           },
           to: {
-            level: `${relationshipTo}_Level`,
+            level: `${relationshipTo}_level`,
             dimension: `${relationshipTo}_dimension`,
           },
           type: SMLDimensionRelationType.Embedded,
@@ -85,6 +85,11 @@ export class SnowviewRelationshipConverter {
     }
   }
 
+  /**
+   * Adds a relationship to the model relationships list in the SML converter result.
+   * @param snowviewRelationship The Snowview relationship to convert and add
+   * @param result The SML converter result object to be modified
+   */
   addRelationshipToModel(
     snowviewRelationship: SnowviewRelationship,
     result: SmlConverterResult,
@@ -99,12 +104,18 @@ export class SnowviewRelationshipConverter {
       },
       to: {
         dimension: `${relationshipTo}_dimension`,
-        level: `${relationshipTo}_Level`,
+        level: `${relationshipTo}_level`,
       },
     };
     result.models[0].relationships?.push(modelRelationship);
   }
 
+  /**
+   * Add a secondary attribute to the time dimension and create a relationship from the given column to the time dimension
+   * @param dimCol The dimension column
+   * @param dataset The dataset name
+   * @param result The SML converter result
+   */
   addRelationshipToTimeDimension(
     dimCol: string,
     dataset: string,
@@ -117,7 +128,7 @@ export class SnowviewRelationshipConverter {
       realCol = col;
     }
     realCol = getColumnName(realCol, dataset, result, this.logger);
-    dataset = getDatasetName(dataset, result, this.logger);
+    dataset = getDataset(dataset, result, this.logger)!.unique_name;
 
     const newRelationship: SMLModelRelationship = {
       unique_name: `${dataset}_Date Dimension_${realCol}`, // dataset + "_" + "Date Dimension" + "_" + dim.name,
@@ -134,6 +145,11 @@ export class SnowviewRelationshipConverter {
     result.models[0].relationships.push(newRelationship);
   }
 
+  /**
+   * Adds self-referential relationships for each dimension table to the model
+   * @param dimTables The set of dimension tables
+   * @param result The SML converter result
+   */
   addDimensionRelationshipsToModel(
     dimTables: Set<SnowviewTable>,
     result: SmlConverterResult,

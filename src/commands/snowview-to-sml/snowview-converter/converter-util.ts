@@ -5,9 +5,13 @@ import {
   SMLDataset,
   SMLDimension,
 } from "sml-sdk";
-import { SmlConverterResult } from "../../../shared/sml-convert-result";
 import { Logger } from "../../../shared/logger";
-import { SnowviewEntity, SnowviewTable } from "../SnowviewModel";
+import { SmlConverterResult } from "../../../shared/sml-convert-result";
+import {
+  SnowviewEntity,
+  SnowviewSynonymAndComment,
+  SnowviewTable,
+} from "../SnowviewModel";
 
 const typeMap: Record<string, SMLColumnDataType> = {
   // String types
@@ -50,7 +54,7 @@ const typeMap: Record<string, SMLColumnDataType> = {
   DATETIME2: SMLColumnDataType.DateTime,
   SMALLDATETIME: SMLColumnDataType.DateTime,
   DATE: SMLColumnDataType.Date,
-  TIME: SMLColumnDataType.String, // or could be DateTime depending on your needs
+  TIME: SMLColumnDataType.String, // or could be DateTime
 
   // Boolean types
   BOOLEAN: SMLColumnDataType.Boolean,
@@ -73,7 +77,8 @@ const smlNumericDataTypes: SMLColumnDataType[] = [
 const smlDateDataTypes: SMLColumnDataType[] = [
   SMLColumnDataType.Date,
   SMLColumnDataType.DateTime,
-  // TODO: See if this should have TimeStamp
+  // TODO: Should this have TimeStamp as well
+  // SMLColumnDataType.TimeStamp,
 ];
 
 /**
@@ -138,9 +143,9 @@ const sqlAggToSmlCalcMethod: Record<string, SMLCalculationMethod> = {
   STDDEV: SMLCalculationMethod.SampleStandardDeviation,
   STDDEV_SAMP: SMLCalculationMethod.SampleStandardDeviation,
   STDDEV_POP: SMLCalculationMethod.PopulationStandardDeviation,
-  PERCENTILE_CONT: SMLCalculationMethod.Percentile, // TODO: Handle parameters
+  PERCENTILE_CONT: SMLCalculationMethod.Percentile, // TODO: Handle percentile parameters
   PERCENTILE_DISC: SMLCalculationMethod.Percentile,
-};
+};  // TODO: Handle LAG functions
 
 /**
  * Maps SQL aggregation functions to SML calculation methods
@@ -187,24 +192,34 @@ export function normalizeString(str: string): string {
 }
 
 /**
+ * Removes line breaks and tabs from a string
+ * @param str - The string to process
+ * @returns The processed string without line breaks and tabs
+ */
+export function removeLineBreaksAndTabs(str: string): string {
+  if (!str) return str;
+  return str.replace(/[\n\t\r]+/g, "");
+}
+
+/**
  * Retrieves the unique name of a dataset from the converter result
  * @param dataset - The dataset name to search for
  * @param result - The SML converter result containing dataset information
  * @param logger - Logger instance
  * @returns The unique name of the found dataset, or the original dataset name if not found
  */
-export function getDatasetName(
+export function getDataset(
   dataset: string,
   result: SmlConverterResult,
   logger: Logger,
-): string {
+): SMLDataset | undefined {
   const datasetObj = result.datasets.find(
     (d) => normalizeString(d.unique_name) === normalizeString(dataset),
   );
   if (!datasetObj) {
     logger.warn(`Dataset not found: ${dataset}`);
   }
-  return datasetObj ? datasetObj.unique_name : dataset;
+  return datasetObj;
 }
 
 /**
@@ -247,16 +262,59 @@ export function getSqlAggAndExpr(expression: string): {
   sqlAgg: string;
   expr: string;
 } {
+  expression = removeLineBreaksAndTabs(expression).trim();
   const firstParenIndex = expression.indexOf("(");
   if (firstParenIndex === -1) {
     return { sqlAgg: "", expr: expression.trim() };
   }
-  let sqlAgg = expression.slice(0, firstParenIndex).trim().toUpperCase();
+  const sqlAgg = expression.slice(0, firstParenIndex).trim().toUpperCase();
+
   let expr = expression.slice(firstParenIndex + 1);
-  sqlAgg = sqlAgg.trim().toUpperCase();
   const lastIndex = expr.lastIndexOf(")");
   expr = lastIndex === -1 ? expr : expr.slice(0, lastIndex);
   return { sqlAgg, expr };
+}
+
+export function getTblAndColFromExpr(expr: string): {
+  tbl: string | undefined;
+  col: string;
+  extra?: string;
+} {
+  const parenIndex = expr.indexOf(")");
+  if (parenIndex !== -1) {
+    // It's a window function, e.g. "SUM(column) OVER (PARTITION BY ...)"
+    const extra = expr.slice(parenIndex).trim();
+    expr = expr.slice(0, parenIndex).trim();
+    if (expr.includes(".")) {
+      const parts = expr.split(".").map((p) => p.trim());
+      return {
+        tbl: parts[0],
+        col: parts[1],
+        extra,
+      };
+    } else {
+      // const col = expr.slice(0, parenIndex).trim();
+      return {
+        tbl: undefined,
+        col: expr,
+        extra,
+      };
+    }
+  } else {
+    // It's not a window function
+    if (expr.includes(".")) {
+      const parts = expr.split(".").map((p) => p.trim());
+      return {
+        tbl: parts[0],
+        col: parts[1],
+      };
+    } else {
+      return {
+        tbl: undefined,
+        col: expr,
+      };
+    }
+  }
 }
 
 /**
@@ -270,14 +328,19 @@ export function gettUsedColumn(
   result: SmlConverterResult,
 ): string | undefined {
   // Most sql aggregation functions are in the form FUNC(column)
-  // But Percentiles are in the form PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY column)
-  if (sqlExpr.includes("WITHIN GROUP")) {
+  // Percentiles are in the form PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY column)
+  if (sqlExpr.toUpperCase().includes("WITHIN GROUP")) {
     const orderByIndex = sqlExpr.indexOf("ORDER BY");
     if (orderByIndex === -1) return undefined;
     const afterOrderBy = sqlExpr.slice(orderByIndex + "ORDER BY".length).trim();
     return getUsedColumnFromResult(table, afterOrderBy.trim(), result);
-    // Sql expression could also be in the form of table.column, only return column
+
+    // DISTINCT is used for the COUNT() function, so we just remove it and return the column
+  } else if (sqlExpr.toUpperCase().includes("DISTINCT")) {
+    const distinctRemoved = sqlExpr.replace(/DISTINCT/i, "").trim();
+    return getUsedColumnFromResult(table, distinctRemoved, result);
   }
+  // Sql expression could also be in the form of table.column, only return column
   return getUsedColumnFromResult(table, sqlExpr.trim(), result);
 }
 
@@ -395,12 +458,33 @@ export function getPrimaryUniqueKeys(
 ): string[] {
   const primaryKeys: string[] = [];
   for (const table of snowviewTables) {
-    primaryKeys.push(...table.primary_key);
+    if (table.primary_key) {
+      primaryKeys.push(...table.primary_key);
+    }
     if (table.unique_key) {
       primaryKeys.push(...table.unique_key.flat());
     }
   }
   return primaryKeys;
+}
+
+/**
+ * Creates a description string from Snowview synonyms and comments
+ * @param snowviewObj - Object containing synonyms and comment data
+ * @returns Formatted string with synonyms and comments, or undefined if empty
+ */
+export function setDescription(snowviewObj: SnowviewSynonymAndComment) {
+  const result: string[] = [];
+  if (snowviewObj.synonyms && snowviewObj.synonyms.length > 0) {
+    result.push(`"synonyms": ${JSON.stringify(snowviewObj.synonyms)}`);
+  }
+  if (snowviewObj.comment) {
+    result.push(`"comment": ${JSON.stringify(snowviewObj.comment)}`);
+  }
+  if (result.length === 0) {
+    return undefined;
+  }
+  return `{${result.join(",")}}`;
 }
 
 /**
@@ -427,7 +511,12 @@ export function normalizeSqlIdentifiers(
 
     const colMap = new Map<string, string>();
     table.columns.forEach((col) => {
-      colMap.set(normalizeString(col.name), col.name);
+      if ("sql" in col && col.sql) {
+        // Handle SQL expressions: store both raw expression and normalized version
+        colMap.set(normalizeString(col.name), col.sql);
+      } else {
+        colMap.set(normalizeString(col.name), col.name);
+      }
     });
     columnMap.set(normalizeString(table.unique_name), colMap);
   });

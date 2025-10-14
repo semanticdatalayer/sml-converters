@@ -1,15 +1,13 @@
 import { Command, Flags } from "@oclif/core";
 import dotenv from "dotenv";
-import path from "path";
-import snowflake from "snowflake-sdk";
 import { CommandLogger } from "../../shared/command-logger";
 import { Logger } from "../../shared/logger";
+import { SnowflakeAuth } from "../../shared/snowflake/SnowflakeAuth";
 import {
   SnowflakeConfig,
   SnowflakeConnection,
 } from "../../shared/snowflake/SnowflakeConnection";
 import { validateConfiguration } from "../../shared/snowflake/cortex-config-validator";
-import { SnowflakeAuth } from "../../shared/snowflake/SnowflakeAuth";
 import {
   propertyMap,
   SemanticViewDescribe,
@@ -22,12 +20,11 @@ import {
 } from "./SnowviewModel";
 import { SnowflakeCon } from "./snowflake-connect";
 
-import * as fs from "fs";
-import { SnowviewConverter } from "./snowview-converter/snowview-converter";
-import { isArrayString } from "./snowview-converter/converter-util";
-import { SmlResultWriter } from "../../shared/sml-result-writer";
 import { parseOutput } from "../../shared/file-system-util";
 import { logSmlConverterResult } from "../../shared/sml-convert-result";
+import { SmlResultWriter } from "../../shared/sml-result-writer";
+import { isArrayString } from "./snowview-converter/converter-util";
+import { SnowviewConverter } from "./snowview-converter/snowview-converter";
 
 dotenv.config();
 
@@ -104,7 +101,6 @@ export class SnowviewToSmlCommand extends Command {
     await this.convert(flags, logger);
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   private async convert(flags: any, logger: Logger) {
     const snowflakeConfig: SnowflakeConfig = {
       account: flags.snowflakeAccount,
@@ -145,14 +141,15 @@ export class SnowviewToSmlCommand extends Command {
 
     const snowflakeConn = new SnowflakeConnection(logger, snowflakeConfig);
 
+    // Connect to Snowflake
     logger.info("Connecting to Snowflake");
     await snowflakeConn.connect(connectConfig);
 
     const snowflakeCon = new SnowflakeCon(logger, snowflakeConn);
-    const parsed_semantic_view =
-      await snowflakeCon.getSemanticViewFromSnowflake();
-
-    const snowviewModel = this.transformSemanticView(parsed_semantic_view);
+    // Get Semantic View from Snowflake
+    const semanticView = await snowflakeCon.getSemanticViewFromSnowflake();
+    // Convert Semantic View Describe to SnowviewModel
+    const snowviewModel = this.transformSemanticView(semanticView);
 
     const snowviewConverter = new SnowviewConverter(logger);
     const smlResult = await snowviewConverter.convert(
@@ -182,6 +179,13 @@ export class SnowviewToSmlCommand extends Command {
 
     for (const item of semanticView) {
       if (item.object_kind) {
+        if (item.object_kind === "EXTENSION") {
+          if (!result.comment) {
+            result.comment = "";
+          }
+          result.comment += `\nExtension: ${item.property_value}`;
+          continue;
+        }
         if (!propertyMap.has(item.property)) {
           console.log(`Skipping unknown property: ${item.property}`);
           continue;
@@ -216,7 +220,10 @@ export class SnowviewToSmlCommand extends Command {
       } else {
         // Handle items with null object_kind
         if (item.property === "COMMENT") {
-          result.comment = item.property_value;
+          if (!result.comment) {
+            result.comment = "";
+          }
+          result.comment += item.property_value;
         }
       }
     }

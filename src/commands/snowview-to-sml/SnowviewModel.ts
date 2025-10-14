@@ -1,12 +1,10 @@
-export interface SnowviewTable {
+export interface SnowviewTable extends SnowviewSynonymAndComment {
   name: string;
   database: string;
   schema: string;
   table: string;
   primary_key: string[];
   unique_key?: string[];
-  synonyms?: string[];
-  comment?: string;
 }
 
 export interface SnowviewRelationship {
@@ -24,13 +22,16 @@ export interface SnowviewDimension extends SnowviewEntity {}
 
 export interface SnowviewMetric extends SnowviewEntity {}
 
-export interface SnowviewEntity {
+export interface SnowviewEntity extends SnowviewSynonymAndComment {
   name: string;
   parent_entity: string;
   table: string;
   expression: string;
   data_type: string;
   access_modifier: string;
+}
+
+export interface SnowviewSynonymAndComment {
   synonyms?: string[];
   comment?: string;
 }
@@ -79,7 +80,6 @@ export interface ColumnDescribe {
 }
 
 export interface TableLists {
-  measTables: Set<string>;
   factTables: Set<SnowviewTable>;
   dimTables: Set<SnowviewTable>;
 }
