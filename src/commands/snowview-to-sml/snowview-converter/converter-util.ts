@@ -439,20 +439,6 @@ export function getExpressionInfo(
   return { smlDim, isSimpleColumnExpr, referenceOtherTable, smlTbl };
 }
 
-/**
- * Is a string an array (e.g. "[1,2,3]")
- * @param str - The string to check
- * @returns True if the string is an array, false otherwise
- */
-export function isArrayString(str: string): boolean {
-  try {
-    const parsed = JSON.parse(str);
-    return Array.isArray(parsed);
-  } catch {
-    return false;
-  }
-}
-
 export function getPrimaryUniqueKeys(
   snowviewTables: SnowviewTable[],
 ): string[] {

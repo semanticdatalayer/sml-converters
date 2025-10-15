@@ -23,7 +23,7 @@ import { SnowflakeCon } from "./snowflake-connect";
 import { parseOutput } from "../../shared/file-system-util";
 import { logSmlConverterResult } from "../../shared/sml-convert-result";
 import { SmlResultWriter } from "../../shared/sml-result-writer";
-import { isArrayString } from "./snowview-converter/converter-util";
+import { isArrayString } from "../../shared/array-util";
 import { SnowviewConverter } from "./snowview-converter/snowview-converter";
 
 dotenv.config();
