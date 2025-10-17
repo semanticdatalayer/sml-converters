@@ -81,7 +81,12 @@ export class SnowviewDimensionConverter {
    */
   addLevelAttribute(
     dimension: SMLDimension,
-    snowviewTable: { name: string; primary_key: string[]; comment?: string },
+    snowviewTable: {
+      name: string;
+      primary_key: string[];
+      comment?: string;
+      synonyms?: string[];
+    },
     result: SmlConverterResult,
   ) {
     dimension.level_attributes.push({
@@ -91,7 +96,7 @@ export class SnowviewDimensionConverter {
         getColumnName(pk, snowviewTable.name, result, this.logger),
       ),
       label: dimension.label,
-      description: snowviewTable.comment,
+      description: setDescription(snowviewTable),
       is_hidden: true,
       name_column: getColumnName(
         snowviewTable.primary_key[0],
@@ -325,6 +330,7 @@ export class SnowviewDimensionConverter {
         name: snowviewDim.table,
         primary_key: [keyColumn],
         comment: snowviewDim.comment,
+        synonyms: snowviewDim.synonyms,
       },
       result,
     );

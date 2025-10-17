@@ -11,7 +11,12 @@ import {
   TableDescribe,
 } from "./SnowviewModel";
 
-export class SnowflakeCon {
+export interface SnowflakeSVConnection {
+  getSemanticViewFromSnowflake(): Promise<Array<SemanticViewDescribe>>;
+  getTableFromSnowflake(snowviewTable: SnowviewTable): Promise<TableDescribe>;
+}
+
+export class SnowflakeCon implements SnowflakeSVConnection {
   private connection: Connection | null = null;
   private logger: Logger;
   private config: SnowflakeConfig;
@@ -92,7 +97,7 @@ export class SnowflakeCon {
         });
       });
     } catch (err) {
-      this.logger.error(`Error getting semantic view: ${err}`);
+      this.logger.error(`Error getting table: ${err}`);
       return Promise.reject();
     }
   }

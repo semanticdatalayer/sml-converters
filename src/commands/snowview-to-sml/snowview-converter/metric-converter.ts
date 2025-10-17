@@ -57,25 +57,24 @@ export class SnowviewMetricConverter {
     snowviewMetric: SnowviewMetric,
     result: SmlConverterResult,
   ): boolean {
-    // Parse the expression to find the aggregation and the column
-    // Then we need to find the column in the dataset
+    let newMetric = this.convertSimpleMetric(snowviewMetric, result);
+    if (!newMetric) {
+      newMetric = this.convertCalculatedMetric(snowviewMetric, result);
+    }
+    return newMetric;
+  }
+
+  convertSimpleMetric(
+    snowviewMetric: SnowviewMetric,
+    result: SmlConverterResult,
+  ): boolean {
     let { calcMethod, column, newTable } = this.getCalcAndColumn(
       snowviewMetric,
       result,
     );
-
-    if (!column) {
-      // Check if the "column" is actually a metric previously created. If so, create a calculated metric with an MDX agg
-      return this.convertCalculatedMetric(snowviewMetric, result);
+    if (!column || !calcMethod) {
+      return false;
     }
-
-    if (!calcMethod) {
-      this.logger.warn(
-        `Unable to determine calculation method for metric: ${snowviewMetric.name}. Defaulting to SUM`,
-      );
-      calcMethod = SMLCalculationMethod.Sum;
-    }
-
     const newMetric: SMLMetric = {
       object_type: SMLObjectType.Metric,
       unique_name: snowviewMetric.name,
@@ -118,7 +117,7 @@ export class SnowviewMetricConverter {
     }
     const { col, extra } = getTblAndColFromExpr(expr);
     // If extra is given, it is most likely a window function
-    // TODO: Handle window functions and other complex expressions
+    // TODO: Handle window functions and other complex expressions here
 
     const smlMetric = result.measures.find(
       (m) => normalizeString(m.unique_name) === normalizeString(col),

@@ -283,7 +283,7 @@ export function getTblAndColFromExpr(expr: string): {
   const parenIndex = expr.indexOf(")");
   if (parenIndex !== -1) {
     // It's a window function, e.g. "SUM(column) OVER (PARTITION BY ...)"
-    const extra = expr.slice(parenIndex).trim();
+    const extra = expr.slice(parenIndex + 1).trim();
     expr = expr.slice(0, parenIndex).trim();
     if (expr.includes(".")) {
       const parts = expr.split(".").map((p) => p.trim());
@@ -330,11 +330,10 @@ export function gettUsedColumn(
   // Most sql aggregation functions are in the form FUNC(column)
   // Percentiles are in the form PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY column)
   if (sqlExpr.toUpperCase().includes("WITHIN GROUP")) {
-    const orderByIndex = sqlExpr.indexOf("ORDER BY");
-    if (orderByIndex === -1) return undefined;
-    const afterOrderBy = sqlExpr.slice(orderByIndex + "ORDER BY".length).trim();
-    return getUsedColumnFromResult(table, afterOrderBy.trim(), result);
-
+    const withinGroupMatch = sqlExpr.match(/WITHIN GROUP \(ORDER BY\s+([^\s\)]+)\)/i);
+  if (withinGroupMatch) {
+    return getUsedColumnFromResult(table, withinGroupMatch[1], result);
+  }
     // DISTINCT is used for the COUNT() function, so we just remove it and return the column
   } else if (sqlExpr.toUpperCase().includes("DISTINCT")) {
     const distinctRemoved = sqlExpr.replace(/DISTINCT/i, "").trim();
@@ -479,6 +478,7 @@ export function setDescription(snowviewObj: SnowviewSynonymAndComment) {
  * This function processes SQL identifiers (table names and column names) to ensure they match the exact case
  * and formatting defined in the schema. It handles both quoted and unquoted identifiers, and properly formats
  * identifiers containing spaces by adding quotes.
+ * if a column that's used is a calculated column, it will use the sql expression of that column
  *
  * @param sql - The SQL query string to normalize
  * @param result - The schema definition containing dataset (table) and column information

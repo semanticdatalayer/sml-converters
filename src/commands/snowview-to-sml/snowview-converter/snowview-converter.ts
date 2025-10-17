@@ -88,10 +88,6 @@ export class SnowviewConverter {
     // Create dimensions based on the identified dimension tables
     dimensionConverter.createDimensions(tableLists, result);
     // Convert the dimensions defined in the snowview model
-    dimensionConverter.convertSnowviewDimensionsToSmlDimensions(
-      snowviewModel.dimensions,
-      result,
-    );
 
     const relationshipConverter = new SnowviewRelationshipConverter(
       this.logger,
@@ -104,6 +100,11 @@ export class SnowviewConverter {
 
     relationshipConverter.addDimensionRelationshipsToModel(
       tableLists.dimTables,
+      result,
+    );
+
+    dimensionConverter.convertSnowviewDimensionsToSmlDimensions(
+      snowviewModel.dimensions,
       result,
     );
 

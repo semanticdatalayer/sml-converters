@@ -44,6 +44,7 @@ export interface SnowviewModel {
   metrics: SnowviewMetric[];
   comment?: string;
 }
+
 export const propertyMap = new Map<string, string>([
   ["BASE_TABLE_DATABASE_NAME", "database"],
   ["BASE_TABLE_SCHEMA_NAME", "schema"],
