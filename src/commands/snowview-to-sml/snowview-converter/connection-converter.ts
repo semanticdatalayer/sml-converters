@@ -20,6 +20,8 @@ export class SnowviewConnectionConverter {
     const sources = new Set<string>(
       snowviewModel.tables.map((t) => `${t.database}.${t.schema}`),
     );
+
+    console.log("test");
     for (const source of sources) {
       const [database, schema] = source.split(".");
       const connection: SMLConnection = {
