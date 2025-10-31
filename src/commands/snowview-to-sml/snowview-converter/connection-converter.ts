@@ -12,27 +12,25 @@ export class SnowviewConnectionConverter {
    * @param snowviewModel - The source Snowview model containing tables with database and schema information
    * @param result - The SML converter result object where the generated connections will be stored
    */
-  createConnections(
-    asConnection: string,
-    snowviewModel: SnowviewModel,
-    result: SmlConverterResult,
-  ) {
+  createConnections(asConnection: string, snowviewModel: SnowviewModel) {
+    const connections = [];
+
     const sources = new Set<string>(
       snowviewModel.tables.map((t) => `${t.database}.${t.schema}`),
     );
-
-    console.log("test");
     for (const source of sources) {
       const [database, schema] = source.split(".");
       const connection: SMLConnection = {
         object_type: SMLObjectType.Connection,
-        unique_name: `connection_${schema}`,
-        label: `connection_${schema}`,
+        unique_name: `con_${database}_${schema}`,
+        label: `con_${database}_${schema}`,
         as_connection: asConnection,
         database: database,
         schema: schema,
       };
-      result.connections.push(connection);
+      connections.push(connection);
     }
+
+    return connections;
   }
 }

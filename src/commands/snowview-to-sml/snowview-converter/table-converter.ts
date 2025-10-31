@@ -8,7 +8,12 @@ import {
   TableLists,
 } from "../SnowviewModel";
 
-import { SMLDataset, SMLDatasetColumn, SMLObjectType } from "sml-sdk";
+import {
+  SMLConnection,
+  SMLDataset,
+  SMLDatasetColumn,
+  SMLObjectType,
+} from "sml-sdk";
 import { mapSqlDatatypeToSmlDataType } from "./converter-util";
 
 export class SnowviewTableConverter {
@@ -19,34 +24,41 @@ export class SnowviewTableConverter {
 
   async mapTablesToSmlDatasets(
     snowviewTables: Array<SnowviewTable>,
-    result: SmlConverterResult,
+    connections: SMLConnection[],
   ) {
-    await Promise.allSettled(
-      snowviewTables.map(
-        (table) =>
-          this.mapTableToSmlDataset(
-            table,
-            result,
-            `connection_${table.schema}`,
-          ),
+    const datasets = await Promise.all(
+      snowviewTables.map((table) =>
+        this.mapTableToSmlDataset(table, connections),
       ),
     );
+
+    return datasets;
   }
 
   /**
    * Maps a Snowview table to an SML dataset
    * @param snowviewTable - The Snowview table to be converted
-   * @param result - The conversion result object where the dataset will be added
    * @param asConnection - The connection ID to be used for the dataset
    */
   async mapTableToSmlDataset(
     snowviewTable: SnowviewTable,
-    result: SmlConverterResult,
-    asConnection: string,
+    connections: SMLConnection[],
   ) {
     const tableDescribe = await this.snowflakeCon.getTableFromSnowflake(
       snowviewTable,
     );
+
+    const connection = connections.find(
+      (connection) =>
+        connection.database === snowviewTable.database &&
+        connection.schema === snowviewTable.schema,
+    );
+
+    if (!connection) {
+      throw new Error(
+        `Error generating ${snowviewTable.name} dataset, missing connection file for ${snowviewTable.database}.${snowviewTable.schema} schema.`,
+      );
+    }
 
     const dataset: SMLDataset = {
       object_type: SMLObjectType.Dataset,
@@ -54,10 +66,11 @@ export class SnowviewTableConverter {
       description: snowviewTable.comment,
       label: snowviewTable.name,
       columns: this.mapColumns(tableDescribe),
-      connection_id: asConnection,
+      connection_id: connection.unique_name,
       table: snowviewTable.table.replaceAll(`"`, ""), // Quotes will be added in the SQL generation
     };
-    result.datasets.push(dataset);
+
+    return dataset;
   }
 
   /**
@@ -90,10 +103,12 @@ export class SnowviewTableConverter {
    * @param snowviewModel - The Snowview data model containing tables and relationships
    * @param tableLists - Object containing Sets for storing fact and dimension tables
    */
-  identifyFactAndDimTables(
-    snowviewModel: SnowviewModel,
-    tableLists: TableLists,
-  ) {
+  identifyFactAndDimTables(snowviewModel: SnowviewModel) {
+    const tableLists: TableLists = {
+      factTables: new Set<SnowviewTable>(),
+      dimTables: new Set<SnowviewTable>(),
+    };
+
     for (const relationship of snowviewModel.relationships) {
       // Anything that's a ref_table in the realtionships is a dimension table
       const dimTable = snowviewModel.tables.find(
@@ -109,5 +124,7 @@ export class SnowviewTableConverter {
         tableLists.factTables.add(table);
       }
     }
+
+    return tableLists;
   }
 }

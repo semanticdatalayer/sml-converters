@@ -26,11 +26,7 @@ export class SnowviewDatasetConverter {
     } satisfies SMLDatasetColumnSimple);
   }
 
-  createTimeDataset(
-    datasetName: string,
-    result: SmlConverterResult,
-    asConnection: string,
-  ) {
-    result.datasets.push(getTimeDatasetDefinition(datasetName, asConnection));
+  createTimeDataset(datasetName: string, asConnection: string) {
+    return getTimeDatasetDefinition(datasetName, asConnection);
   }
 }

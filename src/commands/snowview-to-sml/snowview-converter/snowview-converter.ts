@@ -54,21 +54,27 @@ export class SnowviewConverter {
       compositeModels: [],
     };
 
-    const tableLists: TableLists = {
-      factTables: new Set<SnowviewTable>(),
-      dimTables: new Set<SnowviewTable>(),
-    };
+    // const tableLists: TableLists = {
+    //   factTables: new Set<SnowviewTable>(),
+    //   dimTables: new Set<SnowviewTable>(),
+    // };
 
     const connectionConverter = new SnowviewConnectionConverter(this.logger);
-    connectionConverter.createConnections(asConnection, snowviewModel, result);
+    result.connections = connectionConverter.createConnections(
+      asConnection,
+      snowviewModel,
+    );
 
     const tableConverter = new SnowviewTableConverter(
       this.logger,
       snowflakeCon,
     );
-    await tableConverter.mapTablesToSmlDatasets(snowviewModel.tables, result);
+    result.datasets = await tableConverter.mapTablesToSmlDatasets(
+      snowviewModel.tables,
+      result.connections,
+    );
 
-    tableConverter.identifyFactAndDimTables(snowviewModel, tableLists);
+    const tableLists = tableConverter.identifyFactAndDimTables(snowviewModel);
 
     const dimensionConverter = new SnowviewDimensionConverter(this.logger);
 
@@ -79,14 +85,19 @@ export class SnowviewConverter {
 
     // Add a fake time dataset for the time dimension
     const datasetConverter = new SnowviewDatasetConverter(this.logger);
-    datasetConverter.createTimeDataset(
+    const timeDataset = datasetConverter.createTimeDataset(
       "dim_time_dataset",
-      result,
       result.connections[0].unique_name,
     );
+    result.datasets.push(timeDataset);
 
     // Create dimensions based on the identified dimension tables
-    dimensionConverter.createDimensions(tableLists, result);
+    const dimensions = dimensionConverter.createDimensions(tableLists, result);
+    result.dimensions.push(...dimensions);
+    // if (!result.models[0].dimensions) {
+    //   result.models[0].dimensions = [];
+    // }
+    // result.models[0].dimensions.push(...dimensions.map((dim) => dim.unique_name));
     // Convert the dimensions defined in the snowview model
 
     const relationshipConverter = new SnowviewRelationshipConverter(

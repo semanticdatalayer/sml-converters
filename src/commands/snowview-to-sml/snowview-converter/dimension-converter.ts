@@ -26,61 +26,75 @@ import { SnowviewRelationshipConverter } from "./relationship-converter";
 export class SnowviewDimensionConverter {
   constructor(private readonly logger: Logger) {}
 
-  createDimensions(tableLists: TableLists, result: SmlConverterResult) {
-    for (const dim of tableLists.dimTables) {
-      this.createDimension(dim, result);
-    }
+  createDimensions(
+    tableLists: TableLists,
+    result: SmlConverterResult,
+  ): SMLDimension[] {
+    return Array.from(tableLists.dimTables).map((dim) =>
+      this.createDimension(dim, result),
+    );
   }
 
-  createDimension(snowviewTable: SnowviewTable, result: SmlConverterResult) {
+  createDimension(
+    snowviewTable: SnowviewTable,
+    result: SmlConverterResult,
+  ): SMLNormalDimension {
     const dimension_unique_name = `${snowviewTable.name}_dimension`;
     const hasTimeHierarchy = false; // TODO: Implement time hierarchy detection
+    const label = snowviewTable.name;
+
+    const defaultHierarchy = this.createDefaultHierarchy(
+      dimension_unique_name,
+      label,
+    );
+    const levelAttribute = this.addLevelAttribute(label, snowviewTable, result);
 
     const dimension: SMLNormalDimension = {
       object_type: SMLObjectType.Dimension,
       unique_name: dimension_unique_name,
-      label: snowviewTable.name,
+      label: label,
       type: hasTimeHierarchy
         ? SMLDimensionType.Time
         : SMLDimensionType.Standard,
       description: snowviewTable.comment,
-      hierarchies: [],
-      level_attributes: new Array<SMLLevelFromOneDataset>(),
+      hierarchies: [defaultHierarchy],
+      level_attributes: [levelAttribute],
     };
 
-    // Create default hierarchy with one level
-    this.createDefaultHierarchy(dimension);
-    this.addLevelAttribute(dimension, snowviewTable, result);
-
-    result.dimensions.push(dimension);
+    return dimension;
   }
 
   /**
    * Creates a default hierarchy for the given dimension
-   * @param dimension The dimension to create the hierarchy for
+   * @param dimensionUniqueName The unique name of the dimension
+   * @param dimensionLabel The label of the dimension
+   * @returns A default hierarchy with one level
    */
-  createDefaultHierarchy(dimension: SMLDimension) {
-    const defaultHierarchy: SMLDimensionHierarchy = {
-      unique_name: `${dimension.unique_name}_default_hierarchy`,
-      label: `${dimension.label} Hierarchy`,
+  createDefaultHierarchy(
+    dimensionUniqueName: string,
+    dimensionLabel: string,
+  ): SMLDimensionHierarchy {
+    return {
+      unique_name: `${dimensionUniqueName}_default_hierarchy`,
+      label: `${dimensionLabel} Hierarchy`,
       levels: [
         {
-          unique_name: `${dimension.label}_level`,
+          unique_name: `${dimensionLabel}_level`,
           secondary_attributes: [],
         } satisfies SMLDimensionLevel,
       ],
     };
-    dimension.hierarchies.push(defaultHierarchy);
   }
 
   /**
-   * Adds a level attribute to the given dimension based on the Snowview table's primary key
-   * @param dimension The dimension to add the level attribute to
+   * Creates a level attribute based on the Snowview table's primary key
+   * @param dimensionLabel The label of the dimension
    * @param snowviewTable The Snowview table associated with the dimension
    * @param result The SML converter result
+   * @returns A level attribute for the dimension
    */
   addLevelAttribute(
-    dimension: SMLDimension,
+    dimensionLabel: string,
     snowviewTable: {
       name: string;
       primary_key: string[];
@@ -88,14 +102,14 @@ export class SnowviewDimensionConverter {
       synonyms?: string[];
     },
     result: SmlConverterResult,
-  ) {
-    dimension.level_attributes.push({
-      unique_name: `${dimension.label}_level`,
+  ): SMLLevelFromOneDataset {
+    return {
+      unique_name: `${dimensionLabel}_level`,
       dataset: snowviewTable.name,
       key_columns: snowviewTable.primary_key.map((pk) =>
         getColumnName(pk, snowviewTable.name, result, this.logger),
       ),
-      label: dimension.label,
+      label: dimensionLabel,
       description: setDescription(snowviewTable),
       is_hidden: true,
       name_column: getColumnName(
@@ -104,7 +118,7 @@ export class SnowviewDimensionConverter {
         result,
         this.logger,
       ),
-    } satisfies SMLLevelFromOneDataset);
+    } satisfies SMLLevelFromOneDataset;
   }
 
   convertSnowviewDimensionsToSmlDimensions(
@@ -148,13 +162,20 @@ export class SnowviewDimensionConverter {
     if (!smlDim) {
       if (smlTbl) {
         // Create degenerate dimension on the fact table
-        this.convertSnowviewDimensionToSmlDegenDim(
+        const degenerateDimension = this.convertSnowviewDimensionToSmlDegenDim(
           snowviewDim,
           result,
           isSimpleColumnExpr,
           referenceOtherTable,
           smlTbl,
         );
+        if (degenerateDimension) {
+          result.dimensions.push(degenerateDimension);
+          if (!result.models[0].dimensions) {
+            result.models[0].dimensions = [];
+          }
+          result.models[0].dimensions.push(degenerateDimension.unique_name);
+        }
         return;
       }
       this.logger.warn(
@@ -170,13 +191,16 @@ export class SnowviewDimensionConverter {
     // If the expression is just a column name,
     // we can add that column as a secondary attribute to the dimension's lowest leaf heirarchy level
     if (isSimpleColumnExpr && !referenceOtherTable) {
-      this.convertSecondaryAttribute(
+      const secondaryAttr = this.convertSecondaryAttribute(
         snowviewDim,
         snowviewDim.table,
         snowviewDim.expression,
         result,
         leafDimLevel,
       );
+      if (secondaryAttr) {
+        leafDimLevel.secondary_attributes?.push(secondaryAttr);
+      }
       // If the expression is a sql expression using a column in the correct table, we need to create a calculated column in the dataset first
     } else if (!isSimpleColumnExpr && !referenceOtherTable) {
       // Create calculated column in dataset
@@ -188,25 +212,31 @@ export class SnowviewDimensionConverter {
         datasetConverter.addCalculatedColumn(snowviewDim, smlDataset, result);
       }
       // Add calculated column as secondary attribute to dimension
-      this.convertSecondaryAttribute(
+      const secondaryAttr = this.convertSecondaryAttribute(
         snowviewDim,
         snowviewDim.table,
         snowviewDim.name,
         result,
         leafDimLevel,
       );
+      if (secondaryAttr) {
+        leafDimLevel.secondary_attributes?.push(secondaryAttr);
+      }
       // if it's a simple column, but references another table, we need to link that table
     } else if (isSimpleColumnExpr && referenceOtherTable) {
       // If the expression is a column from another table
       // Create a secondary attribute with the other dataset and its columns
       const [tbl, col] = snowviewDim.expression.split(".");
-      this.convertSecondaryAttribute(
+      const secondaryAttr = this.convertSecondaryAttribute(
         snowviewDim,
         tbl,
         col,
         result,
         leafDimLevel,
       );
+      if (secondaryAttr) {
+        leafDimLevel.secondary_attributes?.push(secondaryAttr);
+      }
     } else {
       this.logger.warn(
         `Unable to convert Snowview dimension ${snowviewDim.name} with expression ${snowviewDim.expression}. Complex expressions referencing other tables are not supported.`,
@@ -261,17 +291,18 @@ export class SnowviewDimensionConverter {
     if (snowviewDim.access_modifier === "PRIVATE") {
       secondary_attribute.is_hidden = true;
     }
-    smlDimension.secondary_attributes?.push(secondary_attribute);
+    return secondary_attribute;
   }
 
   /**
    * Converts a Snowview dimension into an SML degenerate dimension.
    *
    * @param snowviewDim - The Snowview dimension to convert
-   * @param result - The SML converter result object to store the conversion output
+   * @param result - The SML converter result for column name lookup
    * @param isSimpleColumnExpr - Indicates if the dimension expression is a simple column reference
    * @param referenceOtherTable - Indicates if the dimension references another table
    * @param smlDataset - The SML dataset context for the conversion
+   * @returns The created degenerate dimension, or undefined if creation failed
    */
   convertSnowviewDimensionToSmlDegenDim(
     snowviewDim: SnowviewDimension,
@@ -279,10 +310,10 @@ export class SnowviewDimensionConverter {
     isSimpleColumnExpr: boolean,
     referenceOtherTable: boolean,
     smlDataset: SMLDataset,
-  ) {
+  ): SMLDegenerateDimension | undefined {
     if (isSimpleColumnExpr && !referenceOtherTable) {
       // Create a degenerate dimension on simple column
-      this.createDegenerateDimension(
+      return this.createDegenerateDimension(
         snowviewDim,
         snowviewDim.expression,
         result,
@@ -292,40 +323,41 @@ export class SnowviewDimensionConverter {
       const datasetConverter = new SnowviewDatasetConverter(this.logger);
       datasetConverter.addCalculatedColumn(snowviewDim, smlDataset, result);
       // Create degenerate dimension on calculated column
-      this.createDegenerateDimension(snowviewDim, snowviewDim.name, result);
+      return this.createDegenerateDimension(
+        snowviewDim,
+        snowviewDim.name,
+        result,
+      );
     } else if (isSimpleColumnExpr && referenceOtherTable) {
       // Create a degenerate dimension on the other table's column
       const [tbl, col] = snowviewDim.expression.split(".");
-      this.createDegenerateDimension(snowviewDim, col, result);
+      return this.createDegenerateDimension(snowviewDim, col, result);
     } else {
       this.logger.warn(
         `Unable to convert Snowview dimension ${snowviewDim.name} with expression ${snowviewDim.expression}. Complex expressions referencing other tables are not supported.`,
       );
+      return undefined;
     }
   }
 
   /**
-   * Creates degenerate dimensions based on the snowviewModel.dimensions list
-   * @param snowviewModel The Snowview model containing table and column metadata
-   * @param result The SML conversion result to which degenerate dimensions will be added
+   * Creates a degenerate dimension
+   * @param snowviewDim The Snowview dimension
+   * @param keyColumn The key column name
+   * @param result The SML conversion result for column name lookup
+   * @returns The created degenerate dimension
    */
   createDegenerateDimension(
     snowviewDim: SnowviewDimension,
     keyColumn: string,
     result: SmlConverterResult,
-  ) {
-    const degenerateDimension: SMLDegenerateDimension = {
-      unique_name: snowviewDim.name,
-      is_degenerate: true,
-      label: snowviewDim.name,
-      object_type: SMLObjectType.Dimension,
-      description: setDescription(snowviewDim),
-      level_attributes: [],
-      hierarchies: [],
-    };
-    this.createDefaultHierarchy(degenerateDimension);
-    this.addLevelAttribute(
-      degenerateDimension,
+  ): SMLDegenerateDimension {
+    const defaultHierarchy = this.createDefaultHierarchy(
+      snowviewDim.name,
+      snowviewDim.name,
+    );
+    const levelAttribute = this.addLevelAttribute(
+      snowviewDim.name,
       {
         name: snowviewDim.table,
         primary_key: [keyColumn],
@@ -335,10 +367,14 @@ export class SnowviewDimensionConverter {
       result,
     );
 
-    result.dimensions.push(degenerateDimension);
-    if (!result.models[0].dimensions) {
-      result.models[0].dimensions = [];
-    }
-    result.models[0].dimensions.push(snowviewDim.name);
+    return {
+      unique_name: snowviewDim.name,
+      is_degenerate: true,
+      label: snowviewDim.name,
+      object_type: SMLObjectType.Dimension,
+      description: setDescription(snowviewDim),
+      level_attributes: [levelAttribute],
+      hierarchies: [defaultHierarchy],
+    };
   }
 }
