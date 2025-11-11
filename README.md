@@ -31,28 +31,47 @@ USAGE
 # Commands
 
 <!-- commands -->
-* [`sml-converters help [COMMAND]`](#sml-converters-help-command)
-* [`sml-converters bim-to-sml`](#sml-converters-bim-to-sml) (Power BI)
-* [`sml-converters dbt-to-sml`](#sml-converters-dbt-to-sml)
-* [`sml-converters sml-to-cortex`](#sml-converters-sml-to-cortex) (Snowflake Semantic Views)
 * [`sml-converters add-files-to-snowflake`](#sml-converters-add-files-to-snowflake)
+* [`sml-converters bim-to-sml`](#sml-converters-bim-to-sml)
+* [`sml-converters dbt-to-sml`](#sml-converters-dbt-to-sml)
+* [`sml-converters help [COMMAND]`](#sml-converters-help-command)
+* [`sml-converters sml-to-cortex`](#sml-converters-sml-to-cortex)
 
-## `sml-converters help [COMMAND]`
+## `sml-converters add-files-to-snowflake`
 
-Display help for sml-converters.
+Add converted Snowflake Cortex Analyst yaml to Snowflake
 
 ```
 USAGE
-  $ sml-converters help [COMMAND...] [-n]
-
-ARGUMENTS
-  COMMAND...  Command to show help for.
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator <value> --snowflakeAccount <value> --snowflakeDatabase
+    <value> --snowflakeSchema <value> [--source <value>] [--snowflakeStage <value>] [--snowflakeWarehouse <value>]
+    [--snowflakeRole <value>]
 
 FLAGS
-  -n, --nested-commands  Include all nested commands in the output.
+  --snowflakeAccount=<value>        (required) Snowflake account identifier
+  --snowflakeAuthenticator=<value>  (required) [default: SNOWFLAKE] Snowflake authenticator type
+  --snowflakeDatabase=<value>       (required) Snowflake database name
+  --snowflakeRole=<value>           Snowflake role to use for the connection
+  --snowflakeSchema=<value>         (required) Snowflake schema name
+  --snowflakeStage=<value>          Snowflake stage name for uploading files
+  --snowflakeWarehouse=<value>      Snowflake warehouse name
+  --source=<value>                  [default: ./] Source folder
 
 DESCRIPTION
-  Display help for sml-converters.
+  Add converted Snowflake Cortex Analyst yaml to Snowflake
+
+  Snowflake authentication can be found in .env.example. Types of snowflakeAuthenticator will have different
+  requirements.
+  Please read the README.md file to see how to use certain authentication methods.
+  Or see https://docs.snowflake.com/en/developer-guide/node-js/nodejs-driver-authenticate for what parameters must be
+  set.
+
+EXAMPLES
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE
+
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=EXTERNALBROWSER
+
+  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE_JWT
 ```
 
 ## `sml-converters bim-to-sml`
@@ -61,7 +80,8 @@ Converts a Power BI Model to SML
 
 ```
 USAGE
-  $ sml-converters bim-to-sml [--source <value>] [--output <value>] [--clean] [--atscaleConnectionId <value>] [--llmName <value>]
+  $ sml-converters bim-to-sml [--source <value>] [--output <value>] [--clean] [--atscaleConnectionId <value>]
+    [--llmName <value>]
 
 FLAGS
   --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in
@@ -75,6 +95,8 @@ FLAGS
 
 DESCRIPTION
   Converts a Power BI Model to SML
+
+
 
 EXAMPLES
   $ sml-converters bim-to-sml
@@ -116,6 +138,9 @@ FLAGS
 DESCRIPTION
   Converts DBT to SML
 
+
+
+
 EXAMPLES
   $ sml-converters dbt-to-sml
 
@@ -127,6 +152,26 @@ EXAMPLES
 
   $ sml-converters dbt-to-sml -s ./dbt-source-path -o ./sml-output-path --clean
 ```
+
+## `sml-converters help [COMMAND]`
+
+Display help for sml-converters.
+
+```
+USAGE
+  $ sml-converters help [COMMAND...] [-n]
+
+ARGUMENTS
+  COMMAND...  Command to show help for.
+
+FLAGS
+  -n, --nested-commands  Include all nested commands in the output.
+
+DESCRIPTION
+  Display help for sml-converters.
+```
+
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.31/src/commands/help.ts)_
 
 ## `sml-converters sml-to-cortex`
 
@@ -155,56 +200,6 @@ EXAMPLES
 
   $ sml-converters sml-to-cortex -s ./sml-source-path -o ./cortex-output-path --clean
 ```
-
-## `sml-converters add-files-to-snowflake`
-
-Add converted Snowflake Cortex Analyst yaml to Snowflake
-
-```
-USAGE
-  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator <value> --snowflakeAccount <value> --snowflakeDatabase
-    <value> --snowflakeSchema <value> [--source <value>] [--snowflakeStage <value>] [--snowflakeWarehouse <value>]
-    [--snowflakeRole <value>]
-
-FLAGS
-  --snowflakeAccount=<value>        (required) Snowflake account identifier
-  --snowflakeAuthenticator=<value>  (required) [default: SNOWFLAKE] Snowflake authenticator type
-  --snowflakeDatabase=<value>       (required) Snowflake database name
-  --snowflakeRole=<value>           Snowflake role to use for the connection
-  --snowflakeSchema=<value>         (required) Snowflake schema name
-  --snowflakeStage=<value>          Snowflake stage name for uploading files
-  --snowflakeWarehouse=<value>      Snowflake warehouse name
-  --source=<value>                  [default: ./] Source folder
-
-DESCRIPTION
-  Add converted Snowflake Cortex Analyst yaml to Snowflake
-
-  Snowflake authentication can be found in .env.example. Types of snowflakeAuthenticator will have different
-  requirements.
-  Please read the README.md file to see how to use certain authentication methods.
-  Or see https://docs.snowflake.com/en/developer-guide/node-js/nodejs-driver-authenticate for what parameters must be
-  set.
-
-EXAMPLES
-  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE
-
-  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=EXTERNALBROWSER
-
-  $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE_JWT
-```
-
-### REQUIRED ENV VARIABLES FOR AUTH TYPE
-| Authenticator | Required Environment Variables |
-|---------------|-------------------------------|
-| `SNOWFLAKE` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD` |
-| `EXTERNALBROWSER` | *(none - uses browser)* |
-| `SNOWFLAKE_JWT` | `SNOWFLAKE_PRIVATE_KEY_PATH`, `SNOWFLAKE_PRIVATE_KEY_PASS`(Only if rs8 file is encrypted) |
-| `USERNAME_PASSWORD_MFA` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD`, `SNOWFLAKE_PASSCODE` |
-| `*.okta.com` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD` |
-| `OAUTH` | `SNOWFLAKE_TOKEN` |
-| `PROGRAMMATIC_ACCESS_TOKEN` | `SNOWFLAKE_USERNAME`, `SNOWFLAKE_PASSWORD` |
-
-
 <!-- commandsstop -->
 
 # License
