@@ -6,9 +6,11 @@ import {
   SMLDimensionTimeUnit,
   SMLDimensionType,
   SMLLevelFromOneDataset,
+  SMLLevelWithMultipleDatasets,
   SMLNormalDimension,
   SMLObjectType,
 } from "sml-sdk";
+import { Logger } from "../../../shared/logger";
 import { SmlConverterResult } from "../../../shared/sml-convert-result";
 import {
   BimModel,
@@ -18,6 +20,11 @@ import {
   BimTableHierarchy,
   BimTableHierarchyLevel,
 } from "../bim-models/bim-model";
+import {
+  AttributeMaps,
+  BimColumnDetail,
+  TableLists,
+} from "../bim-models/types-and-interfaces";
 import { dimLevels, listRelationshipColumns } from "./converter-utils";
 import {
   createUniqueAttrName,
@@ -26,12 +33,6 @@ import {
   lookupAttrUniqueName,
   makeUniqueName,
 } from "./tools";
-import {
-  AttributeMaps,
-  BimColumnDetail,
-  TableLists,
-} from "../bim-models/types-and-interfaces";
-import { Logger } from "../../../shared/logger";
 
 export class DimensionConverter {
   private logger: Logger;
@@ -67,7 +68,7 @@ export class DimensionConverter {
     const dimension_unique_name = makeUniqueName(`dimension.${bimTable.name}`);
     const hasTimeHierarchy = bimTable.dataCategory?.localeCompare("Time") == 0;
 
-    const dimension = {
+    const dimension: SMLNormalDimension = {
       object_type: SMLObjectType.Dimension,
       unique_name: dimension_unique_name,
       label: bimTable.name,
@@ -77,7 +78,7 @@ export class DimensionConverter {
       description: descriptionAsString(bimTable.description),
       hierarchies: [],
       level_attributes: new Array<SMLLevelFromOneDataset>(),
-    } satisfies SMLNormalDimension;
+    };
 
     const joinColumns: Array<string> = listRelationshipColumns(
       bimModel,
@@ -333,14 +334,27 @@ export class DimensionConverter {
     });
   }
 
+  /**
+   * Converts a BIM column into a secondary attribute for an SML dimension.
+   *
+   * @param bimTable - The BIM table containing the column to be converted
+   * @param bimColumn - The BIM column to be converted into a secondary attribute
+   * @param dimension - The target SML dimension where the secondary attribute will be added
+   * @param attrNameMap - Map of attribute names to ensure uniqueness
+   * @param levelForSecondaryAttrs - The unique name of the level where secondary attributes should be added
+   * @returns void
+   */
   convertSecondaryAttribute(
     bimTable: BimTable,
     bimColumn: BimTableColumn,
     dimension: SMLDimension,
     attrNameMap: Map<string, string[]>,
     levelForSecondaryAttrs: string,
+    override?: boolean,
   ): void {
-    if (bimColumn.summarizeBy && bimColumn.summarizeBy !== "none") return;
+    if (!override) {
+      if (bimColumn.summarizeBy && bimColumn.summarizeBy !== "none") return;
+    }
 
     const dataset_unique_name = makeUniqueName(`dataset.${bimTable.name}`);
     const default_attr_name =
@@ -462,5 +476,161 @@ export class DimensionConverter {
     else if (levelName.toLowerCase().includes("year"))
       return SMLDimensionTimeUnit.Year;
     else throw new Error("Unknown time field in field: " + levelName);
+  }
+
+  createDegenDimensions(
+    tableLists: TableLists,
+    bim: BimRoot,
+    attrMaps: AttributeMaps,
+    result: SmlConverterResult,
+  ) {
+    for (const tblCol of tableLists.degenDims) {
+      const [tbl, col] = tblCol.split(":");
+      const bimTable = bim.model.tables.find((t) => t.name === tbl);
+      // If the table is already a dimension table, skip it
+      if (bimTable && !tableLists.dimTables.includes(bimTable)) {
+        const dataset_unique_name = result.datasets.find(
+          (d) => d.table === bimTable.name,
+        )?.unique_name;
+        const bimColumn = bimTable.columns.find((c) => c.name === col);
+        if (bimColumn && dataset_unique_name) {
+          // If bimColumn's unique name is already being used,
+          // check to see if the columns are the same, then merge
+          const uniqueBimName = makeUniqueName(bimColumn.name);
+          if (result.models[0].dimensions?.find((d) => d === uniqueBimName)) {
+            // Found degen dim already created, get that dimension
+            const originalDim = result.dimensions.find(
+              (d) => d.unique_name === uniqueBimName,
+            );
+            if (originalDim) {
+              let usedDataset;
+              const firstLevel = originalDim?.level_attributes[0];
+              if (firstLevel && "shared_degenerate_columns" in firstLevel) {
+                // has multiple datasets
+                usedDataset = firstLevel.shared_degenerate_columns[0].dataset;
+              } else {
+                usedDataset = firstLevel?.dataset;
+              }
+              const originalDataset = result.datasets.find(
+                (ds) => ds.unique_name === usedDataset,
+              );
+
+              const datasetColumn = originalDataset?.columns.find(
+                (c) => c.name === bimColumn.name,
+              );
+              if (
+                datasetColumn &&
+                "data_type" in datasetColumn &&
+                datasetColumn.data_type === bimColumn.dataType
+              ) {
+                // if they're the same data type, don't add it again
+                // instead we should update the original level attribute to include the new dataset
+                this.updateDegenLevelAttribute(
+                  originalDim,
+                  dataset_unique_name,
+                  bimColumn,
+                );
+              } else {
+                // different data types, need to create a new degenerate dimension
+                this.addDegenerateDim(
+                  bimColumn,
+                  dataset_unique_name,
+                  attrMaps,
+                  result,
+                );
+              }
+            }
+          } else {
+            // no degenerate dimension yet, create it
+            this.addDegenerateDim(
+              bimColumn,
+              dataset_unique_name,
+              attrMaps,
+              result,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  addDegenerateDim(
+    bimColumn: BimTableColumn,
+    datasetName: string,
+    attrMaps: AttributeMaps,
+    result: SmlConverterResult,
+  ) {
+    const degenDim = this.convertDegenerateDim(
+      bimColumn,
+      datasetName,
+    );
+    result.dimensions.push(degenDim);
+    result.models[0].dimensions?.push(degenDim.unique_name);
+  }
+
+  convertDegenerateDim(
+    bimColumn: BimTableColumn,
+    datasetName: string,
+  ): SMLDimension {
+    const level_unique_name = makeUniqueName(bimColumn.name + ".Level");
+    const degen: SMLDimension = {
+      object_type: SMLObjectType.Dimension,
+      unique_name: makeUniqueName(`dimension.${bimColumn.name}`),
+      label: bimColumn.name,
+      description: descriptionAsString(bimColumn.description),
+      is_degenerate: true,
+      level_attributes: [
+        {
+          unique_name: level_unique_name,
+          label: level_unique_name,
+          dataset: datasetName,
+          name_column: bimColumn.name,
+          key_columns: [bimColumn.name],
+        },
+      ],
+      hierarchies: [
+        {
+          unique_name: makeUniqueName(`${bimColumn.name}.Hierarchy`),
+          label: `${bimColumn.name} Hierarchy`,
+          folder: bimColumn.displayFolder,
+          levels: [{ unique_name: level_unique_name }],
+        },
+      ],
+    };
+    return degen;
+  }
+
+  updateDegenLevelAttribute(
+    originalDim: SMLDimension,
+    datasetName: string,
+    bimColumn: BimTableColumn,
+  ) {
+    if ("shared_degenerate_columns" in originalDim.level_attributes[0]) {
+      // Already has multiple datasets
+      originalDim.level_attributes[0].shared_degenerate_columns.push({
+        dataset: datasetName,
+        key_columns: [bimColumn.name],
+        name_column: bimColumn.name,
+      });
+    } else {
+      // does not have multiple datasets yet
+      const ogColumn = {
+        dataset: originalDim.level_attributes[0].dataset,
+        key_columns: originalDim.level_attributes[0].key_columns,
+        name_column: originalDim.level_attributes[0].name_column,
+      };
+      originalDim.level_attributes[0] = {
+        unique_name: originalDim.level_attributes[0].unique_name,
+        label: originalDim.level_attributes[0].label,
+        shared_degenerate_columns: [
+          ogColumn,
+          {
+            dataset: datasetName,
+            key_columns: [bimColumn.name],
+            name_column: bimColumn.name,
+          },
+        ],
+      } as SMLLevelWithMultipleDatasets;
+    }
   }
 }

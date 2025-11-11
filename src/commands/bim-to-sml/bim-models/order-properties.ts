@@ -81,14 +81,14 @@ function orderDimensions(result: SmlConverterResult) {
   for (let di = 0; di < result.dimensions.length; di++) {
     const dim = result.dimensions[di];
     const dimObjectOrder = {
-      unique_name: null,
-      object_type: null,
-      label: null,
-      description: null,
-      type: null,
-      relationships: null,
-      hierarchies: null,
-      level_attributes: null,
+      unique_name: undefined,
+      object_type: undefined,
+      label: undefined,
+      description: undefined,
+      type: undefined,
+      relationships: undefined,
+      hierarchies: undefined,
+      level_attributes: undefined,
     };
     result.dimensions[di] = Object.assign(dimObjectOrder, dim);
 
@@ -99,9 +99,9 @@ function orderDimensions(result: SmlConverterResult) {
       for (let ri = 0; ri < dim.relationships.length; ri++) {
         const rel = result.models[0].relationships[ri];
         const relationshipObjectOrder = {
-          unique_name: null,
-          from: null,
-          to: null,
+          unique_name: undefined,
+          from: undefined,
+          to: undefined,
         };
         result.models[0].relationships[ri] = Object.assign(
           relationshipObjectOrder,
@@ -114,11 +114,11 @@ function orderDimensions(result: SmlConverterResult) {
     for (let hi = 0; hi < result.dimensions[di].hierarchies.length; hi++) {
       const hier = dim.hierarchies[hi];
       const hierObjectOrder = {
-        unique_name: null,
-        label: null,
-        description: null,
-        folder: null,
-        levels: null,
+        unique_name: undefined,
+        label: undefined,
+        description: undefined,
+        folder: undefined,
+        levels: undefined,
       };
       dim.hierarchies[hi] = Object.assign(hierObjectOrder, hier);
 
@@ -126,9 +126,9 @@ function orderDimensions(result: SmlConverterResult) {
       for (let li = 0; li < hier.levels.length; li++) {
         const level = hier.levels[li];
         const levelObjectOrder = {
-          unique_name: null,
-          is_hidden: null,
-          secondary_attributes: null,
+          unique_name: undefined,
+          is_hidden: undefined,
+          secondary_attributes: undefined,
         };
         hier.levels[li] = Object.assign(levelObjectOrder, level);
         if (!level.is_hidden) hier.levels[li].is_hidden = undefined;
@@ -143,14 +143,14 @@ function orderDimensions(result: SmlConverterResult) {
         if (attributes) {
           for (let si = 0; si < attributes.length; si++) {
             const secondaryObjectOrder = {
-              unique_name: null,
-              label: null,
-              description: null,
-              folder: null,
-              dataset: null,
-              name_column: null,
-              key_columns: null,
-              contains_unique_names: null,
+              unique_name: undefined,
+              label: undefined,
+              description: undefined,
+              folder: undefined,
+              dataset: undefined,
+              name_column: undefined,
+              key_columns: undefined,
+              contains_unique_names: undefined,
             };
             attributes[si] = Object.assign(
               secondaryObjectOrder,
@@ -166,15 +166,15 @@ function orderDimensions(result: SmlConverterResult) {
     // Level attributes
     for (let la = 0; la < dim.level_attributes.length; la++) {
       const levelAttrObjectOrder = {
-        unique_name: null,
-        label: null,
-        description: null,
-        folder: null,
-        contains_unique_names: null,
-        time_unit: null,
-        dataset: null,
-        name_column: null,
-        key_columns: null,
+        unique_name: undefined,
+        label: undefined,
+        description: undefined,
+        folder: undefined,
+        contains_unique_names: undefined,
+        time_unit: undefined,
+        dataset: undefined,
+        name_column: undefined,
+        key_columns: undefined,
       };
       dim.level_attributes[la] = Object.assign(
         levelAttrObjectOrder,

@@ -1,10 +1,14 @@
-import { Flags, Command } from "@oclif/core";
-import { BimFileParser } from "./bim-file-parser";
+import { Command, Flags } from "@oclif/core";
+import dotenv from "dotenv";
 import { CommandLogger } from "../../shared/command-logger";
-import { SmlResultWriter } from "../../shared/sml-result-writer";
-import { parseInputFile, convertInput } from "../../shared/file-system-util";
+import { convertInput, parseInputFile } from "../../shared/file-system-util";
 import { logSmlConverterResult } from "../../shared/sml-convert-result";
+import { SmlResultWriter } from "../../shared/sml-result-writer";
+import { getAiConverter } from "./bim-converter/ai-dax-converter";
 import { BimToYamlConverter } from "./bim-converter/bim-to-sml-converter";
+import { BimFileParser } from "./bim-file-parser";
+
+dotenv.config();
 
 export class BimToSmlCommand extends Command {
   static summary = "Converts a Power BI Model to SML";
@@ -34,6 +38,13 @@ export class BimToSmlCommand extends Command {
       required: false,
       default: "con1",
     }),
+    llmName: Flags.string({
+      description:
+        "Name of the LLM to use for DAX to MDX conversion (e.g., 'openai', 'anthropic')\n" +
+        "      Must have the corresponding API key set in environment variables (e.g., OPENAI_API_KEY, ANTHROPIC_API_KEY)",
+      required: false,
+      default: undefined,
+    }),
   };
 
   static examples = [
@@ -43,6 +54,7 @@ export class BimToSmlCommand extends Command {
     "<%= config.bin %> <%= command.id %> -s ./bim-source-path -o ./sml-output-path",
     "<%= config.bin %> <%= command.id %> -s ./bim-source-path -o ./sml-output-path --clean",
     "<%= config.bin %> <%= command.id %> -s ./bim-source-path -o ./sml-output-path --atscaleConnectionId=con1 --clean",
+    "<%= config.bin %> <%= command.id %> -s ./bim-source-path -o ./sml-output-path --atscaleConnectionId=con1 --llmName=openai --clean",
   ];
 
   async run() {
@@ -52,11 +64,15 @@ export class BimToSmlCommand extends Command {
       outputPath: flags.output,
       clean: flags.clean,
       atscaleConnectionId: flags.atscaleConnectionId,
+      llmName: flags.llmName,
     });
   }
 
   protected async convert(
-    input: convertInput & { atscaleConnectionId: string },
+    input: convertInput & {
+      atscaleConnectionId: string;
+      llmName: string | undefined;
+    },
   ) {
     const logger = CommandLogger.for(this);
     const { absoluteOutputPath, absoluteSourcePath } = await parseInputFile(
@@ -64,6 +80,16 @@ export class BimToSmlCommand extends Command {
       logger,
       this,
     );
+
+    // Check for llm API key if llmName provided
+    if (input.llmName) {
+      try {
+        getAiConverter(input.llmName, logger)?.validateConfig();
+      } catch (err) {
+        // catch error from validateConfig, removes llmName to skip AI DAX to MDX conversion
+        input.llmName = undefined;
+      }
+    }
 
     logger.info(`Reading bim from ${absoluteSourcePath}`);
 
@@ -78,6 +104,7 @@ export class BimToSmlCommand extends Command {
     const smlResult = await bimConverter.convert(
       bimParsedFile,
       input.atscaleConnectionId,
+      input.llmName,
     );
 
     logger.info(`SML objects are prepared`);

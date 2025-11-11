@@ -1,0 +1,648 @@
+import { Constants } from "../bim-models/constants";
+import { isSimpleCountRowsFunction } from "./expression-parser";
+import { lowerNoSpace, noQuotes } from "./tools";
+import { SmlConverterResult } from "../../../shared/sml-convert-result";
+import { BimRoot } from "../bim-models/bim-model";
+import {
+  AttributeMaps,
+  ExtractedMeasure,
+} from "../bim-models/types-and-interfaces";
+import { MeasureConverter } from "./measure-converter";
+
+export enum TokenType {
+  FUNCTION = "FUNCTION",
+  TABLE_REFERENCE = "TABLE_REFERENCE",
+  COLUMN_REFERENCE = "COLUMN_REFERENCE",
+  MEASURE_REFERENCE = "MEASURE_REFERENCE",
+  LITERAL = "LITERAL",
+  OPERATOR = "OPERATOR",
+  PARENTHESIS = "PARENTHESIS",
+  BRACKET = "BRACKET",
+  COMMA = "COMMA",
+  IDENTIFIER = "IDENTIFIER",
+}
+
+export let daxFunctionCalls: Map<
+  string,
+  { count: number; expressions: string[] }
+> = new Map<string, { count: number; expressions: string[] }>();
+
+export abstract class DaxToken {
+  constructor(
+    public type: TokenType,
+    public value: string,
+    public position: number,
+  ) {}
+
+  abstract toMdx(info: any): string;
+
+  abstract toString(): string;
+}
+
+export class FunctionToken extends DaxToken {
+  constructor(
+    public functionAgg: string,
+    public args: DaxToken[],
+    position: number,
+  ) {
+    super(TokenType.FUNCTION, functionAgg, position);
+  }
+
+  toMdx(info: {
+    bim: BimRoot;
+    expr: string;
+    tableName: string;
+    result: SmlConverterResult;
+    attrMaps: AttributeMaps;
+    unusedTables: Set<string>;
+    measureConverter: MeasureConverter;
+  }): string {
+    if (
+      Constants.AGG_FNS.includes(
+        this.functionAgg.replace(" ", "").toLowerCase(),
+      )
+    ) {
+      const extractedMeasure = getMeasureName(
+        info.bim,
+        this,
+        info.tableName,
+        info.result,
+        info.attrMaps,
+        info.unusedTables,
+        info.measureConverter,
+      )?.measName;
+      if (extractedMeasure) {
+        return extractedMeasure;
+      }
+    }
+    switch (this.functionAgg.replace(" ", "").toLowerCase()) {
+      case "divide":
+        // find comma
+        const comma_token_index = this.args.findIndex((token) => {
+          if (token instanceof CommaToken) {
+            // found comma
+            return true;
+          }
+          return false;
+        });
+
+        if (comma_token_index === -1) {
+          throw new Error(
+            `Invalid DAX expression for divide function: ${this.functionAgg}`,
+          );
+        }
+
+        let next_comma: number | undefined = this.args
+          .slice(comma_token_index + 1)
+          .findIndex((token) => token instanceof CommaToken);
+
+        if (next_comma !== -1) {
+          // We will not handle cases with more than 2 arguments
+          // The third argument would be the default value if the denom is 0
+          next_comma = undefined;
+        }
+        const num_mdx = this.args
+          .slice(0, comma_token_index)
+          .map((token) => token.toMdx(info))
+          .join("");
+        const denom_mdx = this.args
+          .slice(comma_token_index + 1, next_comma)
+          .map((token) => token.toMdx(info))
+          .join("");
+
+        return `(${num_mdx} / ${denom_mdx})`;
+      case "round":
+        return `ROUND(${this.args[0].toMdx(info)}, ${this.args[2].toMdx(
+          info,
+        )})`;
+      default:
+        return `${this.functionAgg.toUpperCase()}(${this.args
+          .map((arg) => arg.toMdx(info))
+          .join(", ")}) /*TODO: Redo this with valid MDX */`;
+    }
+  }
+
+  toString(): string {
+    return `${this.functionAgg}(${this.argsToString()})`;
+  }
+  argsToString(): string {
+    return this.args.map((arg) => arg.toString()).join("");
+  }
+}
+
+export class IdentifierToken extends DaxToken {
+  constructor(
+    public functionName: string,
+    public value: string,
+    position: number,
+  ) {
+    super(TokenType.IDENTIFIER, functionName, position);
+  }
+
+  toMdx(): string {
+    return this.value; // Return the identifier as is
+  }
+
+  toString(): string {
+    return this.value; // Return the identifier as is
+  }
+}
+
+export class ParenToken extends DaxToken {
+  constructor(public args: DaxToken[], position: number) {
+    super(TokenType.PARENTHESIS, "(", position);
+  }
+
+  setArgs(args: DaxToken[]) {
+    this.args = args;
+  }
+
+  toMdx(): string {
+    return `(${this.args.map((arg) => arg.toMdx({})).join("")})`;
+  }
+
+  toString(): string {
+    return `(${this.args.map((arg) => arg.toString()).join("")})`;
+  }
+}
+
+export class TableColumnReference extends DaxToken {
+  constructor(
+    public tableName: string,
+    public columnRef: ColumnReference,
+    position: number,
+  ) {
+    super(
+      TokenType.TABLE_REFERENCE,
+      `'${tableName}'[${columnRef.columnName}]`,
+      position,
+    );
+  }
+
+  toMdx(): string {
+    // Convert DAX table[column] to MDX format
+    return `[Measures].[${this.columnRef.toMdx()}]`;
+  }
+
+  toString(): string {
+    return `'${this.tableName}'${this.columnRef.toString()}`;
+  }
+}
+
+export class ColumnReference extends DaxToken {
+  constructor(public columnName: string, position: number) {
+    super(TokenType.COLUMN_REFERENCE, columnName, position);
+  }
+
+  toMdx(): string {
+    return this.columnName;
+  }
+
+  toString(): string {
+    return `[${this.columnName}]`;
+  }
+}
+
+export class LiteralToken extends DaxToken {
+  constructor(
+    public literalValue: string | number | boolean,
+    position: number,
+  ) {
+    super(TokenType.LITERAL, literalValue.toString(), position);
+  }
+
+  toMdx(): string {
+    return this.value;
+  }
+
+  toString(): string {
+    return this.value; // Return the literal value as a string
+  }
+}
+
+export class CommaToken extends DaxToken {
+  constructor(position: number) {
+    super(TokenType.COMMA, ",", position);
+  }
+
+  toMdx(): string {
+    return ",";
+  }
+
+  toString(): string {
+    return ","; // Return the comma as a string
+  }
+}
+
+export class OperatorToken extends DaxToken {
+  constructor(operator: string, position: number) {
+    super(TokenType.OPERATOR, operator, position);
+  }
+
+  toMdx(): string {
+    return this.value;
+  }
+  toString(): string {
+    return this.value; // Return the operator as a string
+  }
+}
+
+export class DaxTokenizer {
+  private position = 0;
+  private tokens: DaxToken[] = [];
+
+  convertToMdx(info: any) {
+    return this.tokens.map((token) => token.toMdx(info)).join(" ");
+  }
+
+  tokenize(daxExpression: string): DaxToken[] {
+    while (this.position < daxExpression.length) {
+      this.skipWhitespace(daxExpression);
+
+      if (this.position >= daxExpression.length) break;
+
+      const char = daxExpression[this.position];
+      if (this.isLetterOrUnderscore(char)) {
+        this.parseIdentifierOrFunction(daxExpression);
+      } else if (char === "'") {
+        this.parseQuotedTableName(daxExpression);
+      } else if (char === "[") {
+        this.parseColumnReferenceSingular(daxExpression);
+      } else if (char === "(") {
+        this.parseFunction(daxExpression);
+      } else if (char === ",") {
+        this.tokens.push(new CommaToken(this.position));
+        this.position++;
+      } else if (this.isDigit(char)) {
+        this.parseNumber(daxExpression.substring(this.position));
+      } else if (this.isOperator(daxExpression[this.position])) {
+        this.parseOperator(daxExpression);
+        // this.position++;
+      } else {
+        // Handle other characters (etc.)
+        this.position++;
+      }
+    }
+
+    return this.tokens;
+  }
+
+  private parseIdentifierOrFunction(expression: string): void {
+    const start = this.position;
+    while (
+      this.position < expression.length &&
+      (this.isLetterOrUnderscore(expression[this.position]) ||
+        this.isDigit(expression[this.position]) ||
+        expression[this.position] === "_")
+    ) {
+      this.position++;
+    }
+
+    const identifier = expression.substring(start, this.position);
+
+    // Check if next non-whitespace character is '(' to determine if it's a function
+    let nextPos = this.position;
+    while (nextPos < expression.length && expression[nextPos] === " ") {
+      nextPos++;
+    }
+
+    if (nextPos < expression.length && expression[nextPos] === "(") {
+      // It's a function
+      daxFunctionCalls.set(identifier.toLowerCase(), {
+        count: (daxFunctionCalls.get(identifier.toLowerCase())?.count || 0) + 1,
+        expressions: [
+          ...(daxFunctionCalls.get(identifier.toLowerCase())?.expressions ||
+            []),
+          expression,
+        ],
+      });
+      const args = this.parseFunctionArguments(expression, nextPos + 1);
+      this.tokens.push(new FunctionToken(identifier, args, start));
+    } else if (nextPos < expression.length && expression[nextPos] === "[") {
+      // It's a table
+      this.tokens.push(
+        new TableColumnReference(
+          identifier,
+          this.parseColumnReference(expression),
+          start,
+        ),
+      );
+    } else {
+      // It's an identifier (could be a measure or column reference) TODO: idk this is VAR
+      this.tokens.push(
+        new IdentifierToken(TokenType.IDENTIFIER, identifier, start),
+      );
+    }
+  }
+
+  private parseQuotedTableName(expression: string): void {
+    const start = this.position;
+    this.position++; // Skip opening quote
+
+    while (
+      this.position < expression.length &&
+      expression[this.position] !== "'"
+    ) {
+      this.position++;
+    }
+
+    if (this.position < expression.length) {
+      this.position++; // Skip closing quote
+    }
+
+    const tableName = expression.substring(start + 1, this.position - 1);
+    let columnName: ColumnReference = new ColumnReference("", start);
+
+    // Check if followed by [columnName]
+    if (
+      this.position < expression.length &&
+      expression[this.position] === "["
+    ) {
+      columnName = this.parseColumnReference(expression);
+    }
+    this.tokens.push(new TableColumnReference(tableName, columnName, start));
+  }
+
+  private parseColumnReferenceSingular(expression: string): void {
+    this.tokens.push(this.parseColumnReference(expression));
+  }
+
+  private parseColumnReference(expression: string): ColumnReference {
+    const start = this.position;
+    this.position++; // Skip [
+
+    while (
+      this.position < expression.length &&
+      expression[this.position] !== "]"
+    ) {
+      this.position++;
+    }
+
+    if (this.position < expression.length) {
+      this.position++; // Skip ]
+    }
+
+    const columnName = expression.substring(start + 1, this.position - 1);
+    return new ColumnReference(columnName, start);
+  }
+
+  private parseFunction(expression: string): void {
+    // This method is called when we encounter a '(' that's not part of a function name
+    const token = new ParenToken(
+      this.parseFunctionArguments(expression, this.position + 1),
+      this.position,
+    );
+    this.tokens.push(token);
+  }
+
+  private parseFunctionArguments(
+    expression: string,
+    startPos: number,
+  ): DaxToken[] {
+    // This would recursively parse the function arguments
+    const endParen = this.findMatchingCloseParen(expression, startPos - 1);
+    const tokenizer = new DaxTokenizer();
+    const newExpression = expression.slice(startPos, endParen);
+    this.position = endParen + 1; // Move position past the closing parenthesis
+    return tokenizer.tokenize(newExpression);
+  }
+
+  private findMatchingCloseParen(expression: string, openPos: number): number {
+    // Starts after the opening parenthesis
+    let count = 1;
+    let pos = openPos + 1;
+
+    while (pos < expression.length && count > 0) {
+      if (expression[pos] === "(") count++;
+      else if (expression[pos] === ")") count--;
+      pos++;
+    }
+
+    return pos - 1;
+  }
+
+  parseNumber(expression: string) {
+    const numberPattern = /^\d+(\.\d+)?/;
+    const match = expression.match(numberPattern);
+    if (match) {
+      const value = parseFloat(match[0]);
+      this.tokens.push(new LiteralToken(value, this.position));
+      this.position += match[0].length;
+    } else {
+      throw new Error("Invalid number format");
+    }
+  }
+
+  parseOperator(expression: string) {
+    // Define multi-character operators first
+    const operators = [
+      ">=",
+      "<=",
+      "<>",
+      "!=",
+      "&&",
+      "||",
+      "+",
+      "-",
+      "*",
+      "/",
+      "=",
+      ">",
+      "<",
+      "&",
+    ];
+
+    let potentialOperator = "";
+    for (let i = this.position; i < expression.length; i++) {
+      const currentChar = expression[i];
+      potentialOperator += currentChar;
+
+      // If no operator starts with this sequence, we've found our operator
+      if (!operators.some((op) => op.startsWith(potentialOperator))) {
+        potentialOperator = potentialOperator.slice(0, -1); // Remove last char
+        break;
+      }
+    }
+
+    if (operators.includes(potentialOperator)) {
+      this.tokens.push(new OperatorToken(potentialOperator, this.position));
+      this.position += potentialOperator.length;
+      return;
+    }
+
+    throw new Error("Invalid operator format");
+  }
+
+  private skipWhitespace(expression: string): void {
+    while (
+      this.position < expression.length &&
+      /\s/.test(expression[this.position])
+    ) {
+      this.position++;
+    }
+  }
+
+  private isLetterOrUnderscore(char: string): boolean {
+    return /[a-zA-Z_]/.test(char);
+  }
+
+  private isDigit(char: string): boolean {
+    return /[0-9]/.test(char);
+  }
+
+  private isOperator(char: string): boolean {
+    // Check if this character could start an operator
+    return ["+", "-", "*", "/", "=", ">", "<", "!", "&", "|"].includes(char);
+  }
+
+  getAllFunctions(tokens?: DaxToken[]): FunctionToken[] {
+    const functionTokens: FunctionToken[] = [];
+    if (!tokens) {
+      tokens = this.tokens;
+    }
+    tokens.forEach((token) => {
+      if (token instanceof ParenToken || token instanceof FunctionToken) {
+        functionTokens.push(...this.getAllFunctions(token.args));
+      }
+      if (token instanceof FunctionToken) {
+        functionTokens.push(token);
+      }
+    });
+    return functionTokens;
+  }
+
+  getAllInstanceOf<T extends DaxToken>(
+    type: new (...args: any[]) => T,
+    tokens?: DaxToken[],
+  ): T[] {
+    const typeTokens: T[] = [];
+    if (!tokens) {
+      tokens = this.tokens;
+    }
+    tokens.forEach((token) => {
+      if (token instanceof ParenToken || token instanceof FunctionToken) {
+        typeTokens.push(...this.getAllInstanceOf(type, token.args));
+      }
+      if (token instanceof type) {
+        typeTokens.push(token as T);
+      }
+    });
+    return typeTokens;
+  }
+}
+
+export function convertDaxToMdx(daxExpression: string, info: any): string {
+  const tokenizer = new DaxTokenizer();
+  const tokens = tokenizer.tokenize(daxExpression);
+
+  return tokens.map((token) => token.toMdx(info)).join("");
+}
+
+function isSimpleFunction(funcToken: FunctionToken): boolean {
+  return (
+    funcToken.args.length === 1 &&
+    funcToken.args[0] instanceof TableColumnReference
+  );
+}
+
+export function getMeasureName(
+  bim: BimRoot,
+  funcToken: FunctionToken,
+  tableName: string,
+  result: SmlConverterResult,
+  attrMaps: AttributeMaps,
+  unusedTables: Set<string>,
+  measureConverter: MeasureConverter,
+): ExtractedMeasure | undefined {
+  const aggFn = lowerNoSpace(funcToken.functionAgg);
+  const fnBlock = `(${funcToken.argsToString()})`;
+  const e = noQuotes(lowerNoSpace(fnBlock));
+  if (aggFn !== "none") {
+    // ex: e == sum(pocvalues[toptaskid]) -> pocvalues[toptaskid]
+    if (isSimpleFunction(funcToken)) {
+      const simpleDef = lowerNoSpace(funcToken.argsToString());
+
+      // Need to see if this metric exists, and if not create it
+      const m = attrMaps.metricLookup.get(aggFn + simpleDef);
+      if (m) {
+        return {
+          measName: `[Measures].[${m.uniqueName}]`,
+          newExpr: "",
+          tableName: m.table,
+        };
+      } else {
+        // Create measure for simple aggregation
+        const refColName = simpleDef.substring(
+          simpleDef.indexOf("[") + 1,
+          simpleDef.indexOf("]"),
+        );
+        const bimTable = bim.model.tables.find(
+          (t) =>
+            lowerNoSpace(t.name) ===
+            noQuotes(simpleDef.substring(0, simpleDef.indexOf("["))),
+        );
+        if (bimTable) {
+          const c = bimTable.columns.find(
+            (c) => lowerNoSpace(c.name) === refColName,
+          );
+          if (c) {
+            const measureUniqueName =
+              measureConverter.createAndAddMeasureFromColumn(
+                c,
+                bimTable.name,
+                aggFn,
+                result,
+                attrMaps,
+                unusedTables,
+              );
+            if (!measureUniqueName) return undefined;
+
+            const retVal = {
+              measName: `[Measures].[${measureUniqueName}]`,
+              newExpr: "",
+              tableName: bimTable.name,
+            };
+            return retVal;
+          }
+        }
+      }
+    }
+  } else if (isSimpleCountRowsFunction(e)) {
+    const simpleDef = `${noQuotes(lowerNoSpace(funcToken.argsToString()))}[${
+      Constants.ROW_COUNT_COLUMN_NAME
+    }]`;
+    const m = attrMaps.metricLookup.get(aggFn + simpleDef);
+    if (m) {
+      return {
+        measName: `[Measures].[${m.uniqueName}]`,
+        newExpr: "",
+        tableName: m.table,
+      };
+    } else {
+      // Create measure for simple aggregation
+      for (const t of bim.model.tables) {
+        if (
+          lowerNoSpace(t.name) ===
+          simpleDef.substring(0, simpleDef.indexOf("["))
+        ) {
+          const measureUniqueName =
+            measureConverter.createAndAddCountRowsMeasure(
+              t.name,
+              result,
+              attrMaps,
+              unusedTables,
+              true,
+            );
+          if (!measureUniqueName) return undefined;
+          const retVal = {
+            measName: `[Measures].[${measureUniqueName}]`,
+            newExpr: "",
+            tableName: t.name,
+          };
+          return retVal;
+        }
+      }
+    }
+  }
+  return undefined;
+}

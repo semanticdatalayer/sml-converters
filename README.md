@@ -31,125 +31,11 @@ USAGE
 # Commands
 
 <!-- commands -->
-* [`sml-converters help [COMMAND]`](#sml-converters-help-command)
-* [`sml-converters bim-to-sml`](#sml-converters-bim-to-sml) (Power BI)
-* [`sml-converters dbt-to-sml`](#sml-converters-dbt-to-sml)
-* [`sml-converters sml-to-cortex`](#sml-converters-sml-to-cortex) (Snowflake Semantic Views)
 * [`sml-converters add-files-to-snowflake`](#sml-converters-add-files-to-snowflake)
-
-## `sml-converters help [COMMAND]`
-
-Display help for sml-converters.
-
-```
-USAGE
-  $ sml-converters help [COMMAND...] [-n]
-
-ARGUMENTS
-  COMMAND...  Command to show help for.
-
-FLAGS
-  -n, --nested-commands  Include all nested commands in the output.
-
-DESCRIPTION
-  Display help for sml-converters.
-```
-
-## `sml-converters bim-to-sml`
-
-Converts a Power BI Model to SML
-
-```
-USAGE
-  $ sml-converters bim-to-sml [--source <value>] [--output <value>] [--clean] [--atscaleConnectionId <value>]
-
-FLAGS
-  --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in
-                                 AtScale.
-  --clean                        Clean the output folder contents without the .git folder
-  --output=<value>               [default: ./bim_output] Output folder
-  --source=<value>               [default: ./] Source folder
-
-DESCRIPTION
-  Converts a Power BI Model to SML
-
-EXAMPLES
-  $ sml-converters bim-to-sml
-
-  $ sml-converters bim-to-sml --clean
-
-  $ sml-converters bim-to-sml --source=./bim-source-path --output=./sml-output-path
-
-  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path
-
-  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path --clean
-
-  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path --atscaleConnectionId=con1 --clean
-```
-
-## `sml-converters dbt-to-sml`
-
-Converts DBT to SML
-
-```
-USAGE
-  $ sml-converters dbt-to-sml [--source <value>] [--output <value>] [--dbType
-    bigquery|snowflake|postgresql|databricks|iris] [--database <value>] [--schema <value>] [--atscaleConnectionId
-    <value>] [--clean]
-
-FLAGS
-  --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in
-                                 AtScale.
-  --clean                        Clean the output folder contents without the .git folder
-  --database=<value>             [default: sample-db] Database name
-  --dbType=<option>              [default: snowflake] Data Warehouse type
-                                 <options: bigquery|snowflake|postgresql|databricks|iris>
-  --output=<value>               [default: ./sml_output] Output folder
-  --schema=<value>               [default: sample-schema] Schema name
-  --source=<value>               [default: ./] Source folder
-
-DESCRIPTION
-  Converts DBT to SML
-
-EXAMPLES
-  $ sml-converters dbt-to-sml
-
-  $ sml-converters dbt-to-sml --clean
-
-  $ sml-converters dbt-to-sml -source ./dbt-source-path -output ./sml-output-path
-
-  $ sml-converters dbt-to-sml -s ./dbt-source-path -o ./sml-output-path
-
-  $ sml-converters dbt-to-sml -s ./dbt-source-path -o ./sml-output-path --clean
-```
-
-## `sml-converters sml-to-cortex`
-
-Convert from SML to Snowflake Cortex Analyst yaml
-
-```
-USAGE
-  $ sml-converters sml-to-cortex [--source <value>] [--output <value>] [--clean]
-
-FLAGS
-  --clean           Clean the output folder contents without the .git folder
-  --output=<value>  [default: ./cortex_output/] Directory in which to write cortex yaml output file(s)
-  --source=<value>  [default: ./] Source folder
-
-DESCRIPTION
-  Convert from SML to Snowflake Cortex Analyst yaml
-
-EXAMPLES
-  $ sml-converters sml-to-cortex 
-
-  $ sml-converters sml-to-cortex --clean
-
-  $ sml-converters sml-to-cortex --source=./sml-source-path --output=./cortex-output-path
-
-  $ sml-converters sml-to-cortex -s ./sml-source-path -o ./cortex-output-path
-
-  $ sml-converters sml-to-cortex -s ./sml-source-path -o ./cortex-output-path --clean
-```
+* [`sml-converters bim-to-sml`](#sml-converters-bim-to-sml)
+* [`sml-converters dbt-to-sml`](#sml-converters-dbt-to-sml)
+* [`sml-converters help [COMMAND]`](#sml-converters-help-command)
+* [`sml-converters sml-to-cortex`](#sml-converters-sml-to-cortex)
 
 ## `sml-converters add-files-to-snowflake`
 
@@ -188,6 +74,132 @@ EXAMPLES
   $ sml-converters add-files-to-snowflake --snowflakeAuthenticator=SNOWFLAKE_JWT
 ```
 
+## `sml-converters bim-to-sml`
+
+Converts a Power BI Model to SML
+
+```
+USAGE
+  $ sml-converters bim-to-sml [--source <value>] [--output <value>] [--clean] [--atscaleConnectionId <value>]
+    [--llmName <value>]
+
+FLAGS
+  --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in
+                                 AtScale.
+  --clean                        Clean the output folder contents without the .git folder
+  --llmName=<value>              Name of the LLM to use for DAX to MDX conversion (e.g., 'openai', 'anthropic')
+                                 Must have the corresponding API key set in environment variables (e.g., OPENAI_API_KEY,
+                                 ANTHROPIC_API_KEY)
+  --output=<value>               [default: ./bim_output] Output folder
+  --source=<value>               [default: ./] Source folder
+
+DESCRIPTION
+  Converts a Power BI Model to SML
+
+
+
+EXAMPLES
+  $ sml-converters bim-to-sml
+
+  $ sml-converters bim-to-sml --clean
+
+  $ sml-converters bim-to-sml --source=./bim-source-path --output=./sml-output-path
+
+  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path
+
+  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path --clean
+
+  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path --atscaleConnectionId=con1 --clean
+
+  $ sml-converters bim-to-sml -s ./bim-source-path -o ./sml-output-path --atscaleConnectionId=con1 --llmName=openai --clean
+```
+
+## `sml-converters dbt-to-sml`
+
+Converts DBT to SML
+
+```
+USAGE
+  $ sml-converters dbt-to-sml [--source <value>] [--output <value>] [--dbType
+    bigquery|snowflake|postgresql|databricks|iris] [--database <value>] [--schema <value>] [--atscaleConnectionId
+    <value>] [--clean]
+
+FLAGS
+  --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in
+                                 AtScale.
+  --clean                        Clean the output folder contents without the .git folder
+  --database=<value>             [default: sample-db] Database name
+  --dbType=<option>              [default: snowflake] Data Warehouse type
+                                 <options: bigquery|snowflake|postgresql|databricks|iris>
+  --output=<value>               [default: ./sml_output] Output folder
+  --schema=<value>               [default: sample-schema] Schema name
+  --source=<value>               [default: ./] Source folder
+
+DESCRIPTION
+  Converts DBT to SML
+
+
+
+
+EXAMPLES
+  $ sml-converters dbt-to-sml
+
+  $ sml-converters dbt-to-sml --clean
+
+  $ sml-converters dbt-to-sml -source ./dbt-source-path -output ./sml-output-path
+
+  $ sml-converters dbt-to-sml -s ./dbt-source-path -o ./sml-output-path
+
+  $ sml-converters dbt-to-sml -s ./dbt-source-path -o ./sml-output-path --clean
+```
+
+## `sml-converters help [COMMAND]`
+
+Display help for sml-converters.
+
+```
+USAGE
+  $ sml-converters help [COMMAND...] [-n]
+
+ARGUMENTS
+  COMMAND...  Command to show help for.
+
+FLAGS
+  -n, --nested-commands  Include all nested commands in the output.
+
+DESCRIPTION
+  Display help for sml-converters.
+```
+
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.31/src/commands/help.ts)_
+
+## `sml-converters sml-to-cortex`
+
+Convert from SML to Snowflake Cortex Analyst yaml
+
+```
+USAGE
+  $ sml-converters sml-to-cortex [--source <value>] [--output <value>] [--clean]
+
+FLAGS
+  --clean           Clean the output folder contents without the .git folder
+  --output=<value>  [default: ./cortex_output/] Directory in which to write cortex yaml output file(s)
+  --source=<value>  [default: ./] Source folder
+
+DESCRIPTION
+  Convert from SML to Snowflake Cortex Analyst yaml
+
+EXAMPLES
+  $ sml-converters sml-to-cortex 
+
+  $ sml-converters sml-to-cortex --clean
+
+  $ sml-converters sml-to-cortex --source=./sml-source-path --output=./cortex-output-path
+
+  $ sml-converters sml-to-cortex -s ./sml-source-path -o ./cortex-output-path
+
+  $ sml-converters sml-to-cortex -s ./sml-source-path -o ./cortex-output-path --clean
+```
 <!-- commandsstop -->
 
 # License

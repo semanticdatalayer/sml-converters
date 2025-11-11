@@ -8,6 +8,7 @@ export interface TableLists {
   unusedTables: Set<string>;
   factTables: Array<BimTable>;
   dimTables: Array<BimTable>;
+  degenDims: Set<string>;
 }
 
 // Used for generating/tracking unique names
