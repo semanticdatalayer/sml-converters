@@ -35,7 +35,7 @@ export class SnowviewToSmlCommand extends Command {
     output: Flags.directory({
       description: "Output folder",
       required: false,
-      default: "./bim_output",
+      default: "./snowview_output",
       aliases: ["o"],
     }),
     clean: Flags.boolean({
