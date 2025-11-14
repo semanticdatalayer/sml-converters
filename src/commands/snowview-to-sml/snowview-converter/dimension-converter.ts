@@ -150,11 +150,12 @@ export class SnowviewDimensionConverter {
         (ds) => ds.label === snowviewDim.table,
       );
       if (smlDataset) {
-        relationshipConverter.addRelationshipToTimeDimension(
+        const timeDimensionRelationship = relationshipConverter.addRelationshipToTimeDimension(
           snowviewDim.expression,
           smlDataset.unique_name,
           result,
         );
+        result.models[0].relationships.push(timeDimensionRelationship);
       }
       return;
     }

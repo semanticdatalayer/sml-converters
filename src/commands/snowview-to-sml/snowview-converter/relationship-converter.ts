@@ -49,7 +49,9 @@ export class SnowviewRelationshipConverter {
     if (factTable) {
       // It's a relationship from a fact table to a dimension table
       // It will be added to the model relationships
-      this.addRelationshipToModel(snowviewRelationship, result);
+      const modelRelationship =
+        this.addRelationshipToModel(snowviewRelationship);
+      result.models[0].relationships?.push(modelRelationship);
     } else {
       // It's a dimension to dimension relationship
       const dimTable = [...tableLists.dimTables].find(
@@ -80,20 +82,22 @@ export class SnowviewRelationshipConverter {
         }
 
         // Add a relationship to the model as well for completeness
-        this.addRelationshipToModel(snowviewRelationship, result);
+        const modelRelationship =
+          this.addRelationshipToModel(snowviewRelationship);
+        result.models[0].relationships?.push(modelRelationship);
       }
     }
   }
 
   /**
-   * Adds a relationship to the model relationships list in the SML converter result.
-   * @param snowviewRelationship The Snowview relationship to convert and add
-   * @param result The SML converter result object to be modified
+   * Creates a model relationship from a Snowview relationship.
+   * This is a pure function that returns the created relationship without side effects.
+   * @param snowviewRelationship The Snowview relationship to convert
+   * @returns The created SML model relationship
    */
   addRelationshipToModel(
     snowviewRelationship: SnowviewRelationship,
-    result: SmlConverterResult,
-  ) {
+  ): SMLModelRegularRelationship {
     const relationshipTo = snowviewRelationship.ref_table;
     const relationshipFrom = snowviewRelationship.table;
     const modelRelationship: SMLModelRegularRelationship = {
@@ -107,20 +111,22 @@ export class SnowviewRelationshipConverter {
         level: `${relationshipTo}_level`,
       },
     };
-    result.models[0].relationships?.push(modelRelationship);
+    return modelRelationship;
   }
 
   /**
-   * Add a secondary attribute to the time dimension and create a relationship from the given column to the time dimension
+   * Creates a relationship to the time dimension from the given column.
+   * This is a pure function that returns the created relationship without side effects.
    * @param dimCol The dimension column
    * @param dataset The dataset name
-   * @param result The SML converter result
+   * @param result The SML converter result (used for lookups only)
+   * @returns The created SML model relationship to the time dimension
    */
   addRelationshipToTimeDimension(
     dimCol: string,
     dataset: string,
     result: SmlConverterResult,
-  ) {
+  ): SMLModelRelationship {
     let realCol = dimCol;
     if (dimCol.includes(".")) {
       // It's table.column format, we only want the column
@@ -142,7 +148,7 @@ export class SnowviewRelationshipConverter {
       },
       role_play: realCol + " {0}",
     };
-    result.models[0].relationships.push(newRelationship);
+    return newRelationship;
   }
 
   /**
@@ -163,7 +169,8 @@ export class SnowviewRelationshipConverter {
         foreign_key: dimension.primary_key,
         ref_key: [""],
       };
-      this.addRelationshipToModel(fauxRelationship, result);
+      const modelRelationship = this.addRelationshipToModel(fauxRelationship);
+      result.models[0].relationships?.push(modelRelationship);
     }
   }
 }
