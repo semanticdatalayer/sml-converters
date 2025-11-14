@@ -5,7 +5,7 @@ import Guard from "../../shared/guard";
 import { Logger } from "../../shared/logger";
 import { transformName } from "../sml-to-cortex/cortex-converter/cortex-tools";
 import { CortexModel } from "../sml-to-cortex/cortex-models/CortexModel";
-import { SnowflakeConfig } from "./cortex-connect/SnowflakeConnection";
+import { SnowflakeConfig } from "../../shared/snowflake/SnowflakeConnection";
 
 export class CortexAnalyzer {
   private logger: Logger;

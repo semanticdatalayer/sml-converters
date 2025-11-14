@@ -151,6 +151,35 @@ EXAMPLES
   $ sml-converters sml-to-cortex -s ./sml-source-path -o ./cortex-output-path --clean
 ```
 
+## `sml-converters snowview-to-sml`
+
+Convert from Snowflake's Semantic View to SML
+
+```
+USAGE
+  $ sml-converters snowview-to-sml --snowflakeAuthenticator <value> --snowflakeAccount <value> --snowflakeDatabase
+    <value> --snowflakeSchema <value> --snowflakeView <value> [--source <value>] [--output <value>]
+    [--snowflakeWarehouse <value>] [--snowflakeRole <value>]
+
+FLAGS
+  --output=<value>                  [default: ./snowview_output] Output folder
+  --snowflakeAccount=<value>        (required) Snowflake account identifier
+  --snowflakeAuthenticator=<value>  (required) [default: SNOWFLAKE] Snowflake authenticator type
+  --snowflakeDatabase=<value>       (required) Snowflake database name
+  --snowflakeRole=<value>           Snowflake role to use for the connection
+  --snowflakeSchema=<value>         (required) Snowflake schema name
+  --snowflakeView=<value>           (required) Snowflake Semantic View name
+  --snowflakeWarehouse=<value>      Snowflake warehouse name
+  --source=<value>                  [default: ./] Source folder
+
+EXAMPLES
+  $ sml-converters snowview-to-sml --snowflakeAuthenticator=SNOWFLAKE
+
+  $ sml-converters snowview-to-sml --snowflakeAuthenticator=EXTERNALBROWSER
+
+  $ sml-converters snowview-to-sml --snowflakeAuthenticator=SNOWFLAKE_JWT
+```
+
 ## `sml-converters add-files-to-snowflake`
 
 Add converted Snowflake Cortex Analyst yaml to Snowflake

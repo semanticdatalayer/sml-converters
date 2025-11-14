@@ -1,86 +1,23 @@
 import * as fs from "fs";
 import yaml from "js-yaml";
-import snowflake, { Connection, ConnectionOptions } from "snowflake-sdk";
-import { fileSystemUtil } from "../../../shared/file-system-util";
-import Guard from "../../../shared/guard";
-import { Logger } from "../../../shared/logger";
-import { CortexModel } from "../../sml-to-cortex/cortex-models/CortexModel";
-import { SnowflakeAuth, SnowflakeAuthenticators } from "./SnowflakeAuth";
+import snowflake, { Connection } from "snowflake-sdk";
+import { fileSystemUtil } from "../../shared/file-system-util";
+import Guard from "../../shared/guard";
+import { Logger } from "../../shared/logger";
+import {
+  SnowflakeConfig,
+  SnowflakeConnection,
+} from "../../shared/snowflake/SnowflakeConnection";
+import { CortexModel } from "../sml-to-cortex/cortex-models/CortexModel";
 
-export interface SnowflakeConfig {
-  account: string;
-  role?: string;
-  application?: any;
-  warehouse?: string;
-  database: string;
-  schema: string;
-  stage?: string;
-}
-
-export class SnowflakeConnection {
+export class AddFilesToSnowflake {
   private connection: Connection | null = null;
-  private config: SnowflakeConfig;
   private logger: Logger;
-
-  constructor(logger: Logger, config?: Partial<SnowflakeConfig>) {
-    // Load config from environment variables with optional overrides
-    this.config = {
-      account: config?.account || "",
-      role: config?.role,
-      application: config?.application,
-      warehouse: config?.warehouse,
-      database: config?.database || "",
-      schema: config?.schema || "",
-      stage: config?.stage,
-    };
+  private config: SnowflakeConfig;
+  constructor(logger: Logger, snowflakeConnection: SnowflakeConnection) {
+    this.connection = snowflakeConnection.getConnection();
     this.logger = logger;
-
-    // Validate required fields
-    if (!this.config.account) {
-      throw new Error(
-        "Snowflake account is required. Pass SNOWFLAKE_ACCOUNT in config.",
-      );
-    }
-  }
-
-  async connect(auth: SnowflakeAuth): Promise<SnowflakeConnection> {
-    if (this.connection) {
-      return this;
-    }
-
-    const connectionOptions = {
-      ...this.config,
-      ...auth,
-      application: "AtScale_SML_Converter",
-      browserActionTimeout: 60000, // How long to wait for okta or external browser auth, 1 minute
-    } satisfies ConnectionOptions;
-    this.connection = snowflake.createConnection(connectionOptions);
-
-    if (
-      connectionOptions.authenticator ===
-        SnowflakeAuthenticators.externalBrowser ||
-      connectionOptions.authenticator.includes("okta.com")
-    ) {
-      await this.connection.connectAsync((err, conn) => {
-        if (err) {
-          throw err;
-        } else {
-          this.logger.info("Successfully connected to Snowflake.");
-        }
-      });
-    } else {
-      await new Promise<void>((resolve, reject) => {
-        this.connection!.connect((error) => {
-          if (error) {
-            reject(error);
-          } else {
-            this.logger.info("Successfully connected to Snowflake.");
-            resolve();
-          }
-        });
-      });
-    }
-    return this;
+    this.config = snowflakeConnection.getConfig();
   }
 
   async addFileToStage(

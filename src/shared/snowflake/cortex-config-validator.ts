@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Logger } from "../../../shared/logger";
+import { Logger } from "../logger";
 import { SnowflakeAuthenticators } from "./SnowflakeAuth";
 
 export class ConfigurationError extends Error {

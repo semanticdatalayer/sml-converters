@@ -1,0 +1,445 @@
+{
+  "tables": [
+    {
+      "name": "CUSTOMER",
+      "database": "SNOWFLAKE_SAMPLE_DATA",
+      "schema": "TPCDS_SF10TCL",
+      "table": "\"CUSTOMER\"",
+      "primary_key": [
+        "C_CUSTOMER_SK"
+      ]
+    },
+    {
+      "name": "DATE",
+      "database": "SNOWFLAKE_SAMPLE_DATA",
+      "schema": "TPCDS_SF10TCL",
+      "table": "\"DATE_DIM\"",
+      "primary_key": [
+        "D_DATE_SK"
+      ]
+    },
+    {
+      "name": "DEMO",
+      "database": "SNOWFLAKE_SAMPLE_DATA",
+      "schema": "TPCDS_SF10TCL",
+      "table": "\"CUSTOMER_DEMOGRAPHICS\"",
+      "primary_key": [
+        "CD_DEMO_SK"
+      ]
+    },
+    {
+      "name": "ITEM",
+      "database": "SNOWFLAKE_SAMPLE_DATA",
+      "schema": "TPCDS_SF10TCL",
+      "table": "\"ITEM\"",
+      "primary_key": [
+        "I_ITEM_SK"
+      ]
+    },
+    {
+      "name": "STORE",
+      "database": "SNOWFLAKE_SAMPLE_DATA",
+      "schema": "TPCDS_SF10TCL",
+      "table": "\"STORE\"",
+      "primary_key": [
+        "S_STORE_SK"
+      ]
+    },
+    {
+      "name": "STORESALES",
+      "database": "SNOWFLAKE_SAMPLE_DATA",
+      "schema": "TPCDS_SF10TCL",
+      "table": "\"STORE_SALES\""
+    }
+  ],
+  "relationships": [
+    {
+      "name": "SALESTOCUSTOMER",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "ref_table": "CUSTOMER",
+      "foreign_key": [
+        "SS_CUSTOMER_SK"
+      ],
+      "ref_key": [
+        "C_CUSTOMER_SK"
+      ]
+    },
+    {
+      "name": "SALESTODATE",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "ref_table": "DATE",
+      "foreign_key": [
+        "SS_SOLD_DATE_SK"
+      ],
+      "ref_key": [
+        "D_DATE_SK"
+      ]
+    },
+    {
+      "name": "SALESTODEMO",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "ref_table": "DEMO",
+      "foreign_key": [
+        "SS_CDEMO_SK"
+      ],
+      "ref_key": [
+        "CD_DEMO_SK"
+      ]
+    },
+    {
+      "name": "SALESTOITEM",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "ref_table": "ITEM",
+      "foreign_key": [
+        "SS_ITEM_SK"
+      ],
+      "ref_key": [
+        "I_ITEM_SK"
+      ]
+    },
+    {
+      "name": "SALETOSTORE",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "ref_table": "STORE",
+      "foreign_key": [
+        "SS_STORE_SK"
+      ],
+      "ref_key": [
+        "S_STORE_SK"
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "name": "F_REVENUE_PER_CUSTOMER",
+      "table": "CUSTOMER",
+      "parent_entity": "CUSTOMER",
+      "expression": "SUM(STORESALES.F_SALES_PRICE)",
+      "data_type": "NUMBER(19,2)",
+      "synonyms": [
+        "customer LTV",
+        "customer lifetime value",
+        "total revenue per customer"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "COST",
+      "table": "ITEM",
+      "parent_entity": "ITEM",
+      "expression": "i_wholesale_cost",
+      "data_type": "NUMBER(7,2)",
+      "synonyms": [
+        "unit item cost",
+        "unit cost",
+        "item cost per unit"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "PRICE",
+      "table": "ITEM",
+      "parent_entity": "ITEM",
+      "expression": "i_current_price",
+      "data_type": "NUMBER(7,2)",
+      "synonyms": [
+        "unit sales price",
+        "unit price",
+        "unit sales price"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "TAX_RATE",
+      "table": "STORE",
+      "parent_entity": "STORE",
+      "expression": "S_TAX_PRECENTAGE",
+      "data_type": "NUMBER(5,2)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "F_SALES_PRICE",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "expression": "SS_SALES_PRICE",
+      "data_type": "NUMBER(7,2)",
+      "synonyms": [
+        "per o sales price",
+        "transaction sales price",
+        "sales price of order"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "SALES_QUANTITY",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "expression": "SS_QUANTITY",
+      "data_type": "NUMBER(38,0)",
+      "access_modifier": "PUBLIC"
+    }
+  ],
+  "dimensions": [
+    {
+      "name": "AGE",
+      "table": "CUSTOMER",
+      "parent_entity": "CUSTOMER",
+      "expression": "(YEAR(CURRENT_DATE())-C_BIRTH_YEAR)",
+      "data_type": "NUMBER(38,0)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "AGE_BUCKET",
+      "table": "CUSTOMER",
+      "parent_entity": "CUSTOMER",
+      "expression": "(CASE \n            WHEN AGE < 20 THEN '0-19'\n            WHEN AGE BETWEEN 20 AND 39 THEN '20-39'\n            WHEN AGE BETWEEN 40 AND 59 THEN '40-59'\n            WHEN AGE BETWEEN 60 AND 79 THEN '60-79'\n            WHEN AGE BETWEEN 80 AND 99 THEN '80-99'\n            ELSE '100+'\n        END)",
+      "data_type": "VARCHAR(5)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "BIRTHYEAR",
+      "table": "CUSTOMER",
+      "parent_entity": "CUSTOMER",
+      "expression": "C_BIRTH_YEAR",
+      "data_type": "NUMBER(38,0)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "COUNTRY",
+      "table": "CUSTOMER",
+      "parent_entity": "CUSTOMER",
+      "expression": "C_BIRTH_COUNTRY",
+      "data_type": "VARCHAR(20)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "VALUE_BUCKET",
+      "table": "CUSTOMER",
+      "parent_entity": "CUSTOMER",
+      "expression": "(CASE \n            WHEN CUSTOMER.F_REVENUE_PER_CUSTOMER < 1000 THEN 'low value'\n            WHEN CUSTOMER.F_REVENUE_PER_CUSTOMER BETWEEN 1000 AND 3000 THEN 'medium value'\n            ELSE 'high value'\n        END)",
+      "data_type": "VARCHAR(12)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "DATE",
+      "table": "DATE",
+      "parent_entity": "DATE",
+      "expression": "D_DATE",
+      "data_type": "DATE",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "MONTH",
+      "table": "DATE",
+      "parent_entity": "DATE",
+      "expression": "D_MOY",
+      "data_type": "NUMBER(38,0)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "WEEK",
+      "table": "DATE",
+      "parent_entity": "DATE",
+      "expression": "D_WEEK_SEQ",
+      "data_type": "NUMBER(38,0)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "YEAR",
+      "table": "DATE",
+      "parent_entity": "DATE",
+      "expression": "D_YEAR",
+      "data_type": "NUMBER(38,0)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "CREDIT_RATING",
+      "table": "DEMO",
+      "parent_entity": "DEMO",
+      "expression": "CD_CREDIT_RATING",
+      "data_type": "VARCHAR(10)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "MARITAL_STATUS",
+      "table": "DEMO",
+      "parent_entity": "DEMO",
+      "expression": "CD_MARITAL_STATUS",
+      "data_type": "VARCHAR(1)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "BRAND",
+      "table": "ITEM",
+      "parent_entity": "ITEM",
+      "expression": "I_BRAND",
+      "data_type": "VARCHAR(50)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "CATEGORY",
+      "table": "ITEM",
+      "parent_entity": "ITEM",
+      "expression": "I_CATEGORY",
+      "data_type": "VARCHAR(50)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "CLASS",
+      "table": "ITEM",
+      "parent_entity": "ITEM",
+      "expression": "I_CLASS",
+      "data_type": "VARCHAR(50)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "MARKET",
+      "table": "STORE",
+      "parent_entity": "STORE",
+      "expression": "S_MARKET_ID",
+      "data_type": "NUMBER(38,0)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "SQUAREFOOTAGE",
+      "table": "STORE",
+      "parent_entity": "STORE",
+      "expression": "S_FLOOR_SPACE",
+      "data_type": "NUMBER(38,0)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "STATE",
+      "table": "STORE",
+      "parent_entity": "STORE",
+      "expression": "S_STATE",
+      "data_type": "VARCHAR(2)",
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "STORECOUNTRY",
+      "table": "STORE",
+      "parent_entity": "STORE",
+      "expression": "S_COUNTRY",
+      "data_type": "VARCHAR(20)",
+      "access_modifier": "PUBLIC"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "AVG_7_DAYS_SALES_QUANTITY",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "expression": "AVG(TOTAL_SALES_QUANTITY) \n         OVER (PARTITION BY EXCLUDING DATE.DATE ORDER BY DATE.DATE RANGE BETWEEN INTERVAL '6 days' \n         PRECEDING AND CURRENT ROW)",
+      "data_type": "NUMBER(38,3)",
+      "synonyms": [
+        "running 7 day average of total sales quantity"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "AVG_7_DAYS_SALES_QUANTITY_30DAY",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "expression": "AVG(TOTAL_SALES_QUANTITY) \n         OVER (PARTITION BY EXCLUDING DATE.DATE ORDER BY DATE.DATE RANGE BETWEEN INTERVAL '36 days' \n         PRECEDING AND INTERVAL '30 days' PRECEDING)",
+      "data_type": "NUMBER(38,3)",
+      "synonyms": [
+        "running 7 day average of total sales quantity 30 days ago"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "CUSTOMER_COUNT",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "expression": "COUNT(DISTINCT SS_CUSTOMER_SK)",
+      "data_type": "NUMBER(18,0)",
+      "synonyms": [
+        "count of customers with sales in period, active customers with sales"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "NET_PROFIT__MARGIN_AFTER_TAX",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "expression": "SUM((STORESALES.SS_SALES_PRICE-item.cost)/item.cost)/SUM(STORESALES.SS_QUANTITY)",
+      "data_type": "NUMBER(32,12)",
+      "synonyms": [
+        "net profit margin after item cost and applying taxes"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "NET_SALES_PROFIT_AFTER_TAX",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "expression": "SUM((STORESALES.SS_SALES_PRICE-item.cost)*(1-STORE.TAX_RATE))",
+      "data_type": "NUMBER(26,4)",
+      "synonyms": [
+        "net sales profit after item cost and applying taxes"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "REVENUE_PER_CUSTOMER",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "expression": "(SUM(SS_QUANTITY)/COUNT(DISTINCT SS_CUSTOMER_SK))",
+      "data_type": "NUMBER(38,6)",
+      "synonyms": [
+        "total sales revenue per active customer"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "TOTAL_COST",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "expression": "SUM(item.cost)",
+      "data_type": "NUMBER(19,2)",
+      "synonyms": [
+        "total cost of sold items"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "TOTAL_SALES_PRICE",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "expression": "SUM(SS_SALES_PRICE)",
+      "data_type": "NUMBER(19,2)",
+      "synonyms": [
+        "total of sales price"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "TOTAL_SALES_QUANTITY",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "expression": "SUM(SS_QUANTITY)",
+      "data_type": "NUMBER(38,0)",
+      "synonyms": [
+        "total sales quantity"
+      ],
+      "access_modifier": "PUBLIC"
+    },
+    {
+      "name": "TOTAL_SALES_QUANTITY_30DAY",
+      "table": "STORESALES",
+      "parent_entity": "STORESALES",
+      "expression": "LAG(TOTAL_SALES_QUANTITY,30)\n         OVER (PARTITION BY EXCLUDING DATE.DATE ORDER BY DATE.DATE)",
+      "data_type": "NUMBER(38,0)",
+      "synonyms": [
+        "sales quantity 30 days ago"
+      ],
+      "access_modifier": "PUBLIC"
+    }
+  ]
+}
