@@ -346,6 +346,12 @@ export class DatasetConverter {
     colName: string,
     bimColumnType: BimColumnDataType,
   ): SMLColumnDataType {
+    if (!bimColumnType) {
+      this.logger.warn(
+        `Bim column ${colName} does not have a data type defined. The data type will be treated as a string in the SML`,
+      );
+      return SMLColumnDataType.String;
+    }
     switch (bimColumnType.toLowerCase()) {
       case BimColumnDataType.String.toLowerCase():
         return SMLColumnDataType.String;

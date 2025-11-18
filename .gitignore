@@ -2,10 +2,13 @@
 *-error.log
 **/.DS_Store
 /.idea
+/.vscode
+/.msgs
 /dist
 /tmp
 /node_modules
 /build
+/sml_output
 .env
 oclif.manifest.json
 tsconfig.tsbuildinfo

@@ -41,6 +41,7 @@ import {
   descriptionAsString,
   errorUtil,
   expressionAsString,
+  firstChars,
   incrementNumberMap,
   isHidden,
   lookupAttrUniqueName,
@@ -48,6 +49,7 @@ import {
   makeUniqueName,
   removeComments,
 } from "./tools";
+import { Tools } from "../../../shared/tools";
 
 export class MeasureConverter {
   private logger: Logger;
@@ -439,6 +441,15 @@ export class MeasureConverter {
     rawCalcs: Set<string>,
     tableLists: TableLists,
   ): Promise<SMLMetricCalculated | undefined> {
+    if (bimMeasure.name === "Net sales - histogram") {
+      console.log("break");
+    }
+    console.log(
+      `Converting BIM measure '${bimMeasure.name}'. Expr '${firstChars(
+        bimMeasure.expression,
+        150,
+      )}'. Trying convertDivideCalc`,
+    );
     let smlMetric: SMLMetricCalculated | undefined = this.convertDivideCalc(
       bim,
       bimMeasure,
@@ -447,7 +458,8 @@ export class MeasureConverter {
       attrMaps,
       tableLists.unusedTables,
     );
-    if (!smlMetric)
+    if (!smlMetric) {
+      console.log(`  Now trying convertMathOnlyCalc`);
       smlMetric = this.convertMathOnlyCalc(
         bim,
         bimMeasure,
@@ -456,7 +468,9 @@ export class MeasureConverter {
         attrMaps,
         tableLists.unusedTables,
       );
+    }
     if (!smlMetric) {
+      console.log(`  Now trying convertDaxMeasureWithAI`);
       smlMetric = await this.convertDaxMeasureWithAI(
         bim,
         bimMeasure,
@@ -467,6 +481,7 @@ export class MeasureConverter {
       );
     }
     if (!smlMetric) {
+      console.log(`  Using convertCalculatedMeasure`);
       smlMetric = await this.convertCalculatedMeasure(
         bimTable,
         bimMeasure,
@@ -475,6 +490,9 @@ export class MeasureConverter {
       );
       tableLists.measTables.add(bimTable.name); // Don't have the actual dataset for most calcs
     }
+    console.log(
+      `  Final expression: ${firstChars(smlMetric?.expression, 150)}`,
+    );
     return smlMetric;
   }
 

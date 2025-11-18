@@ -141,8 +141,8 @@ export class TableConverter {
               bim.model.tables.forEach((tbl2) => {
                 tbl2.measures?.forEach((meas) => {
                   if (
-                    meas.expression.includes(`${tbl.name}[${col.name}]`) ||
-                    meas.expression.includes(`'${tbl.name}'[${col.name}]`)
+                    meas.expression?.includes(`${tbl.name}[${col.name}]`) ||
+                    meas.expression?.includes(`'${tbl.name}'[${col.name}]`)
                   )
                     used = true;
                 });

@@ -60,7 +60,9 @@ export function noQuotes(field: string): string {
  *  - Multiple spaces are consolidated into single spaces
  *  - Returns empty string if expression is falsy
  */
-export function expressionAsString(expression: string | Array<string>): string {
+export function expressionAsString(
+  expression: string | Array<string> | undefined,
+): string {
   if (expression) {
     let result = (
       Array.isArray(expression) ? expression.join("\n").toString() : expression
@@ -389,4 +391,15 @@ export function warnAndReturn(name: string, logger: Logger): string {
     `JDBC limit of ${Constants.MAX_UNIQUE_NAME_LENGTH} characters exceeded by unique name of '${name}' and no suitable replacement name was found. Using original name which will hit the limit`,
   );
   return name;
+}
+
+export function firstChars(expression: string, arg1: number) {
+  const fmtExpr = expressionAsString(expression);
+  if (fmtExpr == null || fmtExpr === undefined) {
+    return "";
+  }
+  if (fmtExpr.length > arg1) {
+    return fmtExpr.slice(0, arg1) + "...";
+  }
+  return fmtExpr;
 }

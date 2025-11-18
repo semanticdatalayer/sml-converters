@@ -17,7 +17,7 @@ import { MeasureConverter } from "./measure-converter";
 import { PerspectiveConverter } from "./perspective-converter";
 import { RelationshipConverter } from "./relationship-converter";
 import { TableConverter } from "./table-converter";
-import { makeUniqueName } from "./tools";
+import { expressionAsString, firstChars, makeUniqueName } from "./tools";
 
 export class BimToYamlConverter {
   constructor(readonly logger: Logger) {}
@@ -125,7 +125,7 @@ export class BimToYamlConverter {
     );
 
     relationshipConverter.addMissingRelationships(result, model);
- 
+
     measureConverter.addUsedColumnsToDimension(bim, result, attrMaps);
     dimensionConverter.createDegenDimensions(tableLists, bim, attrMaps, result);
 
@@ -144,6 +144,478 @@ export class BimToYamlConverter {
 
     checkForTimeDim(result, this.logger);
 
+    myParseBIM(bim);
+    parseSML(result);
+
     return result;
   }
+}
+// File: src/commands/bim-to-sml/bim-converter/parse-sml.ts
+
+function asString(value: any): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function findExprFromCandidate(obj: any): string {
+  if (!obj) return "";
+  const candidates = [
+    "expression",
+    "expression_text",
+    "mdx",
+    "MDX",
+    "formula",
+    "definition",
+    "calc",
+  ];
+  for (const k of candidates) {
+    if (k in obj && typeof obj[k] === "string") return obj[k];
+  }
+  // fallback: try top-level string fields
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (typeof v === "string" && v.length > 0 && /[\s\w\W]{1,}/.test(v)) {
+      // Heuristic: strings that contain keywords that look like expressions
+      if (/\b(selector|SELECT|MDX|\/\*|TODO|\[|\]|SUM|COUNT)\b/i.test(v))
+        return v;
+    }
+  }
+  return "";
+}
+
+export function parseBIM(bim: BimRoot): void {
+  if (!bim) {
+    console.log("No BIM content to parse.");
+    return;
+  }
+
+  type Candidate = {
+    name: string;
+    expr: string;
+    path: string;
+    kind: "table" | "partition" | "column";
+  };
+
+  const candidates: Candidate[] = [];
+
+  function pushCandidate(
+    node: any,
+    path: string,
+    kind: Candidate["kind"],
+    explicitName?: string,
+  ) {
+    const expr = findExprFromCandidate(node).trim();
+    const name =
+      explicitName ||
+      node?.name ||
+      node?.unique_name ||
+      node?.displayName ||
+      node?.caption ||
+      node?.label ||
+      node?.column ||
+      node?.column_name ||
+      path.split("/").pop() ||
+      "<unknown>";
+    candidates.push({ name: String(name), expr, path, kind });
+  }
+
+  // Helper to get plural/single variations (kept for table internals)
+  function getArray(node: any, ...keys: string[]) {
+    for (const k of keys) {
+      if (Array.isArray(node?.[k])) return node[k];
+    }
+    return [];
+  }
+
+  // Try to find the tables array robustly by recursively walking the BIM object.
+  function findTables(root: any): any[] {
+    const matches: { arr: any[]; path: string }[] = [];
+
+    function looksLikeTableArray(arr: any[]): boolean {
+      if (!Array.isArray(arr) || arr.length === 0) return false;
+      // check first few elements for table-like shape
+      const checkCount = Math.min(arr.length, 5);
+      let score = 0;
+      for (let i = 0; i < checkCount; i++) {
+        const el = arr[i];
+        if (el && typeof el === "object") {
+          if (Array.isArray(el.columns) || Array.isArray(el.Columns)) score++;
+          if (Array.isArray(el.partitions) || Array.isArray(el.Partitions))
+            score++;
+          if (typeof el.name === "string" || typeof el.label === "string")
+            score++;
+        }
+      }
+      // treat as table array if it has at least one of the table-like markers
+      return score > 0;
+    }
+
+    function walk(node: any, path: string) {
+      if (!node || typeof node !== "object") return;
+      if (Array.isArray(node)) {
+        if (looksLikeTableArray(node)) matches.push({ arr: node, path });
+        // recurse elements to find nested arrays
+        for (let i = 0; i < node.length; i++) {
+          walk(node[i], `${path}[${i}]`);
+        }
+        return;
+      }
+      for (const k of Object.keys(node)) {
+        const v = node[k];
+        if (Array.isArray(v)) {
+          if (looksLikeTableArray(v))
+            matches.push({ arr: v, path: `${path}/${k}` });
+        }
+        walk(v, `${path}/${k}`);
+      }
+    }
+
+    walk(root, "bim");
+    if (matches.length) {
+      // prefer arrays explicitly named "tables" or "Tables" if present
+      for (const m of matches) {
+        if (m.path.toLowerCase().includes("/tables")) return m.arr;
+      }
+      // otherwise return the first match
+      return matches[0].arr;
+    }
+    return [];
+  }
+
+  // Only traverse tables, partitions within tables, and columns
+  let tables = getArray(bim, "tables", "Tables");
+  if (!tables || tables.length === 0) {
+    tables = findTables(bim);
+  }
+
+  for (let ti = 0; ti < tables.length; ti++) {
+    const t = tables[ti];
+    const tPath = `bim/tables[${ti}]`;
+    // collect table-level expressions
+    pushCandidate(t, tPath, "table");
+
+    // partitions inside table
+    const parts = getArray(t, "partitions", "Partitions", "Partition");
+    for (let pi = 0; pi < parts.length; pi++) {
+      const p = parts[pi];
+      const pPath = `${tPath}/partitions[${pi}]`;
+      pushCandidate(p, pPath, "partition");
+    }
+
+    // columns inside table
+    const cols = getArray(t, "columns", "Columns", "ColumnsCollection");
+    for (let ci = 0; ci < cols.length; ci++) {
+      const c = cols[ci];
+      const cPath = `${tPath}/columns[${ci}]`;
+      pushCandidate(c, cPath, "column");
+    }
+  }
+
+  // Analysis helpers
+  function analyze(kind: Candidate["kind"], title: string) {
+    const list = candidates.filter((c) => c.kind === kind);
+    const total = list.length;
+    let missing = 0;
+    let todoCount = 0;
+    let selectorCount = 0;
+    let varStartCount = 0;
+    const samplesMissing: string[] = [];
+    const samplesTodo: string[] = [];
+    const samplesSelector: string[] = [];
+    const samplesVarStart: string[] = [];
+
+    const selectorOrVarRegex = /selector|selectedvalue/i;
+    const todoRegex = /\/\*.*todo.*\*\//i;
+    const todoWordRegex = /\bTODO\b/i;
+    const startsWithVar = /^\s*var\s+/i;
+
+    for (const item of list) {
+      const expr = (item.expr || "").trim();
+      if (!expr) {
+        missing++;
+        if (samplesMissing.length < 10) samplesMissing.push(item.name);
+        continue;
+      }
+
+      const hasTodo = todoRegex.test(expr) || todoWordRegex.test(expr);
+      if (hasTodo) {
+        todoCount++;
+        if (samplesTodo.length < 10)
+          samplesTodo.push(`${item.name} -> ${expr.slice(0, 120)}`);
+      }
+
+      const hasSelector = selectorOrVarRegex.test(expr);
+      if (hasSelector) {
+        selectorCount++;
+        if (samplesSelector.length < 10)
+          samplesSelector.push(`${item.name} -> ${expr.slice(0, 120)}`);
+      }
+
+      const hasVarStart = startsWithVar.test(expr);
+      if (hasVarStart) {
+        varStartCount++;
+        if (samplesVarStart.length < 10)
+          samplesVarStart.push(`${item.name} -> ${expr.slice(0, 120)}`);
+      }
+    }
+
+    console.log(`\n${title}:`);
+    console.log(`  total scanned: ${total}`);
+    console.log(`  missing / empty expressions: ${missing}`);
+    console.log(
+      `  expressions containing "selector" / "selectedvalue": ${selectorCount}`,
+    );
+    console.log(`  expressions starting with "var ": ${varStartCount}`);
+
+    if (samplesTodo.length) {
+      console.log(`  Examples with TODO (up to 10):`);
+      samplesTodo.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+    }
+    if (samplesSelector.length) {
+      console.log(`  Examples with selector/selectedvalue (up to 10):`);
+      samplesSelector.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+    }
+    if (samplesVarStart.length) {
+      console.log(`  Examples starting with "var " (up to 10):`);
+      samplesVarStart.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+    }
+    if (samplesMissing.length) {
+      console.log(`  Examples missing expressions (up to 10):`);
+      samplesMissing.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+    }
+  }
+
+  analyze("table", "BIM table-level expressions summary");
+  analyze("partition", "BIM partition-level expressions summary");
+  analyze("column", "BIM column-level expressions summary");
+
+  // BIM structure quick summary
+  const tablesCount = Array.isArray(tables) ? tables.length : 0;
+  let totalColumns = 0;
+  for (const t of tables) {
+    const cols = getArray(t, "columns", "Columns", "ColumnsCollection");
+    totalColumns += Array.isArray(cols) ? cols.length : 0;
+  }
+
+  console.log("\nBIM structure summary (best-effort):");
+  console.log(`  tables: ${tablesCount}`);
+  console.log(`  columns (sum of all tables): ${totalColumns}`);
+  console.log("");
+}
+
+export function parseSML(result: SmlConverterResult): void {
+  const measuresList = ([] as any[]).concat(
+    result.measures || [],
+    result.measuresCalculated || [],
+  );
+
+  let totalCalc = measuresList.length;
+  let converted = 0;
+  let notConverted = 0; // e.g. "0 /*...TODO...*/"
+  let containsSelector = 0;
+  let missingExpression = 0;
+  let todoCount = 0;
+  const samplesNotConverted: string[] = [];
+  const samplesSelector: string[] = [];
+  const samplesMissing: string[] = [];
+
+  for (const m of measuresList) {
+    const name =
+      (m && (m.unique_name || m.uniqueName || m.name || m.label)) ||
+      (typeof m === "string" ? m : "<unknown>");
+    const expr = findExprFromCandidate(m).trim();
+
+    if (!expr) {
+      missingExpression++;
+      samplesMissing.push(String(name));
+      continue;
+    }
+
+    const lower = expr.toLowerCase();
+
+    const looksLikeTodoZero =
+      /^0\s*\/\*.*todo.*\*\/\s*$/i.test(expr) ||
+      /0\s*\/\*\s*\.\.\.\s*TODO/i.test(expr) ||
+      (/\/\*.*todo.*\*\//i.test(expr) && /\b0\b/.test(expr));
+    const hasTodo = /\/\*.*todo.*\*\//i.test(expr) || /\bTODO\b/i.test(expr);
+    const hasSelector = /selector|selectedvalue/i.test(expr);
+
+    if (looksLikeTodoZero) {
+      notConverted++;
+      todoCount++;
+      samplesNotConverted.push(String(name) + " -> " + expr.slice(0, 120));
+    } else if (hasTodo) {
+      // treat TODO-marked expressions as not fully converted
+      notConverted++;
+      todoCount++;
+      samplesNotConverted.push(String(name) + " -> " + expr.slice(0, 120));
+    } else {
+      converted++;
+    }
+
+    if (hasSelector) {
+      containsSelector++;
+      if (samplesSelector.length < 10)
+        samplesSelector.push(String(name) + " -> " + expr.slice(0, 120));
+    }
+  }
+
+  console.log("");
+  console.log("SML Calculations summary:");
+  console.log(`  total calculations scanned: ${totalCalc}`);
+  console.log(`  converted (non-TODO looking): ${converted}`);
+  console.log(`  not-converted / TODO-like: ${notConverted}`);
+  if (todoCount) console.log(`    (TODO markers found: ${todoCount})`);
+  console.log(`  missing / empty expressions: ${missingExpression}`);
+  console.log(
+    `  expressions containing "selector or selectedvalue" (case-insensitive): ${containsSelector}`,
+  );
+
+  if (samplesNotConverted.length) {
+    console.log("  Examples of not-converted / TODO expressions (up to 10):");
+    samplesNotConverted
+      .slice(0, 10)
+      .forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+  }
+  if (samplesSelector.length) {
+    console.log(
+      "  Examples containing 'selector or selectedvalue' (up to 10):",
+    );
+    samplesSelector.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+  }
+  if (samplesMissing.length) {
+    console.log("  Examples missing expressions (up to 10):");
+    samplesMissing
+      .slice(0, 10)
+      .forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+  }
+
+  // Datasets analysis
+  const datasets = result.datasets || [];
+  let dsTotal = datasets.length;
+  let dsWithExpressions = 0;
+  let dsWithTodo = 0;
+  let dsWithSelector = 0;
+  const dsSamplesWithExpr: string[] = [];
+  const dsSamplesTodo: string[] = [];
+
+  for (const d of datasets) {
+    const dsName = (d && (d.unique_name || d.label)) || "<dataset>";
+    const dsStr = asString(d);
+    const hasExpr =
+      /"expression"\s*:|"mdx"\s*:|"formula"\s*:|\/\*.*todo.*\*\//i.test(
+        dsStr,
+      ) || /\bMDX\b|\bselector|selectedvalue\b/i.test(dsStr);
+    if (hasExpr) {
+      dsWithExpressions++;
+      if (dsSamplesWithExpr.length < 10) dsSamplesWithExpr.push(String(dsName));
+    }
+    if (/\/\*.*todo.*\*\//i.test(dsStr) || /\bTODO\b/i.test(dsStr)) {
+      dsWithTodo++;
+      if (dsSamplesTodo.length < 10) dsSamplesTodo.push(String(dsName));
+    }
+    if (/selector|selectedvalue/i.test(dsStr)) {
+      dsWithSelector++;
+    }
+  }
+
+  console.log("\nDatasets summary:");
+  console.log(`  total datasets scanned: ${dsTotal}`);
+  console.log(`  datasets with expression-like content: ${dsWithExpressions}`);
+  console.log(`  datasets with TODO markers: ${dsWithTodo}`);
+  console.log(`  datasets with "selector" occurrences: ${dsWithSelector}`);
+  if (dsSamplesWithExpr.length) {
+    console.log("  Example datasets with expressions (up to 10):");
+    dsSamplesWithExpr.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+  }
+  if (dsSamplesTodo.length) {
+    console.log("  Example datasets with TODO markers (up to 10):");
+    dsSamplesTodo.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+  }
+  console.log("");
+}
+
+export function myParseBIM(bim: BimRoot): void {
+  if (!bim) {
+    console.log("No BIM content to parse.");
+    return;
+  }
+  const sampleSize = 5;
+  const exprLen = 120;
+  let totalTables = 0;
+  let tablesWithExpr = 0;
+  let tablesVarStart = 0;
+  let tablesWithSelector = 0;
+  const samplesTableExpr: string[] = [];
+  let totalColumns = 0;
+  let columnsWithExpr = 0;
+  let columnsVarStart = 0;
+  let columnsWithSelector = 0;
+  const samplesColVarExpr: string[] = [];
+  const samplesColSelectorExpr: string[] = [];
+
+  bim.model.tables.forEach((table) => {
+    totalTables++;
+    if (table.partitions) {
+      const expr = expressionAsString(table.partitions[0]?.source?.expression)
+        ?.trim()
+        .toLowerCase();
+      if (expr) {
+        tablesWithExpr++;
+        if (startsWithVar(expr)) tablesVarStart++;
+        if (hasSelector(expr)) tablesWithSelector++;
+        if (samplesTableExpr.length < sampleSize)
+          samplesTableExpr.push(firstChars(expr, exprLen));
+      }
+    }
+
+    table.columns?.forEach((column) => {
+      const expr = expressionAsString(column.expression)?.trim().toLowerCase();
+      totalColumns++;
+      if (expr) {
+        columnsWithExpr++;
+        if (startsWithVar(expr)) {
+          columnsVarStart++;
+          if (samplesColVarExpr.length < sampleSize)
+            samplesColVarExpr.push(firstChars(expr, exprLen));
+        }
+        if (hasSelector(expr)) {
+          columnsWithSelector++;
+          if (samplesColSelectorExpr.length < sampleSize)
+            samplesColSelectorExpr.push(firstChars(expr, exprLen));
+        }
+      }
+    });
+  });
+
+  console.log("\nBIM tables summary:");
+  console.log(`  Total tables: ${totalTables}`);
+  console.log(`  Tables with expressions: ${tablesWithExpr}`);
+  samplesTableExpr.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+  console.log(`  Tables starting with 'var ': ${tablesVarStart}`);
+  console.log(`  Tables using selectors: ${tablesWithSelector}`);
+  console.log("\nBIM columns summary:");
+  console.log(`  Total columns: ${totalColumns}`);
+  console.log(`  Columns with expressions: ${columnsWithExpr}`);
+  console.log(`  Columns starting with 'var ': ${columnsVarStart}`);
+  samplesColVarExpr.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+  console.log(`  Columns using selectors: ${columnsWithSelector}`);
+  samplesColSelectorExpr.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+}
+
+function startsWithVar(expr: string): boolean {
+  if (!expr) return false;
+  if (expr.startsWith("var ") || expr.startsWith("var\n")) return true;
+  return false;
+}
+
+function hasSelector(expr: string): boolean {
+  if (!expr) return false;
+  if (expr.includes("selector") || expr.includes("selectedvalue")) return true;
+  return false;
 }

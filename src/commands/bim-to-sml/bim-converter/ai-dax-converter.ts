@@ -10,7 +10,7 @@ const supportedLLMs = {
 
 /**
  * Interface representing a converter that transforms DAX expressions into MDX expressions using AI.
- * 
+ *
  * @interface AiDaxToMdxConverter
  * @method convert - Converts a DAX expression to an MDX expression.
  * @method validateConfig - Validates that the necessary configuration (like API keys) is set.
@@ -152,14 +152,14 @@ const basicRules =
 
 /**
  * Creates an AI converter instance based on the specified LLM (Language Learning Model) name.
- * 
+ *
  * @param llmName - The name of the Language Learning Model to use for conversion
  * @param logger - Logger instance for handling logging operations
  * @returns An instance of AiDaxToMdxConverter if the LLM name is valid, undefined otherwise
  */
 export function getAiConverter(
   llmName: string,
-  logger: Logger
+  logger: Logger,
 ): AiDaxToMdxConverter {
   if (Object.keys(llmMap).includes(llmName.toLowerCase())) {
     const AiConverterClass = llmMap[llmName.toLowerCase()];
@@ -178,9 +178,13 @@ export async function convertDaxToMdxWithAi(
   llmName: any,
   logger: Logger,
 ): Promise<string | undefined> {
+  console.log(`Converting DAX to MDX using LLM: ${llmName}`);
   let converter: AiDaxToMdxConverter = getAiConverter(llmName, logger)!;
   converter.validateConfig();
   const mdxExpression = await converter.convert(daxExpression);
+  console.log(
+    `Conversion complete. DAX: ${daxExpression} --> MDX: ${mdxExpression}`,
+  );
   return mdxExpression;
 }
 
