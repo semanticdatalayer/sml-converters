@@ -17,7 +17,12 @@ import { MeasureConverter } from "./measure-converter";
 import { PerspectiveConverter } from "./perspective-converter";
 import { RelationshipConverter } from "./relationship-converter";
 import { TableConverter } from "./table-converter";
-import { expressionAsString, firstChars, makeUniqueName } from "./tools";
+import {
+  expressionAsString,
+  expressionAsOneLineLowerCaseString,
+  firstChars,
+  makeUniqueName,
+} from "./tools";
 
 export class BimToYamlConverter {
   constructor(readonly logger: Logger) {}
@@ -144,8 +149,9 @@ export class BimToYamlConverter {
 
     checkForTimeDim(result, this.logger);
 
-    myParseBIM(bim);
-    parseSML(result);
+    let summary = myParseBIM(bim);
+    summary += parseSML(result);
+    console.log("FFFILE: " + summary);
 
     return result;
   }
@@ -408,7 +414,7 @@ export function parseBIM(bim: BimRoot): void {
   console.log("");
 }
 
-export function parseSML(result: SmlConverterResult): void {
+export function parseSML(result: SmlConverterResult): string {
   const measuresList = ([] as any[]).concat(
     result.measures || [],
     result.measuresCalculated || [],
@@ -423,6 +429,7 @@ export function parseSML(result: SmlConverterResult): void {
   const samplesNotConverted: string[] = [];
   const samplesSelector: string[] = [];
   const samplesMissing: string[] = [];
+  let summary = "";
 
   for (const m of measuresList) {
     const name =
@@ -468,13 +475,18 @@ export function parseSML(result: SmlConverterResult): void {
   console.log("");
   console.log("SML Calculations summary:");
   console.log(`  total calculations scanned: ${totalCalc}`);
+  summary += `\t${totalCalc}`;
   console.log(`  converted (non-TODO looking): ${converted}`);
+  summary += `\t${converted}`;
   console.log(`  not-converted / TODO-like: ${notConverted}`);
+  summary += `\t${notConverted}`;
   if (todoCount) console.log(`    (TODO markers found: ${todoCount})`);
   console.log(`  missing / empty expressions: ${missingExpression}`);
+  summary += `\t${missingExpression}`;
   console.log(
     `  expressions containing "selector or selectedvalue" (case-insensitive): ${containsSelector}`,
   );
+  summary += `\t${containsSelector}`;
 
   if (samplesNotConverted.length) {
     console.log("  Examples of not-converted / TODO expressions (up to 10):");
@@ -526,9 +538,13 @@ export function parseSML(result: SmlConverterResult): void {
 
   console.log("\nDatasets summary:");
   console.log(`  total datasets scanned: ${dsTotal}`);
+  summary += `\t${dsTotal}`;
   console.log(`  datasets with expression-like content: ${dsWithExpressions}`);
+  summary += `\t${dsWithExpressions}`;
   console.log(`  datasets with TODO markers: ${dsWithTodo}`);
+  summary += `\t${dsWithTodo}`;
   console.log(`  datasets with "selector" occurrences: ${dsWithSelector}`);
+  summary += `\t${dsWithSelector}`;
   if (dsSamplesWithExpr.length) {
     console.log("  Example datasets with expressions (up to 10):");
     dsSamplesWithExpr.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
@@ -538,12 +554,13 @@ export function parseSML(result: SmlConverterResult): void {
     dsSamplesTodo.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
   }
   console.log("");
+  return summary;
 }
 
-export function myParseBIM(bim: BimRoot): void {
+export function myParseBIM(bim: BimRoot): string {
   if (!bim) {
     console.log("No BIM content to parse.");
-    return;
+    return "";
   }
   const sampleSize = 5;
   const exprLen = 120;
@@ -558,6 +575,11 @@ export function myParseBIM(bim: BimRoot): void {
   let columnsWithSelector = 0;
   const samplesColVarExpr: string[] = [];
   const samplesColSelectorExpr: string[] = [];
+  let totalMeasures = 0;
+  let measuresWithExpr = 0;
+  let measuresVarStart = 0;
+  let measuresWithSelector = 0;
+  let summary = bim.name;
 
   bim.model.tables.forEach((table) => {
     totalTables++;
@@ -575,7 +597,9 @@ export function myParseBIM(bim: BimRoot): void {
     }
 
     table.columns?.forEach((column) => {
-      const expr = expressionAsString(column.expression)?.trim().toLowerCase();
+      const expr = expressionAsOneLineLowerCaseString(column.expression)
+        ?.trim()
+        .toLowerCase();
       totalColumns++;
       if (expr) {
         columnsWithExpr++;
@@ -591,26 +615,69 @@ export function myParseBIM(bim: BimRoot): void {
         }
       }
     });
+
+    table.measures?.forEach((measure) => {
+      const expr = expressionAsOneLineLowerCaseString(measure.expression)
+        ?.trim()
+        .toLowerCase();
+      totalMeasures++;
+      if (expr) {
+        measuresWithExpr++;
+        if (startsWithVar(expr)) {
+          measuresVarStart++;
+          // if (samplesColVarExpr.length < sampleSize)
+          //   samplesColVarExpr.push(firstChars(expr, exprLen));
+        }
+        if (hasSelector(expr)) {
+          measuresWithSelector++;
+          // if (samplesColSelectorExpr.length < sampleSize)
+          //   samplesColSelectorExpr.push(firstChars(expr, exprLen));
+        }
+      }
+    });
   });
 
   console.log("\nBIM tables summary:");
   console.log(`  Total tables: ${totalTables}`);
+  summary += `\t${totalTables}`;
   console.log(`  Tables with expressions: ${tablesWithExpr}`);
+  summary += `\t${tablesWithExpr}`;
   samplesTableExpr.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
   console.log(`  Tables starting with 'var ': ${tablesVarStart}`);
+  summary += `\t${tablesVarStart}`;
   console.log(`  Tables using selectors: ${tablesWithSelector}`);
+  summary += `\t${tablesWithSelector}`;
+
   console.log("\nBIM columns summary:");
   console.log(`  Total columns: ${totalColumns}`);
+  summary += `\t${totalColumns}`;
   console.log(`  Columns with expressions: ${columnsWithExpr}`);
+  summary += `\t${columnsWithExpr}`;
   console.log(`  Columns starting with 'var ': ${columnsVarStart}`);
+  summary += `\t${columnsVarStart}`;
   samplesColVarExpr.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
   console.log(`  Columns using selectors: ${columnsWithSelector}`);
+  summary += `\t${columnsWithSelector}`;
   samplesColSelectorExpr.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+
+  console.log("\nBIM measures summary:");
+  console.log(`  Total measures: ${totalMeasures}`);
+  summary += `\t${totalMeasures}`;
+  console.log(`  Measures with expressions: ${measuresWithExpr}`);
+  summary += `\t${measuresWithExpr}`;
+  console.log(`  Measures starting with 'var ': ${measuresVarStart}`);
+  summary += `\t${measuresVarStart}`;
+  samplesColVarExpr.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+  console.log(`  Measures using selectors: ${measuresWithSelector}`);
+  summary += `\t${measuresWithSelector}`;
+
+  return summary;
 }
 
 function startsWithVar(expr: string): boolean {
   if (!expr) return false;
-  if (expr.startsWith("var ") || expr.startsWith("var\n")) return true;
+  if (expr.trim().startsWith("var ") || expr.trim().startsWith("var\n"))
+    return true;
   return false;
 }
 

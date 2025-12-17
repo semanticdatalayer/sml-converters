@@ -124,11 +124,18 @@ async function aiConvertDaxToMdx(
 
   const gen = ax(sig, { ai: llm });
 
+  console.log(
+    `    Converting DAX to MDX using AI with expression: ${
+      daxExpression.length > 175
+        ? daxExpression.substring(0, 175) + "..."
+        : daxExpression
+    }`,
+  );
   const res = await gen.forward(llm, {
     daxExpression: daxExpression,
     rules: rules ? rules : basicRules,
   });
-
+  console.log(`   res.difficulty: ${res.difficulty}`);
   if (res.difficulty > 0.7) {
     return undefined; // Too difficult to convert, ai most likely got it wrong
   }
@@ -138,6 +145,13 @@ async function aiConvertDaxToMdx(
     " /* TODO: Converted from DAX To MDX using AI - please validate. Original DAX: " +
     daxExpression +
     " */";
+  console.log(
+    `   returning mdxExpression: ${
+      mdxExpression.length > 175
+        ? mdxExpression.substring(0, 175) + "..."
+        : mdxExpression
+    }`,
+  );
   return mdxExpression;
 }
 
@@ -178,13 +192,13 @@ export async function convertDaxToMdxWithAi(
   llmName: any,
   logger: Logger,
 ): Promise<string | undefined> {
-  console.log(`Converting DAX to MDX using LLM: ${llmName}`);
+  // console.log(`Converting DAX to MDX using LLM: ${llmName}`);
   let converter: AiDaxToMdxConverter = getAiConverter(llmName, logger)!;
   converter.validateConfig();
   const mdxExpression = await converter.convert(daxExpression);
-  console.log(
-    `Conversion complete. DAX: ${daxExpression} --> MDX: ${mdxExpression}`,
-  );
+  // console.log(
+  //   `Conversion complete. DAX: ${daxExpression} --> MDX: ${mdxExpression}`,
+  // );
   return mdxExpression;
 }
 

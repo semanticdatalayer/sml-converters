@@ -49,7 +49,7 @@ import {
   makeUniqueName,
   removeComments,
 } from "./tools";
-import { Tools } from "../../../shared/tools";
+// import { Tools } from "../../../shared/tools";
 
 export class MeasureConverter {
   private logger: Logger;
@@ -137,6 +137,7 @@ export class MeasureConverter {
                     attrMaps,
                     bimMeasTable,
                   );
+                  console.log(`XXX Calc '${calc_unique_name}' from agg only`);
                 }
               }
             } else if (
@@ -216,6 +217,7 @@ export class MeasureConverter {
                   attrMaps,
                   bimMeasTable,
                 );
+                console.log(`XXX Calc '${calc_unique_name}' count rows`);
               } else {
                 this.logger.warn(
                   `Can't find table referenced by bim measure '${meas.name}' so the measure will not be created`,
@@ -338,6 +340,12 @@ export class MeasureConverter {
       unrelated_dimensions_handling: SMLUnrelatedDimensionsHandling.Repeat,
     };
 
+    if (aggFn.toLowerCase() !== "sum") {
+      console.log(
+        `XXX Meas '${measureUniqueName}' for column '${c.name}' using aggFn '${aggFn}'`,
+      );
+    }
+
     incrementNumberMap(attrMaps.metricLabels, c.name);
 
     result.measures.push(measure);
@@ -440,16 +448,17 @@ export class MeasureConverter {
     attrMaps: AttributeMaps,
     rawCalcs: Set<string>,
     tableLists: TableLists,
+    fellOut: Array<string>,
   ): Promise<SMLMetricCalculated | undefined> {
-    if (bimMeasure.name === "Net sales - histogram") {
+    if (bimMeasure.name === "MaxPremiumYr") {
       console.log("break");
     }
-    console.log(
-      `Converting BIM measure '${bimMeasure.name}'. Expr '${firstChars(
-        bimMeasure.expression,
-        150,
-      )}'. Trying convertDivideCalc`,
-    );
+    // console.log(
+    //   `Converting BIM measure '${bimMeasure.name}'. Expr '${firstChars(
+    //     bimMeasure.expression,
+    //     150,
+    //   )}'. Trying convertDivideCalc`,
+    // );
     let smlMetric: SMLMetricCalculated | undefined = this.convertDivideCalc(
       bim,
       bimMeasure,
@@ -459,7 +468,7 @@ export class MeasureConverter {
       tableLists.unusedTables,
     );
     if (!smlMetric) {
-      console.log(`  Now trying convertMathOnlyCalc`);
+      // console.log(`  Now trying convertMathOnlyCalc`);
       smlMetric = this.convertMathOnlyCalc(
         bim,
         bimMeasure,
@@ -469,8 +478,11 @@ export class MeasureConverter {
         tableLists.unusedTables,
       );
     }
+    if (smlMetric) {
+      console.log(`XXX Meas '${bimMeasure.name}' from math only`);
+    }
     if (!smlMetric) {
-      console.log(`  Now trying convertDaxMeasureWithAI`);
+      // console.log(`  Now trying convertDaxMeasureWithAI`);
       smlMetric = await this.convertDaxMeasureWithAI(
         bim,
         bimMeasure,
@@ -479,20 +491,28 @@ export class MeasureConverter {
         attrMaps,
         tableLists,
       );
+      if (smlMetric) {
+        console.log(`XXX Meas '${bimMeasure.name}' from AI`);
+      }
     }
+
     if (!smlMetric) {
-      console.log(`  Using convertCalculatedMeasure`);
+      // console.log(`  Using convertCalculatedMeasure`);
       smlMetric = await this.convertCalculatedMeasure(
         bimTable,
         bimMeasure,
         rawCalcs,
         attrMaps.attrNameMap,
       );
+      // console.log(
+      //   `  Calc '${bimMeasure.name}' created after falling out of others`,
+      // );
+      fellOut.push(bimMeasure.name);
       tableLists.measTables.add(bimTable.name); // Don't have the actual dataset for most calcs
     }
-    console.log(
-      `  Final expression: ${firstChars(smlMetric?.expression, 150)}`,
-    );
+    // console.log(
+    //   `  Final expression: ${firstChars(smlMetric?.expression, 150)}`,
+    // );
     return smlMetric;
   }
 
@@ -686,6 +706,7 @@ export class MeasureConverter {
   ): Promise<SMLMetricCalculated | undefined> {
     if (this.llmName) {
       try {
+        console.log(`XXX Using AI to convert DAX measure '${meas.name}'`);
         let mdxExpression = await convertDaxToMdxWithAi(
           removeComments(expressionAsString(meas.expression)),
           this.llmName,

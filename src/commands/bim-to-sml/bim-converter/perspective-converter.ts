@@ -18,9 +18,18 @@ import {
   DimAttrsType,
   TableLists,
 } from "../bim-models/types-and-interfaces";
-import { findAttrUse, findColumn, findMeasure, uniqueNameForCreatedMeas } from "./converter-utils";
+import {
+  findAttrUse,
+  findColumn,
+  findMeasure,
+  uniqueNameForCreatedMeas,
+} from "./converter-utils";
 import { aggFunctionAtStart } from "./expression-parser";
-import { expressionAsString, lookupAttrUniqueName, makeUniqueName } from "./tools";
+import {
+  expressionAsString,
+  lookupAttrUniqueName,
+  makeUniqueName,
+} from "./tools";
 
 export class PerspectiveConverter {
   private logger: Logger;

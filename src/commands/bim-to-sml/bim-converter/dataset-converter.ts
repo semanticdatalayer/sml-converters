@@ -124,9 +124,13 @@ export class DatasetConverter {
     }
 
     if (bimTable.measures != undefined) {
+      const fellOut = new Array<string>();
       // Now handle the Calculated Measures
       for (const element of bimTable.measures) {
         const bimMeasure = element;
+        if (bimMeasure.name == "MaxPremiumYr") {
+          console.log("STOP");
+        }
         if (
           !attrMaps.metricLookup.has(
             "calc" + lowerNoSpace(bimTable.name + "[" + bimMeasure.name + "]"),
@@ -141,6 +145,7 @@ export class DatasetConverter {
             attrMaps,
             messagesMap.rawCalcs,
             tableLists,
+            fellOut,
           );
 
           if (smlMetric) {
@@ -154,6 +159,10 @@ export class DatasetConverter {
           }
         }
       }
+      if (fellOut.length > 0)
+        console.log(
+          `XXX ${fellOut.length} measures fell out from table '${bimTable.name}' so are candidates to convert via AI`,
+        );
     }
     if (messagesMap.rawCalcs.size > 0)
       this.logger.info(

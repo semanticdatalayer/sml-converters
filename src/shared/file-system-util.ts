@@ -1,8 +1,8 @@
 import fs from "fs/promises";
 import Guard from "./guard";
 import { Stats } from "fs";
-import fileSystem from 'fs/promises';
-import path from 'path';
+import fileSystem from "fs/promises";
+import path from "path";
 import { Logger } from "./logger";
 import { Command } from "@oclif/core";
 
@@ -10,115 +10,113 @@ export type convertInput = {
   sourcePath: string;
   outputPath: string;
   clean: boolean;
-}
+};
 
 async function parseOutput(
   input: convertInput,
   logger: Logger,
-  command: Command
-) : Promise<{
+  command: Command,
+): Promise<{
   absoluteOutputPath: string;
 }> {
   const absoluteOutputPath = path.resolve(input.outputPath);
 
-    const outputPathExists = await fileSystemUtil.folderExists(
-      absoluteOutputPath,
-    );
+  const outputPathExists = await fileSystemUtil.folderExists(
+    absoluteOutputPath,
+  );
 
-    if (outputPathExists) {
-      const outputSubItems = await fs.readdir(absoluteOutputPath);
-      const contents = outputSubItems.filter((n) => n !== ".git");
-      const hasContents = contents.length > 0;
+  if (outputPathExists) {
+    const outputSubItems = await fs.readdir(absoluteOutputPath);
+    const contents = outputSubItems.filter((n) => n !== ".git");
+    const hasContents = contents.length > 0;
 
-      // clear out the folder if user uses --clean
-      if (hasContents) {
-        const outputNotEmptyMsg = `Output folder "${absoluteOutputPath}" is not empty.`;
-        if (!input.clean) {
-          logger.error(outputNotEmptyMsg);
-          command.error(outputNotEmptyMsg);
-        } else {
-          logger.warn(
-            `${outputNotEmptyMsg}. --clean flag is provided to remove folder contents`,
-          );
-          await cleanUpOutputFolder(absoluteOutputPath, contents, logger);
-          logger.info("Output folder contents deleted");
-        }
+    // clear out the folder if user uses --clean
+    if (hasContents) {
+      const outputNotEmptyMsg = `Output folder "${absoluteOutputPath}" is not empty.`;
+      if (!input.clean) {
+        logger.error(outputNotEmptyMsg);
+        command.error(outputNotEmptyMsg);
+      } else {
+        logger.warn(
+          `${outputNotEmptyMsg}. --clean flag is provided to remove folder contents`,
+        );
+        await cleanUpOutputFolder(absoluteOutputPath, contents, logger);
+        logger.info("Output folder contents deleted");
       }
-    } else {
-      await fs.mkdir(absoluteOutputPath);
     }
+  } else {
+    await fs.mkdir(absoluteOutputPath);
+  }
 
-    return {
-      absoluteOutputPath
-    };
+  return {
+    absoluteOutputPath,
+  };
 }
 
 export async function parseInput(
-    input: convertInput,
-    logger: Logger,
-    command: Command
-  ): Promise<{
-    absoluteSourcePath: string;
-    absoluteOutputPath: string;
-  }> {
-    const absoluteSourcePath = path.resolve(input.sourcePath);
-    const inputFolderExists = await fileSystemUtil.folderExists(
-      absoluteSourcePath,
-    );
-    Guard.should(
-      inputFolderExists,
-      `The source folder (${absoluteSourcePath}) does not exists`,
-    );
-    const {absoluteOutputPath} = await parseOutput(input, logger, command);
-    return {
-      absoluteSourcePath,
-      absoluteOutputPath,
-    };
-  }
+  input: convertInput,
+  logger: Logger,
+  command: Command,
+): Promise<{
+  absoluteSourcePath: string;
+  absoluteOutputPath: string;
+}> {
+  const absoluteSourcePath = path.resolve(input.sourcePath);
+  const inputFolderExists = await fileSystemUtil.folderExists(
+    absoluteSourcePath,
+  );
+  Guard.should(
+    inputFolderExists,
+    `The source folder (${absoluteSourcePath}) does not exists`,
+  );
+  const { absoluteOutputPath } = await parseOutput(input, logger, command);
+  return {
+    absoluteSourcePath,
+    absoluteOutputPath,
+  };
+}
 
- export async function parseInputFile(
-    input: convertInput,
-    logger: Logger,
-    command: Command
-  ): Promise<{
-    absoluteSourcePath: string;
-    absoluteOutputPath: string;
-  }> {
-    const absoluteSourcePath = path.resolve(input.sourcePath);
-    const inputFileExists = await fileSystemUtil.fileExists(
-      absoluteSourcePath,
-    );
-    Guard.should(
-      inputFileExists,
-      `The source file (${absoluteSourcePath}) does not exists`,
-    );
-    const {absoluteOutputPath} = await parseOutput(input, logger, command);
-    return {
-      absoluteSourcePath,
-      absoluteOutputPath,
-    };
-  }
+export async function parseInputFile(
+  input: convertInput,
+  logger: Logger,
+  command: Command,
+): Promise<{
+  absoluteSourcePath: string;
+  absoluteOutputPath: string;
+}> {
+  const absoluteSourcePath = path.resolve(input.sourcePath);
+  const inputFileExists = await fileSystemUtil.fileExists(absoluteSourcePath);
+  Guard.should(
+    inputFileExists,
+    `The source file (${absoluteSourcePath}) does not exists`,
+  );
+  const { absoluteOutputPath } = await parseOutput(input, logger, command);
+  return {
+    absoluteSourcePath,
+    absoluteOutputPath,
+  };
+}
 
 export async function cleanUpOutputFolder(
-    outputAbsolutePath: string,
-    contents: Array<string>,
-    logger: Logger,
-  ): Promise<void> {
-    for (const item of contents) {
-      if (item === ".git") continue;
+  outputAbsolutePath: string,
+  contents: Array<string>,
+  logger: Logger,
+): Promise<void> {
+  for (const item of contents) {
+    if (item === ".git") continue;
 
-      const itemPath = path.join(outputAbsolutePath, item);
-      const stat = await fs.lstat(itemPath);
+    const itemPath = path.join(outputAbsolutePath, item);
+    const stat = await fs.lstat(itemPath);
 
-      if (stat.isDirectory()) {
-        logger.info(`${itemPath} - deleting folder and all its contents`);
-        await fs.rm(itemPath, { recursive: true, force: true });
-      } else {
-        logger.info(`${itemPath} - deleting file`);
-        await fs.unlink(itemPath);
-      }
+    if (stat.isDirectory()) {
+      logger.info(`${itemPath} - deleting folder and all its contents`);
+      await fs.rm(itemPath, { recursive: true, force: true });
+    } else {
+      logger.info(`${itemPath} - deleting file`);
+      await fs.unlink(itemPath);
     }
   }
+}
 
 const getPathExistsFun = (typeGuard: (stat: Stats) => void) => {
   return async (path: string) => {
@@ -146,42 +144,42 @@ export const fileSystemUtil = {
 };
 
 export const getFilesAndFolders = async (
-    folderPath: string
-  ): Promise<{ 
+  folderPath: string,
+): Promise<{
+  folders: Array<string>;
+  files: Array<string>;
+}> => {
+  const filesOrFolders = await fileSystem.readdir(folderPath);
+
+  const result: {
     folders: Array<string>;
     files: Array<string>;
-  }> => {
-    const filesOrFolders = await fileSystem.readdir(folderPath);
-
-    const result: {
-      folders: Array<string>;
-      files: Array<string>;
-    } = {
-      folders: [],
-      files: [],
-    };
-    const statPromises = filesOrFolders
-      .filter((x) => !x.startsWith("."))
-      .map(async (x) => {
-        const filePath = path.join(folderPath, x);
-        const statResult = await fileSystem.stat(filePath);
-          return {
-              name: x,
-              statResult,
-          };
-      });
-
-    const stats = await Promise.all(statPromises);
-    stats.forEach((fileOrFolder) => {
-      if (fileOrFolder.statResult.isDirectory()) {
-        result.folders.push(fileOrFolder.name);
-      } else if (fileOrFolder.statResult.isFile()) {
-        result.files.push(fileOrFolder.name);
-      }
+  } = {
+    folders: [],
+    files: [],
+  };
+  const statPromises = filesOrFolders
+    .filter((x) => !x.startsWith("."))
+    .map(async (x) => {
+      const filePath = path.join(folderPath, x);
+      const statResult = await fileSystem.stat(filePath);
+      return {
+        name: x,
+        statResult,
+      };
     });
 
-    return result;
-}
+  const stats = await Promise.all(statPromises);
+  stats.forEach((fileOrFolder) => {
+    if (fileOrFolder.statResult.isDirectory()) {
+      result.folders.push(fileOrFolder.name);
+    } else if (fileOrFolder.statResult.isFile()) {
+      result.files.push(fileOrFolder.name);
+    }
+  });
+
+  return result;
+};
 
 const invalidCharRegEx = /[/\\:*?"<>|]/g;
 const encodedChar = "_";

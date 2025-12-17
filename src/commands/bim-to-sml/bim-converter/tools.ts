@@ -74,6 +74,22 @@ export function expressionAsString(
   return "";
 }
 
+export function expressionAsOneLineLowerCaseString(
+  expression: string | Array<string> | undefined,
+): string {
+  if (expression) {
+    let result = (
+      Array.isArray(expression)
+        ? expression.join(" ").toString().toLowerCase()
+        : expression.toLowerCase()
+    ).replace("let\n", "let ");
+    // Replace multiple spaces with a single space
+    result = result.replace(/\s+/g, " ");
+    return result;
+  }
+  return "";
+}
+
 /** Converts a description input of string, string array, or undefined to a unified string format */
 export function descriptionAsString(
   input: string | Array<string> | undefined,
