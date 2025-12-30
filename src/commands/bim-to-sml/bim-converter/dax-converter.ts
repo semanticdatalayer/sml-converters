@@ -20,6 +20,8 @@ export enum TokenType {
   BRACKET = "BRACKET",
   COMMA = "COMMA",
   IDENTIFIER = "IDENTIFIER",
+  VAR = "VAR",
+  RETURN = "RETURN",
 }
 
 export let daxFunctionCalls: Map<
@@ -247,6 +249,74 @@ export class OperatorToken extends DaxToken {
   }
 }
 
+/**
+ * Represents a DAX VAR declaration.
+ * Format: VAR <varName> = <expression>
+ */
+export class VarToken extends DaxToken {
+  constructor(
+    public varName: string,
+    public expression: DaxToken[],
+    public usageCount: number = 0,
+    position: number,
+  ) {
+    super(TokenType.VAR, varName, position);
+  }
+
+  toMdx(info: any): string {
+    // VARs cannot be directly converted to MDX
+    // They need to be inlined at usage sites
+    return `/* VAR ${this.varName} = ... */`;
+  }
+
+  toString(): string {
+    return `VAR ${this.varName} = [${this.expression.length} tokens]`;
+  }
+
+  /**
+   * Gets the expression tokens for this variable
+   */
+  getExpressionTokens(): DaxToken[] {
+    return this.expression;
+  }
+
+  /**
+   * Increments the usage count for this variable
+   */
+  incrementUsage(): void {
+    this.usageCount++;
+  }
+}
+
+/**
+ * Represents a DAX RETURN statement.
+ * Format: RETURN <expression>
+ */
+export class ReturnToken extends DaxToken {
+  constructor(
+    public expression: DaxToken[],
+    position: number,
+  ) {
+    super(TokenType.RETURN, "RETURN", position);
+  }
+
+  toMdx(info: any): string {
+    // Convert the return expression tokens to MDX
+    return this.expression.map((token) => token.toMdx(info)).join("");
+  }
+
+  toString(): string {
+    return `RETURN [${this.expression.length} tokens]`;
+  }
+
+  /**
+   * Gets the expression tokens in the RETURN statement
+   */
+  getExpressionTokens(): DaxToken[] {
+    return this.expression;
+  }
+}
+
 export class DaxTokenizer {
   private position = 0;
   private tokens: DaxToken[] = [];
@@ -300,6 +370,18 @@ export class DaxTokenizer {
 
     const identifier = expression.substring(start, this.position);
 
+    // Check for VAR keyword
+    if (identifier.toUpperCase() === "VAR") {
+      this.parseVarDeclaration(expression);
+      return;
+    }
+
+    // Check for RETURN keyword
+    if (identifier.toUpperCase() === "RETURN") {
+      this.parseReturnStatement(expression);
+      return;
+    }
+
     // Check if next non-whitespace character is '(' to determine if it's a function
     let nextPos = this.position;
     while (nextPos < expression.length && expression[nextPos] === " ") {
@@ -328,11 +410,122 @@ export class DaxTokenizer {
         ),
       );
     } else {
-      // It's an identifier (could be a measure or column reference) TODO: idk this is VAR
+      // It's an identifier (could be a measure, column, or variable reference)
       this.tokens.push(
         new IdentifierToken(TokenType.IDENTIFIER, identifier, start),
       );
     }
+  }
+
+  /**
+   * Parse VAR declaration: VAR <varName> = <expression>
+   * The expression continues until we hit RETURN or another VAR
+   */
+  private parseVarDeclaration(expression: string): void {
+    const start = this.position;
+
+    // Skip whitespace after VAR
+    this.skipWhitespace(expression);
+
+    // Parse variable name
+    const varNameStart = this.position;
+    while (
+      this.position < expression.length &&
+      (this.isLetterOrUnderscore(expression[this.position]) ||
+        this.isDigit(expression[this.position]) ||
+        expression[this.position] === "_")
+    ) {
+      this.position++;
+    }
+    const varName = expression.substring(varNameStart, this.position);
+
+    // Skip whitespace
+    this.skipWhitespace(expression);
+
+    // Expect '='
+    if (this.position >= expression.length || expression[this.position] !== "=") {
+      throw new Error(`Expected '=' after VAR ${varName}`);
+    }
+    this.position++; // Skip '='
+
+    // Skip whitespace after '='
+    this.skipWhitespace(expression);
+
+    // Find end of expression (next VAR, RETURN, or end of string)
+    const exprStart = this.position;
+    const exprEnd = this.findVarExpressionEnd(expression, exprStart);
+
+    // Tokenize the variable expression
+    const tokenizer = new DaxTokenizer();
+    const varExpression = expression.substring(exprStart, exprEnd);
+    const exprTokens = tokenizer.tokenize(varExpression);
+
+    // Update position to end of expression
+    this.position = exprEnd;
+
+    // Create and add VarToken
+    this.tokens.push(new VarToken(varName, exprTokens, 0, start));
+  }
+
+  /**
+   * Find the end of a VAR expression (stops at RETURN or next VAR)
+   */
+  private findVarExpressionEnd(expression: string, start: number): number {
+    let pos = start;
+    let depth = 0; // Track parenthesis depth
+
+    while (pos < expression.length) {
+      const char = expression[pos];
+
+      // Track parenthesis depth to avoid matching keywords inside function calls
+      if (char === "(") {
+        depth++;
+      } else if (char === ")") {
+        depth--;
+      }
+
+      // Only check for keywords at depth 0
+      if (depth === 0) {
+        // Check if we're at the start of RETURN or VAR keyword
+        const remaining = expression.substring(pos);
+        if (/^RETURN\b/i.test(remaining) || /^VAR\b/i.test(remaining)) {
+          // Trim trailing whitespace
+          while (pos > start && /\s/.test(expression[pos - 1])) {
+            pos--;
+          }
+          return pos;
+        }
+      }
+
+      pos++;
+    }
+
+    return pos; // End of string
+  }
+
+  /**
+   * Parse RETURN statement: RETURN <expression>
+   * The expression is everything after RETURN
+   */
+  private parseReturnStatement(expression: string): void {
+    const start = this.position;
+
+    // Skip whitespace after RETURN
+    this.skipWhitespace(expression);
+
+    // Parse the return expression (everything remaining)
+    const exprStart = this.position;
+    const returnExpression = expression.substring(exprStart);
+
+    // Tokenize the return expression
+    const tokenizer = new DaxTokenizer();
+    const exprTokens = tokenizer.tokenize(returnExpression);
+
+    // Update position to end of expression
+    this.position = expression.length;
+
+    // Create and add ReturnToken
+    this.tokens.push(new ReturnToken(exprTokens, start));
   }
 
   private parseQuotedTableName(expression: string): void {
