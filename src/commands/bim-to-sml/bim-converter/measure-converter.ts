@@ -29,6 +29,9 @@ import {
   shortAggFn,
 } from "./converter-utils";
 import { DaxTokenizer, FunctionToken, getMeasureName } from "./dax-converter";
+import { ConversionPipeline } from "./conversion-pipeline";
+import { createConversionContext } from "./conversion-templates/conversion-context";
+import { ConversionCategory } from "./conversion-result";
 import { DimensionConverter } from "./dimension-converter";
 import {
   aggFunctionAtStart,
@@ -441,11 +444,12 @@ export class MeasureConverter {
   }
 
   /**
-   * Converts BIM calculated measure to SML calculated metric using 4-stage pipeline:
-   * Stage 1: DIVIDE-specific pattern conversion
-   * Stage 2: Math-only expression conversion (measure refs + operators)
-   * Stage 3: AI-powered DAX to MDX conversion (if --llmName provided)
-   * Stage 4: Fallback TODO stub
+   * Converts BIM calculated measure to SML calculated metric using 5-stage pipeline:
+   * Stage 1: Direct function conversion (1:1 DAX→MDX mappings)
+   * Stage 2: Template conversion (DIVIDE, patterns)
+   * Stage 3: VAR inline + retry stages 1-2
+   * Stage 4: AI-powered DAX to MDX conversion (if --llmName provided)
+   * Stage 5: Fallback TODO stub
    *
    * @param bim - Root BIM model
    * @param bimMeasure - BIM measure with DAX expression
@@ -472,57 +476,76 @@ export class MeasureConverter {
       console.log("break");
     }
 
-    // Stage 1: Try DIVIDE-specific pattern conversion
-    let smlMetric: SMLMetricCalculated | undefined = this.convertDivideCalc(
+    const daxExpression = removeComments(
+      expressionAsString(bimMeasure.expression),
+    );
+
+    // Create conversion context
+    const context = createConversionContext(
       bim,
-      bimMeasure,
+      daxExpression,
       bimTable.name,
       result,
       attrMaps,
       tableLists.unusedTables,
+      this,
+      this.logger,
     );
 
-    // Stage 2: Try math-only conversion (no DIVIDE, just +/-/* operators)
-    if (!smlMetric) {
-      smlMetric = this.convertMathOnlyCalc(
-        bim,
-        bimMeasure,
-        bimTable.name,
-        result,
-        attrMaps,
-        tableLists.unusedTables,
-      );
-    }
-    if (smlMetric) {
-      console.log(`Converted '${bimMeasure.name}' via math-only pattern`);
-    }
+    // Create pipeline with AI config
+    const pipeline = new ConversionPipeline(this.logger, {
+      aiEnabled: !!this.llmName,
+      llmName: this.llmName,
+      aiMinConfidence: 0.3,
+    });
 
-    // Stage 3: Try AI-powered DAX to MDX conversion (if LLM enabled)
-    if (!smlMetric) {
-      smlMetric = await this.convertDaxMeasureWithAI(
-        bim,
-        bimMeasure,
-        bimTable.name,
-        result,
-        attrMaps,
-        tableLists,
-      );
-      if (smlMetric) {
-        console.log(`Converted '${bimMeasure.name}' via AI (LLM)`);
-      }
-    }
+    // Run through 5-stage pipeline
+    const pipelineResult = await pipeline.convert(daxExpression, context);
 
-    // Stage 4: Fallback - create TODO stub if all conversions failed
-    if (!smlMetric) {
-      smlMetric = await this.convertCalculatedMeasure(
-        bimTable,
-        bimMeasure,
-        rawCalcs,
-        attrMaps.attrNameMap,
-      );
+    // Create unique name for calculated metric
+    const calc_unique_name = createUniqueAttrName(
+      attrMaps.attrNameMap,
+      bimMeasure.name,
+      makeUniqueName(`calculation.${bimTable.name}.`) + bimMeasure.name,
+      "calculation from BIM measure",
+      bimTable.name,
+      "",
+      this.logger,
+    );
+
+    // Build MDX expression from pipeline result
+    let mdxExpression = pipelineResult.expression || "0 /* TODO: Conversion failed */";
+
+    // Log conversion success
+    if (pipelineResult.success && pipelineResult.category !== ConversionCategory.UNCONVERTIBLE) {
+      const stageName = pipelineResult.stageName || "unknown";
+      const varsInfo = pipelineResult.varsInlined
+        ? ` (${pipelineResult.varsInlinedCount} VARs inlined)`
+        : "";
+      console.log(`Converted '${bimMeasure.name}' via ${stageName}${varsInfo}`);
+    } else {
       // Track measures that required fallback stub
       fellOut.push(bimMeasure.name);
-      tableLists.measTables.add(bimTable.name);
+    }
+
+    // Add table to measTables
+    tableLists.measTables.add(bimTable.name);
+
+    // Create SML metric calculated
+    const smlMetric: SMLMetricCalculated = {
+      object_type: SMLObjectType.MetricCalc,
+      unique_name: calc_unique_name,
+      description: descriptionAsString(bimMeasure.description),
+      label: bimMeasure.name,
+      folder: bimMeasure.displayFolder,
+      is_hidden: bimMeasure.isHidden,
+      format: this.smlFormatFromBim(bimMeasure.formatString),
+      expression: mdxExpression,
+    };
+
+    // Add to rawCalcs if fallback
+    if (pipelineResult.category === ConversionCategory.UNCONVERTIBLE) {
+      rawCalcs.add(bimMeasure.name);
     }
 
     return smlMetric;

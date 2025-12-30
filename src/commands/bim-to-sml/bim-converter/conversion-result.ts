@@ -27,6 +27,9 @@ export interface ConversionResult {
 
     /** Variables inlined during conversion */
     varsInlined?: number;
+
+    /** Additional metadata fields */
+    [key: string]: any;
   };
 
   /** Error message if conversion failed */
