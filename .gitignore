@@ -4,6 +4,8 @@
 /.idea
 /.vscode
 /.msgs
+/.claude
+/.github
 /dist
 /tmp
 /node_modules
@@ -13,8 +15,7 @@
 oclif.manifest.json
 tsconfig.tsbuildinfo
 sml-converters-*.tgz
-
 yarn.lock
 package-lock.json
-
-
+*.out
+*.log
