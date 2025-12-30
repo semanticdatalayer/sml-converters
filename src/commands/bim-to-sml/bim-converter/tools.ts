@@ -127,11 +127,13 @@ export function incrementNumberMap(
   metricLabels: Map<string, number>,
   key: string,
 ) {
-  const val = metricLabels.get(key.toLowerCase());
-  if (val) {
-    metricLabels.set(key.toLowerCase(), val + 1);
-  } else {
-    metricLabels.set(key.toLowerCase(), 1);
+  if (key) {
+    const val = metricLabels.get(key.toLowerCase());
+    if (val) {
+      metricLabels.set(key.toLowerCase(), val + 1);
+    } else {
+      metricLabels.set(key.toLowerCase(), 1);
+    }
   }
 }
 
