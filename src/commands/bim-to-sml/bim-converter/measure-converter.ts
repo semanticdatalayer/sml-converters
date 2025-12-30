@@ -698,7 +698,7 @@ export class MeasureConverter {
   /**
    * Creates fallback SML calculated metric with TODO stub.
    * Used when all other conversion methods fail.
-   * Expression format: "0 /*{dax} TODO: Update with valid MDX expression*/"
+   * Expression format: "0 / * {dax} TODO: Update with valid MDX expression * /"
    *
    * @param bimTable - Parent BIM table
    * @param bimMeasure - BIM measure to convert
