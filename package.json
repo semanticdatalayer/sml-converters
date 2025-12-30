@@ -28,6 +28,7 @@
     "oclif": "^4.22.44",
     "shx": "^0.3.4",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.9.3"
   },
   "engines": {
@@ -57,6 +58,7 @@
     "build": "shx rm -rf dist && tsc -b",
     "lint": "eslint --ext ts src",
     "test": "echo \"No tests found\"",
+    "test-conversion": "tsx scripts/test-bim-conversion.ts",
     "postpack": "shx rm -f oclif.manifest.json",
     "prepack": "oclif manifest && oclif readme",
     "version": "oclif readme && git add README.md"

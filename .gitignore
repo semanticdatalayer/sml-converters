@@ -19,3 +19,9 @@ yarn.lock
 package-lock.json
 *.out
 *.log
+
+# Test output files
+/test-results.json
+/test-baseline*.json
+/test-diff.json
+/test-bim

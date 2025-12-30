@@ -1,0 +1,235 @@
+# BIM Conversion Testing Script
+
+Batch test BIM-to-SML conversions, track metrics, compare against baselines.
+
+## Quick Start
+
+```bash
+# Install tsx if needed
+npm install
+
+# Run on a directory of BIM files
+npm run test-conversion -- --input /Users/dianne/Downloads/bim/testfiles --output results.json
+
+# Compare against baseline
+npm run test-conversion -- --input ./test-bim --baseline baseline.json --diff changes.json
+
+# With LLM conversion enabled
+npm run test-conversion -- --input ./test-bim --output results.json --llm openai
+
+# Verbose logging
+npm run test-conversion -- --input ./test-bim --verbose
+```
+
+## Usage
+
+```
+npm run test-conversion -- [options]
+
+Options:
+  --input <dir>       Directory containing BIM files (required)
+  --output <file>     Write JSON report to file
+  --baseline <file>   Compare against baseline report
+  --diff <file>       Write differences to file
+  --llm <provider>    Enable AI DAX conversion (openai|anthropic|gemini)
+  --verbose, -v       Show detailed logs
+```
+
+## Report Format
+
+Output JSON structure:
+
+```json
+{
+  "timestamp": "2025-12-29T10:30:00Z",
+  "input_directory": "/path/to/bim/files",
+  "total_files": 10,
+  "successful": 9,
+  "failed": 1,
+  "llm_enabled": false,
+  "summaries": [
+    {
+      "file": "Sales_Dashboard_bim.json",
+      "success": true,
+      "duration_ms": 1234,
+      "counts": {
+        "models": 1,
+        "datasets": 5,
+        "dimensions": 8,
+        "metrics": 12,
+        "metrics_calculated": 20,
+        "relationships": 10,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 20,
+        "mdx_converted": 15,
+        "todo_remaining": 5,
+        "conversion_rate": 75
+      }
+    }
+  ]
+}
+```
+
+## Workflow
+
+### 1. Create Baseline
+
+Run conversion on known-good code:
+
+```bash
+git checkout main
+npm run test-conversion -- --input ./test-bim --output baseline.json
+git add baseline.json
+git commit -m "Add conversion baseline"
+```
+
+### 2. Make Changes
+
+Update conversion logic on feature branch.
+
+### 3. Compare
+
+```bash
+npm run test-conversion -- --input ./test-bim --baseline baseline.json --diff changes.json
+```
+
+Exit code 1 if differences found.
+
+### 4. Review Diff
+
+```json
+[
+  {
+    "file": "Sales_Dashboard_bim.json",
+    "changes": [
+      {
+        "field": "counts.metrics_calculated",
+        "baseline": 18,
+        "current": 20,
+        "diff": 2,
+        "percent_change": 11
+      },
+      {
+        "field": "metric_calc_details.conversion_rate",
+        "baseline": 70,
+        "current": 80,
+        "diff": 10
+      }
+    ]
+  }
+]
+```
+
+### 5. Update Baseline (if changes expected)
+
+```bash
+cp results.json baseline.json
+git add baseline.json
+git commit -m "Update baseline after conversion improvements"
+```
+
+## Use Cases
+
+### Regression Testing
+
+Detect unintended changes:
+
+```bash
+# Before changes
+npm run test-conversion -- --input ./test-bim --output before.json
+
+# After changes
+npm run test-conversion -- --input ./test-bim --baseline before.json
+```
+
+### Tracking AI Conversion Progress
+
+Monitor MDX conversion improvements:
+
+```bash
+# Without LLM
+npm run test-conversion -- --input ./test-bim --output no-llm.json
+
+# With LLM
+npm run test-conversion -- --input ./test-bim --llm openai --output with-llm.json
+```
+
+Compare `metric_calc_details.conversion_rate` across reports.
+
+### Testing LLM Provider Differences
+
+```bash
+npm run test-conversion -- --input ./test-bim --llm openai --output openai-results.json
+npm run test-conversion -- --input ./test-bim --llm anthropic --output anthropic-results.json
+```
+
+## Test File Organization
+
+Recommended structure:
+
+```
+test-bim/
+├── simple/              # Minimal valid BIM files
+│   ├── single-table.json
+│   └── basic-relationship.json
+├── complex/             # Multi-table, hierarchies
+│   ├── sales-dashboard.json
+│   └── financial-model.json
+├── edge-cases/          # Specific scenarios
+│   ├── hidden-columns.json
+│   ├── time-dimensions.json
+│   ├── no-relationships.json
+│   └── dax-expressions.json
+└── baseline.json        # Expected results
+```
+
+## CI/CD Integration
+
+Add to GitHub Actions:
+
+```yaml
+- name: Test BIM Conversion
+  run: |
+    npm run test-conversion -- \
+      --input ./test-bim \
+      --baseline ./test-bim/baseline.json \
+      --output ./test-results.json
+
+- name: Upload Results
+  if: failure()
+  uses: actions/upload-artifact@v3
+  with:
+    name: conversion-results
+    path: test-results.json
+```
+
+## Troubleshooting
+
+**No BIM files found**
+- Ensure directory contains `.json` or `.bim` files
+- Script recursively scans subdirectories
+
+**Conversion failures**
+- Check error messages in failed summaries
+- Run with `--verbose` for detailed logs
+- Validate BIM file structure
+
+**Baseline comparison fails**
+- Ensure baseline format matches current report structure
+- Regenerate baseline if schema changed
+
+## Limitations
+
+- Does not validate SML output (future enhancement)
+- Does not write SML files to disk (analyzes in-memory)
+- Does not track individual measure names (only counts)
+
+## Future Enhancements
+
+- Integrate SML CLI validator
+- Track specific measure/dimension names
+- Generate HTML report
+- Performance benchmarking
+- Parallel file processing
