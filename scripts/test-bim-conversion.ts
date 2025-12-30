@@ -19,28 +19,28 @@ import { Logger } from "../src/shared/logger";
 
 // Simple logger implementation for testing
 class TestLogger implements Logger {
-  constructor(private verbose: boolean = false) {}
+  constructor(private isVerbose: boolean = false) {}
 
   error(message: string) {
     console.error(`[ERROR] ${message}`);
   }
   warn(message: string) {
-    if (this.verbose) console.warn(`[WARN] ${message}`);
+    if (this.isVerbose) console.warn(`[WARN] ${message}`);
   }
   info(message: string) {
-    if (this.verbose) console.log(`[INFO] ${message}`);
+    if (this.isVerbose) console.log(`[INFO] ${message}`);
   }
   http(message: string) {
-    if (this.verbose) console.log(`[HTTP] ${message}`);
+    if (this.isVerbose) console.log(`[HTTP] ${message}`);
   }
   verbose(message: string) {
-    if (this.verbose) console.log(`[VERBOSE] ${message}`);
+    if (this.isVerbose) console.log(`[VERBOSE] ${message}`);
   }
   debug(message: string) {
-    if (this.verbose) console.log(`[DEBUG] ${message}`);
+    if (this.isVerbose) console.log(`[DEBUG] ${message}`);
   }
   silly(message: string) {
-    if (this.verbose) console.log(`[SILLY] ${message}`);
+    if (this.isVerbose) console.log(`[SILLY] ${message}`);
   }
 }
 
@@ -96,7 +96,10 @@ async function findBimFiles(directory: string): Promise<string[]> {
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         await scan(fullPath);
-      } else if (entry.isFile() && (entry.name.endsWith('.json') || entry.name.endsWith('.bim'))) {
+      } else if (
+        entry.isFile() &&
+        (entry.name.endsWith(".json") || entry.name.endsWith(".bim"))
+      ) {
         files.push(fullPath);
       }
     }
@@ -106,7 +109,9 @@ async function findBimFiles(directory: string): Promise<string[]> {
   return files;
 }
 
-function analyzeMetricCalcs(result: SmlConverterResult): ConversionSummary['metric_calc_details'] {
+function analyzeMetricCalcs(
+  result: SmlConverterResult,
+): ConversionSummary["metric_calc_details"] {
   const total = result.measuresCalculated.length;
   if (total === 0) {
     return {
@@ -121,9 +126,9 @@ function analyzeMetricCalcs(result: SmlConverterResult): ConversionSummary['metr
   let mdxCount = 0;
 
   for (const metric of result.measuresCalculated) {
-    const expr = metric.expression || '';
+    const expr = metric.expression || "";
     // Check if expression contains TODO comment (indicates AI conversion or placeholder)
-    if (expr.includes('TODO') || expr.includes('Original DAX')) {
+    if (expr.includes("TODO") || expr.includes("Original DAX")) {
       todoCount++;
     } else if (expr.trim().length > 0) {
       // Has expression without TODO = successfully converted
@@ -145,7 +150,7 @@ function analyzeMetricCalcs(result: SmlConverterResult): ConversionSummary['metr
 async function convertBimFile(
   filePath: string,
   logger: Logger,
-  llmName?: string
+  llmName?: string,
 ): Promise<ConversionSummary> {
   const startTime = Date.now();
   const fileName = path.basename(filePath);
@@ -205,25 +210,24 @@ async function convertBimFile(
 
 function compareSummaries(
   baseline: ConversionSummary,
-  current: ConversionSummary
+  current: ConversionSummary,
 ): DiffResult | null {
   if (!baseline.success || !current.success) {
     return null;
   }
 
-  const changes: DiffResult['changes'] = [];
+  const changes: DiffResult["changes"] = [];
 
   // Compare counts
   for (const key of Object.keys(baseline.counts)) {
-    const field = key as keyof ConversionSummary['counts'];
+    const field = key as keyof ConversionSummary["counts"];
     const baseValue = baseline.counts[field];
     const currValue = current.counts[field];
 
     if (baseValue !== currValue) {
       const diff = currValue - baseValue;
-      const percentChange = baseValue > 0
-        ? Math.round((diff / baseValue) * 100)
-        : undefined;
+      const percentChange =
+        baseValue > 0 ? Math.round((diff / baseValue) * 100) : undefined;
 
       changes.push({
         field: `counts.${field}`,
@@ -242,7 +246,7 @@ function compareSummaries(
 
     if (baseDetails.conversion_rate !== currDetails.conversion_rate) {
       changes.push({
-        field: 'metric_calc_details.conversion_rate',
+        field: "metric_calc_details.conversion_rate",
         baseline: baseDetails.conversion_rate,
         current: currDetails.conversion_rate,
         diff: currDetails.conversion_rate - baseDetails.conversion_rate,
@@ -253,11 +257,16 @@ function compareSummaries(
   return changes.length > 0 ? { file: current.file, changes } : null;
 }
 
-function compareReports(baseline: TestReport, current: TestReport): DiffResult[] {
+function compareReports(
+  baseline: TestReport,
+  current: TestReport,
+): DiffResult[] {
   const diffs: DiffResult[] = [];
 
   for (const currSummary of current.summaries) {
-    const baseSummary = baseline.summaries.find(s => s.file === currSummary.file);
+    const baseSummary = baseline.summaries.find(
+      (s) => s.file === currSummary.file,
+    );
     if (baseSummary) {
       const diff = compareSummaries(baseSummary, currSummary);
       if (diff) {
@@ -270,15 +279,15 @@ function compareReports(baseline: TestReport, current: TestReport): DiffResult[]
 }
 
 function printReport(report: TestReport) {
-  console.log('\n=== BIM Conversion Test Report ===');
+  console.log("\n=== BIM Conversion Test Report ===");
   console.log(`Timestamp: ${report.timestamp}`);
   console.log(`Input Directory: ${report.input_directory}`);
-  console.log(`LLM Enabled: ${report.llm_enabled ? 'Yes' : 'No'}`);
+  console.log(`LLM Enabled: ${report.llm_enabled ? "Yes" : "No"}`);
   console.log(`\nFiles Processed: ${report.total_files}`);
   console.log(`  Success: ${report.successful}`);
   console.log(`  Failed: ${report.failed}`);
 
-  console.log('\n--- Per-File Summary ---');
+  console.log("\n--- Per-File Summary ---");
   for (const summary of report.summaries) {
     console.log(`\n${summary.file}:`);
     if (!summary.success) {
@@ -309,19 +318,22 @@ function printReport(report: TestReport) {
 
 function printDiff(diffs: DiffResult[]) {
   if (diffs.length === 0) {
-    console.log('\n✓ No differences from baseline');
+    console.log("\n✓ No differences from baseline");
     return;
   }
 
-  console.log('\n=== Differences from Baseline ===');
+  console.log("\n=== Differences from Baseline ===");
   for (const diff of diffs) {
     console.log(`\n${diff.file}:`);
     for (const change of diff.changes) {
-      const sign = change.diff > 0 ? '+' : '';
-      const pct = change.percent_change !== undefined
-        ? ` (${sign}${change.percent_change}%)`
-        : '';
-      console.log(`  ${change.field}: ${change.baseline} → ${change.current} (${sign}${change.diff}${pct})`);
+      const sign = change.diff > 0 ? "+" : "";
+      const pct =
+        change.percent_change !== undefined
+          ? ` (${sign}${change.percent_change}%)`
+          : "";
+      console.log(
+        `  ${change.field}: ${change.baseline} → ${change.current} (${sign}${change.diff}${pct})`,
+      );
     }
   }
 }
@@ -338,23 +350,25 @@ async function main() {
   let verbose = false;
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--input' && i + 1 < args.length) {
+    if (args[i] === "--input" && i + 1 < args.length) {
       inputDir = args[++i];
-    } else if (args[i] === '--output' && i + 1 < args.length) {
+    } else if (args[i] === "--output" && i + 1 < args.length) {
       outputFile = args[++i];
-    } else if (args[i] === '--baseline' && i + 1 < args.length) {
+    } else if (args[i] === "--baseline" && i + 1 < args.length) {
       baselineFile = args[++i];
-    } else if (args[i] === '--diff' && i + 1 < args.length) {
+    } else if (args[i] === "--diff" && i + 1 < args.length) {
       diffFile = args[++i];
-    } else if (args[i] === '--llm' && i + 1 < args.length) {
+    } else if (args[i] === "--llm" && i + 1 < args.length) {
       llmName = args[++i];
-    } else if (args[i] === '--verbose' || args[i] === '-v') {
+    } else if (args[i] === "--verbose" || args[i] === "-v") {
       verbose = true;
     }
   }
 
   if (!inputDir) {
-    console.error('Usage: npm run test-conversion -- --input <directory> [--output <file.json>] [--baseline <file.json>] [--diff <file.json>] [--llm openai|anthropic] [--verbose]');
+    console.error(
+      "Usage: npm run test-conversion -- --input <directory> [--output <file.json>] [--baseline <file.json>] [--diff <file.json>] [--llm openai|anthropic] [--verbose]",
+    );
     process.exit(1);
   }
 
@@ -365,7 +379,7 @@ async function main() {
   const bimFiles = await findBimFiles(inputDir);
 
   if (bimFiles.length === 0) {
-    console.error('No BIM files found in input directory');
+    console.error("No BIM files found in input directory");
     process.exit(1);
   }
 
@@ -389,8 +403,8 @@ async function main() {
     timestamp: new Date().toISOString(),
     input_directory: inputDir,
     total_files: bimFiles.length,
-    successful: summaries.filter(s => s.success).length,
-    failed: summaries.filter(s => !s.success).length,
+    successful: summaries.filter((s) => s.success).length,
+    failed: summaries.filter((s) => !s.success).length,
     llm_enabled: !!llmName,
     summaries,
   };
@@ -407,7 +421,7 @@ async function main() {
   // Compare to baseline if specified
   if (baselineFile) {
     try {
-      const baselineContent = await fs.readFile(baselineFile, 'utf-8');
+      const baselineContent = await fs.readFile(baselineFile, "utf-8");
       const baseline: TestReport = JSON.parse(baselineContent);
 
       const diffs = compareReports(baseline, report);
@@ -431,6 +445,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('Fatal error:', error);
+  console.error("Fatal error:", error);
   process.exit(1);
 });
