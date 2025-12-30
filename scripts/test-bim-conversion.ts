@@ -63,6 +63,13 @@ interface ConversionSummary {
     mdx_converted: number;
     todo_remaining: number;
     conversion_rate: number;
+    by_category?: {
+      direct_conversion: number;
+      template_conversion: number;
+      var_inlined: number;
+      ai_conversion: number;
+      unconvertible: number;
+    };
   };
 }
 
@@ -109,6 +116,28 @@ async function findBimFiles(directory: string): Promise<string[]> {
   return files;
 }
 
+/**
+ * Detects the conversion category for a metric based on its expression
+ */
+function detectCategory(metric: any): string {
+  const expr = metric.expression || "";
+
+  // Empty or TODO = unconvertible
+  if (!expr.trim() || expr.includes("TODO")) {
+    return "unconvertible";
+  }
+
+  // AI conversion (has "Original DAX" comment)
+  if (expr.includes("Original DAX")) {
+    return "ai_conversion";
+  }
+
+  // For now, everything else is assumed to be from existing converters
+  // In Phase 5, we'll add metadata to track the actual conversion method
+  // Currently: math-only or DIVIDE patterns
+  return "template_conversion"; // Existing pattern-based conversions
+}
+
 function analyzeMetricCalcs(
   result: SmlConverterResult,
 ): ConversionSummary["metric_calc_details"] {
@@ -119,14 +148,35 @@ function analyzeMetricCalcs(
       mdx_converted: 0,
       todo_remaining: 0,
       conversion_rate: 0,
+      by_category: {
+        direct_conversion: 0,
+        template_conversion: 0,
+        var_inlined: 0,
+        ai_conversion: 0,
+        unconvertible: 0,
+      },
     };
   }
 
   let todoCount = 0;
   let mdxCount = 0;
 
+  // Category counters
+  const categories = {
+    direct_conversion: 0,
+    template_conversion: 0,
+    var_inlined: 0,
+    ai_conversion: 0,
+    unconvertible: 0,
+  };
+
   for (const metric of result.measuresCalculated) {
     const expr = metric.expression || "";
+    const category = detectCategory(metric);
+
+    // Increment category counter
+    categories[category as keyof typeof categories]++;
+
     // Check if expression contains TODO comment (indicates AI conversion or placeholder)
     if (expr.includes("TODO") || expr.includes("Original DAX")) {
       todoCount++;
@@ -144,6 +194,7 @@ function analyzeMetricCalcs(
     mdx_converted: mdxCount,
     todo_remaining: todoCount,
     conversion_rate: total > 0 ? Math.round((mdxCount / total) * 100) : 0,
+    by_category: categories,
   };
 }
 
@@ -312,6 +363,17 @@ function printReport(report: TestReport) {
       console.log(`    MDX Converted: ${details.mdx_converted}`);
       console.log(`    TODO Remaining: ${details.todo_remaining}`);
       console.log(`    Conversion Rate: ${details.conversion_rate}%`);
+
+      // Print category breakdown if available
+      if (details.by_category) {
+        const cat = details.by_category;
+        console.log(`  Conversion Categories:`);
+        console.log(`    Direct Conversion: ${cat.direct_conversion}`);
+        console.log(`    Template Conversion: ${cat.template_conversion}`);
+        console.log(`    VAR Inlined: ${cat.var_inlined}`);
+        console.log(`    AI Conversion: ${cat.ai_conversion}`);
+        console.log(`    Unconvertible: ${cat.unconvertible}`);
+      }
     }
   }
 }

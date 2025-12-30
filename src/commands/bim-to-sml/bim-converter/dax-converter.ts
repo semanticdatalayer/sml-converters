@@ -529,6 +529,72 @@ export class DaxTokenizer {
     });
     return typeTokens;
   }
+
+  /**
+   * Checks if expression contains any unconvertible DAX functions.
+   * Uses DirectFunctionConverter registry to identify unconvertible functions.
+   * @param logger - Logger instance for DirectFunctionConverter
+   * @returns true if any unconvertible functions found
+   */
+  public hasUnconvertibleFunctions(logger: any): boolean {
+    const { DirectFunctionConverter } = require("./converters/direct-function-converter");
+    const converter = DirectFunctionConverter.getInstance(logger);
+
+    const functionTokens = this.getAllInstanceOf(FunctionToken);
+    return functionTokens.some((token) =>
+      converter.isUnconvertibleFunction(token.functionAgg),
+    );
+  }
+
+  /**
+   * Gets list of all DAX functions used in the expression
+   * @returns Array of unique function names (uppercase)
+   */
+  public getFunctionNames(): string[] {
+    const functionTokens = this.getAllInstanceOf(FunctionToken);
+    const functionNames = new Set<string>();
+    functionTokens.forEach((token) => {
+      functionNames.add(token.functionAgg.toUpperCase());
+    });
+    return Array.from(functionNames);
+  }
+
+  /**
+   * Categorizes functions in expression by type
+   * @param logger - Logger instance for DirectFunctionConverter
+   * @returns Object with arrays of direct, unconvertible, and complex functions
+   */
+  public categorizeFunctions(logger: any): {
+    direct: string[];
+    unconvertible: string[];
+    complex: string[];
+    unknown: string[];
+  } {
+    const { DirectFunctionConverter } = require("./converters/direct-function-converter");
+    const converter = DirectFunctionConverter.getInstance(logger);
+
+    const functionNames = this.getFunctionNames();
+    const result = {
+      direct: [] as string[],
+      unconvertible: [] as string[],
+      complex: [] as string[],
+      unknown: [] as string[],
+    };
+
+    functionNames.forEach((funcName) => {
+      if (converter.isSupportedFunction(funcName)) {
+        result.direct.push(funcName);
+      } else if (converter.isUnconvertibleFunction(funcName)) {
+        result.unconvertible.push(funcName);
+      } else if (converter.isComplexPattern(funcName)) {
+        result.complex.push(funcName);
+      } else {
+        result.unknown.push(funcName);
+      }
+    });
+
+    return result;
+  }
 }
 
 export function convertDaxToMdx(daxExpression: string, info: any): string {
