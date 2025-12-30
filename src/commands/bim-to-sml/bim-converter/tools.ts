@@ -135,6 +135,15 @@ export function incrementNumberMap(
   }
 }
 
+export function mapToOneLiner(map: Map<string, number>) {
+  let retVal = "";
+  map.forEach((x, y) => {
+    if (retVal.length < 2) retVal += `${y} ${x}`;
+    else retVal += `, ${y} ${x}`;
+  });
+  return retVal;
+}
+
 export function cleanFileName(name: string): string {
   let cleanName = "";
 

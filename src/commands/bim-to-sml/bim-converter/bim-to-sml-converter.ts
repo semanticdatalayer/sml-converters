@@ -22,6 +22,8 @@ import {
   expressionAsOneLineLowerCaseString,
   firstChars,
   makeUniqueName,
+  incrementNumberMap,
+  mapToOneLiner,
 } from "./tools";
 
 export class BimToYamlConverter {
@@ -150,7 +152,7 @@ export class BimToYamlConverter {
     checkForTimeDim(result, this.logger);
 
     let summary = myParseBIM(bim);
-    summary += parseSML(result);
+    // summary += parseSML(result);
     console.log("FFFILE: " + summary);
 
     return result;
@@ -568,6 +570,9 @@ export function myParseBIM(bim: BimRoot): string {
   let tablesWithExpr = 0;
   let tablesVarStart = 0;
   let tablesWithSelector = 0;
+  let totalPartitions = 0;
+  const partitionTypes = new Map<string, number>();
+  const partitionModes = new Map<string, number>();
   const samplesTableExpr: string[] = [];
   let totalColumns = 0;
   let columnsWithExpr = 0;
@@ -594,6 +599,11 @@ export function myParseBIM(bim: BimRoot): string {
         if (samplesTableExpr.length < sampleSize)
           samplesTableExpr.push(firstChars(expr, exprLen));
       }
+      table.partitions?.forEach((p) => {
+        totalPartitions++;
+        incrementNumberMap(partitionTypes, p.source.type);
+        incrementNumberMap(partitionModes, p.mode);
+      });
     }
 
     table.columns?.forEach((column) => {
@@ -647,6 +657,12 @@ export function myParseBIM(bim: BimRoot): string {
   summary += `\t${tablesVarStart}`;
   console.log(`  Tables using selectors: ${tablesWithSelector}`);
   summary += `\t${tablesWithSelector}`;
+
+  console.log("\nBIM partitions summary:");
+  console.log(`  Total partitions: ${totalPartitions}`);
+  // summary += `\t${totalTables}`;
+  console.log(`  Partitions types: ${mapToOneLiner(partitionTypes)}`);
+  console.log(`  Partitions modes: ${mapToOneLiner(partitionModes)}`);
 
   console.log("\nBIM columns summary:");
   console.log(`  Total columns: ${totalColumns}`);
