@@ -440,6 +440,23 @@ export class MeasureConverter {
     return measureUniqueName;
   }
 
+  /**
+   * Converts BIM calculated measure to SML calculated metric using 4-stage pipeline:
+   * Stage 1: DIVIDE-specific pattern conversion
+   * Stage 2: Math-only expression conversion (measure refs + operators)
+   * Stage 3: AI-powered DAX to MDX conversion (if --llmName provided)
+   * Stage 4: Fallback TODO stub
+   *
+   * @param bim - Root BIM model
+   * @param bimMeasure - BIM measure with DAX expression
+   * @param bimTable - Parent table containing measure
+   * @param result - Accumulator for SML objects
+   * @param attrMaps - Attribute name mappings
+   * @param rawCalcs - Set of raw calculation names
+   * @param tableLists - Lists of table usage (fact/dim/unused)
+   * @param fellOut - Array tracking measures that fell through to fallback
+   * @returns SMLMetricCalculated or undefined if conversion fails completely
+   */
   async metricFromCalc(
     bim: BimRoot,
     bimMeasure: BimMeasure,
@@ -450,15 +467,12 @@ export class MeasureConverter {
     tableLists: TableLists,
     fellOut: Array<string>,
   ): Promise<SMLMetricCalculated | undefined> {
+    // Debugging breakpoint for specific measure
     if (bimMeasure.name === "MaxPremiumYr") {
       console.log("break");
     }
-    // console.log(
-    //   `Converting BIM measure '${bimMeasure.name}'. Expr '${firstChars(
-    //     bimMeasure.expression,
-    //     150,
-    //   )}'. Trying convertDivideCalc`,
-    // );
+
+    // Stage 1: Try DIVIDE-specific pattern conversion
     let smlMetric: SMLMetricCalculated | undefined = this.convertDivideCalc(
       bim,
       bimMeasure,
@@ -467,8 +481,9 @@ export class MeasureConverter {
       attrMaps,
       tableLists.unusedTables,
     );
+
+    // Stage 2: Try math-only conversion (no DIVIDE, just +/-/* operators)
     if (!smlMetric) {
-      // console.log(`  Now trying convertMathOnlyCalc`);
       smlMetric = this.convertMathOnlyCalc(
         bim,
         bimMeasure,
@@ -479,10 +494,11 @@ export class MeasureConverter {
       );
     }
     if (smlMetric) {
-      console.log(`XXX Meas '${bimMeasure.name}' from math only`);
+      console.log(`Converted '${bimMeasure.name}' via math-only pattern`);
     }
+
+    // Stage 3: Try AI-powered DAX to MDX conversion (if LLM enabled)
     if (!smlMetric) {
-      // console.log(`  Now trying convertDaxMeasureWithAI`);
       smlMetric = await this.convertDaxMeasureWithAI(
         bim,
         bimMeasure,
@@ -492,31 +508,38 @@ export class MeasureConverter {
         tableLists,
       );
       if (smlMetric) {
-        console.log(`XXX Meas '${bimMeasure.name}' from AI`);
+        console.log(`Converted '${bimMeasure.name}' via AI (LLM)`);
       }
     }
 
+    // Stage 4: Fallback - create TODO stub if all conversions failed
     if (!smlMetric) {
-      // console.log(`  Using convertCalculatedMeasure`);
       smlMetric = await this.convertCalculatedMeasure(
         bimTable,
         bimMeasure,
         rawCalcs,
         attrMaps.attrNameMap,
       );
-      // console.log(
-      //   `  Calc '${bimMeasure.name}' created after falling out of others`,
-      // );
+      // Track measures that required fallback stub
       fellOut.push(bimMeasure.name);
-      tableLists.measTables.add(bimTable.name); // Don't have the actual dataset for most calcs
+      tableLists.measTables.add(bimTable.name);
     }
-    // console.log(
-    //   `  Final expression: ${firstChars(smlMetric?.expression, 150)}`,
-    // );
+
     return smlMetric;
   }
 
-  // BimMeasure -> SML Calc
+  /**
+   * Converts BIM measure with math-only expressions (no functions, just operators).
+   * Handles patterns like: [Measure1] + [Measure2] * 3
+   *
+   * @param bim - Root BIM model
+   * @param meas - BIM measure to convert
+   * @param tableName - Parent table name
+   * @param result - SML object accumulator
+   * @param attrMaps - Attribute name mappings
+   * @param unusedTables - Set of unused table names
+   * @returns SMLMetricCalculated if conversion succeeds, undefined otherwise
+   */
   convertMathOnlyCalc(
     bim: BimRoot,
     meas: BimMeasure,
@@ -568,8 +591,18 @@ export class MeasureConverter {
   }
 
   /**
-   * Converts BIM divide calculation measure to SML calculated metric.
-   * @returns SMLMetricCalculated object if conversion successful, undefined otherwise
+   * Converts BIM measure containing DIVIDE() function to SML calculated metric.
+   * Handles both 2-arg and 3-arg DIVIDE patterns:
+   * - DIVIDE(num, denom) → (num) / (denom)
+   * - DIVIDE(num, denom, default) → Currently converts to (num) / (denom), ignores default
+   *
+   * @param bim - Root BIM model
+   * @param meas - BIM measure with DIVIDE expression
+   * @param tableName - Parent table name
+   * @param result - SML object accumulator
+   * @param attrMaps - Attribute name mappings
+   * @param unusedTables - Set of unused table names
+   * @returns SMLMetricCalculated if conversion succeeds, undefined otherwise
    */
   convertDivideCalc(
     bim: BimRoot,
@@ -662,6 +695,17 @@ export class MeasureConverter {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
+  /**
+   * Creates fallback SML calculated metric with TODO stub.
+   * Used when all other conversion methods fail.
+   * Expression format: "0 /*{dax} TODO: Update with valid MDX expression*/"
+   *
+   * @param bimTable - Parent BIM table
+   * @param bimMeasure - BIM measure to convert
+   * @param rawCalcs - Set tracking raw calculation names
+   * @param attrNameMap - Attribute name mapping
+   * @returns SMLMetricCalculated with TODO placeholder expression
+   */
   async convertCalculatedMeasure(
     bimTable: BimTable,
     bimMeasure: BimMeasure,
@@ -696,6 +740,19 @@ export class MeasureConverter {
     return measure;
   }
 
+  /**
+   * Converts DAX measure to MDX using AI/LLM (if --llmName flag provided).
+   * Uses LLM (OpenAI, Anthropic, or Gemini) to translate complex DAX expressions.
+   * Returns undefined if difficulty score > 0.7 (too complex for reliable conversion).
+   *
+   * @param bim - Root BIM model
+   * @param meas - BIM measure with DAX expression
+   * @param tableName - Parent table name
+   * @param result - SML object accumulator
+   * @param attrMaps - Attribute name mappings
+   * @param tableLists - Lists of table usage
+   * @returns SMLMetricCalculated if AI conversion succeeds, undefined otherwise
+   */
   async convertDaxMeasureWithAI(
     bim: BimRoot,
     meas: BimMeasure,
@@ -706,7 +763,7 @@ export class MeasureConverter {
   ): Promise<SMLMetricCalculated | undefined> {
     if (this.llmName) {
       try {
-        console.log(`XXX Using AI to convert DAX measure '${meas.name}'`);
+        console.log(`Using AI to convert DAX measure '${meas.name}'`);
         let mdxExpression = await convertDaxToMdxWithAi(
           removeComments(expressionAsString(meas.expression)),
           this.llmName,
