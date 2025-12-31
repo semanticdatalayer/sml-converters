@@ -821,6 +821,11 @@ export function getMeasureName(
     if (isSimpleFunction(funcToken)) {
       const simpleDef = lowerNoSpace(funcToken.argsToString());
 
+      // Defensive check: ensure attrMaps.metricLookup exists
+      if (!attrMaps || !attrMaps.metricLookup) {
+        return undefined;
+      }
+
       // Need to see if this metric exists, and if not create it
       const m = attrMaps.metricLookup.get(aggFn + simpleDef);
       if (m) {
@@ -870,6 +875,12 @@ export function getMeasureName(
     const simpleDef = `${noQuotes(lowerNoSpace(funcToken.argsToString()))}[${
       Constants.ROW_COUNT_COLUMN_NAME
     }]`;
+
+    // Defensive check: ensure attrMaps.metricLookup exists
+    if (!attrMaps || !attrMaps.metricLookup) {
+      return undefined;
+    }
+
     const m = attrMaps.metricLookup.get(aggFn + simpleDef);
     if (m) {
       return {
