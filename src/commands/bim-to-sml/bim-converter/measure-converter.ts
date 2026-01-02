@@ -499,8 +499,20 @@ export class MeasureConverter {
       aiMinConfidence: 0.3,
     });
 
-    // Run through 5-stage pipeline
-    const pipelineResult = await pipeline.convert(daxExpression, context);
+    // Run through 5-stage pipeline with error handling
+    let pipelineResult;
+    try {
+      pipelineResult = await pipeline.convert(daxExpression, context);
+    } catch (error) {
+      // If pipeline fails (e.g., VAR parsing errors), create fallback result
+      this.logger.warn(`Pipeline conversion failed for '${bimMeasure.name}': ${error}`);
+      pipelineResult = {
+        success: false,
+        expression: "0 /* TODO: Conversion failed */",
+        category: ConversionCategory.UNCONVERTIBLE,
+        stageName: "fallback",
+      };
+    }
 
     // Create unique name for calculated metric
     const calc_unique_name = createUniqueAttrName(
