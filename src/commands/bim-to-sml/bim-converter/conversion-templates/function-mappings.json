@@ -4,6 +4,7 @@
     "MIN": "Min",
     "MAX": "Max",
     "COUNT": "Count",
+    "DISTINCTCOUNT": "DistinctCount",
     "AVG": "Avg",
     "ABS": "Abs",
     "CEILING": "Ceiling",

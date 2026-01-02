@@ -127,15 +127,27 @@ function detectCategory(metric: any): string {
     return "unconvertible";
   }
 
-  // AI conversion (has "Original DAX" comment)
+  // Check for metadata comment added by pipeline
+  if (expr.includes("/* Converted via: direct_conversion */")) {
+    return "direct_conversion";
+  }
+  if (expr.includes("/* Converted via: template_conversion */")) {
+    return "template_conversion";
+  }
+  if (expr.includes("/* Converted via: var_inlined */")) {
+    return "var_inlined";
+  }
+  if (expr.includes("/* Converted via: ai_conversion */")) {
+    return "ai_conversion";
+  }
+
+  // AI conversion (has "Original DAX" comment) - legacy detection
   if (expr.includes("Original DAX")) {
     return "ai_conversion";
   }
 
-  // For now, everything else is assumed to be from existing converters
-  // In Phase 5, we'll add metadata to track the actual conversion method
-  // Currently: math-only or DIVIDE patterns
-  return "template_conversion"; // Existing pattern-based conversions
+  // No metadata found - fallback to template (from older conversions)
+  return "template_conversion";
 }
 
 function analyzeMetricCalcs(

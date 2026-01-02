@@ -526,11 +526,14 @@ export class MeasureConverter {
     );
 
     // Build MDX expression from pipeline result
+    // Add metadata comment to track conversion stage
     let mdxExpression = pipelineResult.expression || "0 /* TODO: Conversion failed */";
 
-    // Log conversion success
     if (pipelineResult.success && pipelineResult.category !== ConversionCategory.UNCONVERTIBLE) {
       const stageName = pipelineResult.stageName || "unknown";
+      // Add metadata comment for tracking (won't affect MDX execution)
+      mdxExpression = `${mdxExpression} /* Converted via: ${pipelineResult.category} */`;
+
       const varsInfo = pipelineResult.varsInlined
         ? ` (${pipelineResult.varsInlinedCount} VARs inlined)`
         : "";
