@@ -99,4 +99,42 @@ export abstract class ConversionTemplate {
   protected warn(message: string, context: ConversionContext): void {
     context.logger.warn(`[${this.name}] ${message}`);
   }
+
+  /**
+   * Helper: Convert sub-expression using recursive template matching
+   *
+   * This enables templates to invoke other templates for nested expressions.
+   * For example, CALCULATE can recursively convert nested IF, DIVIDE, etc.
+   *
+   * @param tokens - Tokenized sub-expression
+   * @param context - Conversion context (includes templateRegistry)
+   * @returns MDX string (from template if matched, otherwise from token.toMdx())
+   */
+  protected convertSubExpression(
+    tokens: DaxToken[],
+    context: ConversionContext,
+  ): string {
+    // Try template conversion first (recursive)
+    const templateResult = context.templateRegistry.tryConvert(tokens, context);
+    if (templateResult.success && templateResult.expression) {
+      this.log(
+        `Recursive template conversion succeeded for sub-expression: ${templateResult.expression}`,
+        context,
+      );
+      return templateResult.expression;
+    }
+
+    // Fallback to direct token.toMdx() conversion
+    const info = {
+      bim: context.bim,
+      expr: context.daxExpression,
+      tableName: context.tableName,
+      result: context.result,
+      attrMaps: context.attrMaps,
+      unusedTables: context.unusedTables,
+      measureConverter: context.measureConverter,
+    };
+
+    return tokens.map((token) => token.toMdx(info)).join("");
+  }
 }

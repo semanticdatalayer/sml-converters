@@ -102,7 +102,7 @@ export class IsBlankTemplate extends ConversionTemplate {
           );
         }
 
-        const valueMdx = this.convertArgumentGroup(argGroups[0], context);
+        const valueMdx = this.convertSubExpression(argGroups[0], context);
         const mdxExpression = `${valueMdx} IS NULL`;
 
         return successfulConversion(
@@ -194,26 +194,5 @@ export class IsBlankTemplate extends ConversionTemplate {
     }
 
     return groups;
-  }
-
-  /**
-   * Convert an argument group (tokens) to MDX string
-   */
-  private convertArgumentGroup(
-    tokens: DaxToken[],
-    context: ConversionContext,
-  ): string {
-    // Build info object for token.toMdx()
-    const info = {
-      bim: context.bim,
-      expr: context.daxExpression,
-      tableName: context.tableName,
-      result: context.result,
-      attrMaps: context.attrMaps,
-      unusedTables: context.unusedTables,
-      measureConverter: context.measureConverter,
-    };
-
-    return tokens.map((token) => token.toMdx(info)).join("");
   }
 }

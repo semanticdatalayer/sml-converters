@@ -76,8 +76,8 @@ export class IfErrorTemplate extends ConversionTemplate {
 
     try {
       // Convert argument tokens to MDX
-      const valueMdx = this.convertArgumentGroup(argGroups[0], context);
-      const fallbackMdx = this.convertArgumentGroup(argGroups[1], context);
+      const valueMdx = this.convertSubExpression(argGroups[0], context);
+      const fallbackMdx = this.convertSubExpression(argGroups[1], context);
 
       // IFERROR(value, fallback) → IIF(IsError(value), fallback, value)
       // Note: This checks the error condition BEFORE evaluating value
@@ -167,26 +167,5 @@ export class IfErrorTemplate extends ConversionTemplate {
     }
 
     return groups;
-  }
-
-  /**
-   * Convert an argument group (tokens) to MDX string
-   */
-  private convertArgumentGroup(
-    tokens: DaxToken[],
-    context: ConversionContext,
-  ): string {
-    // Build info object for token.toMdx()
-    const info = {
-      bim: context.bim,
-      expr: context.daxExpression,
-      tableName: context.tableName,
-      result: context.result,
-      attrMaps: context.attrMaps,
-      unusedTables: context.unusedTables,
-      measureConverter: context.measureConverter,
-    };
-
-    return tokens.map((token) => token.toMdx(info)).join("");
   }
 }

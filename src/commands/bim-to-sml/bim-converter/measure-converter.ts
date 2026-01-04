@@ -480,7 +480,14 @@ export class MeasureConverter {
       expressionAsString(bimMeasure.expression),
     );
 
-    // Create conversion context
+    // Create pipeline first (needed for templateRegistry in context)
+    const pipeline = new ConversionPipeline(this.logger, {
+      aiEnabled: !!this.llmName,
+      llmName: this.llmName,
+      aiMinConfidence: 0.3,
+    });
+
+    // Create conversion context with templateRegistry for recursive template conversion
     const context = createConversionContext(
       bim,
       daxExpression,
@@ -490,14 +497,8 @@ export class MeasureConverter {
       tableLists.unusedTables,
       this,
       this.logger,
+      pipeline.getTemplateRegistry(),
     );
-
-    // Create pipeline with AI config
-    const pipeline = new ConversionPipeline(this.logger, {
-      aiEnabled: !!this.llmName,
-      llmName: this.llmName,
-      aiMinConfidence: 0.3,
-    });
 
     // Run through 5-stage pipeline with error handling
     let pipelineResult;

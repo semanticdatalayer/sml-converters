@@ -3,6 +3,7 @@ import { SmlConverterResult } from "../../../../shared/sml-convert-result";
 import { AttributeMaps } from "../../bim-models/types-and-interfaces";
 import { MeasureConverter } from "../measure-converter";
 import { Logger } from "../../../../shared/logger";
+import { TemplateRegistry } from "./template-registry";
 
 /**
  * ConversionContext provides shared state and dependencies for DAX to MDX conversion.
@@ -39,6 +40,9 @@ export interface ConversionContext {
 
   /** Logger instance */
   logger: Logger;
+
+  /** Template registry for recursive template conversion */
+  templateRegistry: TemplateRegistry;
 }
 
 /**
@@ -53,6 +57,7 @@ export function createConversionContext(
   unusedTables: Set<string>,
   measureConverter: MeasureConverter,
   logger: Logger,
+  templateRegistry: TemplateRegistry,
 ): ConversionContext {
   return {
     bim,
@@ -63,5 +68,6 @@ export function createConversionContext(
     unusedTables,
     measureConverter,
     logger,
+    templateRegistry,
   };
 }

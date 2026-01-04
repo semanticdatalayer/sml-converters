@@ -52,14 +52,15 @@ export interface PipelineResult extends ConversionResult {
 }
 
 /**
- * ConversionPipeline orchestrates the 5-stage DAX to MDX conversion process.
+ * ConversionPipeline orchestrates the 6-stage DAX to MDX conversion process.
  *
  * Pipeline stages:
  * 1. Direct conversion - Simple 1:1 DAX→MDX function mappings (conf: 1.0)
- * 2. Template conversion - Pattern-based conversion (DIVIDE, etc.) (conf: 0.9-1.0)
- * 3. VAR inline + retry - Inline safe VARs, retry stages 1-2 (conf: varies)
- * 4. AI conversion - LLM-powered conversion (conf: 0.0-0.7)
- * 5. Fallback TODO - Placeholder with original DAX (conf: 0.0)
+ * 2. Simple expression - Math expressions with no unconvertible functions (conf: 1.0)
+ * 3. Template conversion - Pattern-based conversion (DIVIDE, etc.) (conf: 0.9-1.0)
+ * 4. VAR inline + retry - Inline safe VARs, retry stages 1-3 (conf: varies)
+ * 5. AI conversion - LLM-powered conversion (conf: 0.0-0.7)
+ * 6. Fallback TODO - Placeholder with original DAX (conf: 0.0)
  *
  * Usage:
  * ```typescript
@@ -81,6 +82,13 @@ export class ConversionPipeline {
     this.directConverter = DirectFunctionConverter.getInstance(logger);
     this.templateRegistry = TemplateRegistry.getInstance(logger);
     this.varInliner = new VarInliner(logger);
+  }
+
+  /**
+   * Get the template registry instance for use in conversion context
+   */
+  public getTemplateRegistry(): TemplateRegistry {
+    return this.templateRegistry;
   }
 
   /**
@@ -110,48 +118,59 @@ export class ConversionPipeline {
       };
     }
 
-    // Stage 2: Template conversion
-    const stage2Result = this.tryTemplateConversion(tokens, context);
-    if (stage2Result.success && stage2Result.confidence >= 0.85) {
-      this.logger.debug(`Stage 2 (Template) succeeded: ${stage2Result.expression}`);
+    // Stage 2: Simple expression conversion
+    const stage2Result = this.trySimpleExpression(daxExpression, tokens, context);
+    if (stage2Result.success) {
+      this.logger.debug(`Stage 2 (Simple) succeeded: ${stage2Result.expression}`);
       return {
         ...stage2Result,
         stage: 2,
+        stageName: "simple_expression",
+      };
+    }
+
+    // Stage 3: Template conversion
+    const stage3Result = this.tryTemplateConversion(tokens, context);
+    if (stage3Result.success && stage3Result.confidence >= 0.85) {
+      this.logger.debug(`Stage 3 (Template) succeeded: ${stage3Result.expression}`);
+      return {
+        ...stage3Result,
+        stage: 3,
         stageName: "template_conversion",
       };
     }
 
-    // Stage 3: VAR inline + retry
-    const stage3Result = await this.tryVarInlineAndRetry(
+    // Stage 4: VAR inline + retry
+    const stage4Result = await this.tryVarInlineAndRetry(
       daxExpression,
       tokens,
       context,
     );
-    if (stage3Result.success) {
+    if (stage4Result.success) {
       this.logger.debug(
-        `Stage 3 (VAR inline) succeeded: ${stage3Result.expression}`,
+        `Stage 4 (VAR inline) succeeded: ${stage4Result.expression}`,
       );
-      return stage3Result;
+      return stage4Result;
     }
 
-    // Stage 4: AI conversion (if enabled)
+    // Stage 5: AI conversion (if enabled)
     if (this.config.aiEnabled && this.config.llmName) {
-      const stage4Result = await this.tryAiConversion(
+      const stage5Result = await this.tryAiConversion(
         daxExpression,
         tokens,
         context,
       );
-      if (stage4Result.success && stage4Result.confidence >= this.config.aiMinConfidence) {
-        this.logger.debug(`Stage 4 (AI) succeeded: ${stage4Result.expression}`);
+      if (stage5Result.success && stage5Result.confidence >= this.config.aiMinConfidence) {
+        this.logger.debug(`Stage 5 (AI) succeeded: ${stage5Result.expression}`);
         return {
-          ...stage4Result,
-          stage: 4,
+          ...stage5Result,
+          stage: 5,
           stageName: "ai_conversion",
         };
       }
     }
 
-    // Stage 5: Fallback TODO
+    // Stage 6: Fallback TODO
     this.logger.debug("All stages failed, creating fallback TODO");
     return this.createFallback(daxExpression);
   }
@@ -184,7 +203,57 @@ export class ConversionPipeline {
   }
 
   /**
-   * Stage 2: Try template-based conversion
+   * Stage 2: Try simple expression conversion (no unconvertible functions)
+   *
+   * Handles expressions like:
+   * - [Sales] / [Units]
+   * - [Revenue] - [Cost]
+   * - ([A] + [B]) * [C]
+   *
+   * These contain only convertible functions (SUM, MAX, etc.) and math operators,
+   * but aren't single function calls so they fail direct conversion.
+   */
+  private trySimpleExpression(
+    daxExpression: string,
+    tokens: DaxToken[],
+    context: ConversionContext,
+  ): ConversionResult {
+    // Check if expression contains unconvertible functions
+    const tokenizer = new DaxTokenizer();
+    tokenizer.tokenize(daxExpression);
+
+    if (tokenizer.hasUnconvertibleFunctions(this.logger)) {
+      return failedConversion(
+        "Contains unconvertible functions (CALCULATE, FILTER, etc.)",
+        daxExpression,
+      );
+    }
+
+    // Expression is "simple" - just convert all tokens to MDX
+    try {
+      const mdxParts = this.convertTokensToMdx(tokens, context);
+      const mdxExpression = mdxParts.join("");
+
+      return successfulConversion(
+        mdxExpression,
+        1.0,
+        ConversionCategory.TEMPLATE_CONVERSION, // Use TEMPLATE_CONVERSION category
+        {
+          originalDax: daxExpression,
+          method: "simple_expression",
+          note: "Simple math expression with no unconvertible functions",
+        },
+      );
+    } catch (error) {
+      return failedConversion(
+        `Simple expression conversion failed: ${error instanceof Error ? error.message : String(error)}`,
+        daxExpression,
+      );
+    }
+  }
+
+  /**
+   * Stage 3: Try template-based conversion
    */
   private tryTemplateConversion(
     tokens: DaxToken[],
@@ -194,7 +263,7 @@ export class ConversionPipeline {
   }
 
   /**
-   * Stage 3: Try VAR inlining + retry stages 1-2
+   * Stage 4: Try VAR inlining + retry stages 1-3
    */
   private async tryVarInlineAndRetry(
     daxExpression: string,
@@ -208,7 +277,7 @@ export class ConversionPipeline {
     } catch (error) {
       return {
         ...failedConversion(`Failed to parse expression: ${error}`, daxExpression),
-        stage: 3,
+        stage: 4,
         stageName: "var_inline_retry",
       };
     }
@@ -217,7 +286,7 @@ export class ConversionPipeline {
     if (!expression.hasVariables()) {
       return {
         ...failedConversion("No VARs to inline", daxExpression),
-        stage: 3,
+        stage: 4,
         stageName: "var_inline_retry",
       };
     }
@@ -229,7 +298,7 @@ export class ConversionPipeline {
       this.logger.debug("VAR inlining: no VARs were safe to inline");
       return {
         ...failedConversion("No safe VARs to inline", daxExpression),
-        stage: 3,
+        stage: 4,
         stageName: "var_inline_retry",
       };
     }
@@ -246,7 +315,7 @@ export class ConversionPipeline {
     if (stage1Retry.success && stage1Retry.confidence >= 0.95) {
       return {
         ...stage1Retry,
-        stage: 3,
+        stage: 4,
         stageName: "var_inline_retry",
         category: ConversionCategory.VAR_INLINED,
         varsInlined: true,
@@ -260,21 +329,44 @@ export class ConversionPipeline {
       };
     }
 
-    // Retry stage 2: Template conversion
-    const stage2Retry = this.tryTemplateConversion(
+    // Retry stage 2: Simple expression
+    const stage2Retry = this.trySimpleExpression(
+      daxExpression,
       inliningResult.tokens,
       context,
     );
-    if (stage2Retry.success && stage2Retry.confidence >= 0.85) {
+    if (stage2Retry.success) {
       return {
         ...stage2Retry,
-        stage: 3,
+        stage: 4,
         stageName: "var_inline_retry",
         category: ConversionCategory.VAR_INLINED,
         varsInlined: true,
         varsInlinedCount: inliningResult.inlinedCount,
         metadata: {
           ...stage2Retry.metadata,
+          varsInlined: inliningResult.inlinedCount,
+          varsRemaining: inliningResult.remainingCount,
+          retryStage: "simple_expression",
+        },
+      };
+    }
+
+    // Retry stage 3: Template conversion
+    const stage3Retry = this.tryTemplateConversion(
+      inliningResult.tokens,
+      context,
+    );
+    if (stage3Retry.success && stage3Retry.confidence >= 0.85) {
+      return {
+        ...stage3Retry,
+        stage: 4,
+        stageName: "var_inline_retry",
+        category: ConversionCategory.VAR_INLINED,
+        varsInlined: true,
+        varsInlinedCount: inliningResult.inlinedCount,
+        metadata: {
+          ...stage3Retry.metadata,
           varsInlined: inliningResult.inlinedCount,
           varsRemaining: inliningResult.remainingCount,
           retryStage: "template",
@@ -287,7 +379,7 @@ export class ConversionPipeline {
         "VAR inlining succeeded but retry conversions failed",
         daxExpression,
       ),
-      stage: 3,
+      stage: 4,
       stageName: "var_inline_retry",
       varsInlined: true,
       varsInlinedCount: inliningResult.inlinedCount,
@@ -295,7 +387,7 @@ export class ConversionPipeline {
   }
 
   /**
-   * Stage 4: Try AI-powered conversion
+   * Stage 5: Try AI-powered conversion
    */
   private async tryAiConversion(
     daxExpression: string,
@@ -351,7 +443,7 @@ export class ConversionPipeline {
   }
 
   /**
-   * Stage 5: Create fallback TODO stub
+   * Stage 6: Create fallback TODO stub
    */
   private createFallback(daxExpression: string): PipelineResult {
     return {
@@ -359,7 +451,7 @@ export class ConversionPipeline {
       expression: `0 /* TODO: ${daxExpression} */`,
       confidence: 0.0,
       category: ConversionCategory.UNCONVERTIBLE,
-      stage: 5,
+      stage: 6,
       stageName: "fallback_todo",
       metadata: {
         originalDax: daxExpression,

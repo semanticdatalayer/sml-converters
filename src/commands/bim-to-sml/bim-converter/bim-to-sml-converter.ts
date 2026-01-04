@@ -152,7 +152,7 @@ export class BimToYamlConverter {
     checkForTimeDim(result, this.logger);
 
     let summary = myParseBIM(bim);
-    // summary += parseSML(result);
+    summary += parseSML(result);
     console.log("FFFILE: " + summary);
 
     return result;
@@ -585,6 +585,9 @@ export function myParseBIM(bim: BimRoot): string {
   let measuresVarStart = 0;
   let measuresWithSelector = 0;
   let summary = bim.name;
+  let totalCalculate = 0;
+  let totalFilter = 0;
+  let totalCalcAndFilter = 0;
 
   bim.model.tables.forEach((table) => {
     totalTables++;
@@ -643,6 +646,18 @@ export function myParseBIM(bim: BimRoot): string {
           // if (samplesColSelectorExpr.length < sampleSize)
           //   samplesColSelectorExpr.push(firstChars(expr, exprLen));
         }
+        if (expr.toLowerCase().includes("calculate")) {
+          totalCalculate++;
+        }
+        if (expr.toLowerCase().includes("filter")) {
+          totalFilter++;
+        }
+        if (
+          expr.toLowerCase().includes("calculate") &&
+          expr.toLowerCase().includes("filter")
+        ) {
+          totalCalcAndFilter++;
+        }
       }
     });
   });
@@ -686,6 +701,14 @@ export function myParseBIM(bim: BimRoot): string {
   samplesColVarExpr.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
   console.log(`  Measures using selectors: ${measuresWithSelector}`);
   summary += `\t${measuresWithSelector}`;
+  console.log(`  Measures using CALCULATE: ${totalCalculate}`);
+  summary += `\t${totalCalculate}`;
+  console.log(`  Measures using FILTER: ${totalFilter}`);
+  summary += `\t${totalFilter}`;
+  console.log(
+    `  Measures using both CALCULATE and FILTER: ${totalCalcAndFilter}`,
+  );
+  summary += `\t${totalCalcAndFilter}`;
 
   return summary;
 }

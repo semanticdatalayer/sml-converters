@@ -23,15 +23,23 @@ export class BimFileParser {
 
   async parseFile(filePath: string): Promise<BimRoot> {
     const fileStringContent = await fs.readFile(filePath, "utf-8");
-    return this.parse(fileStringContent);
+    const result = this.parse(fileStringContent);
+    if (!result.name) {
+      // use file name as project name if not present
+      const pathParts = filePath.split("/");
+      const fileName = pathParts[pathParts.length - 1];
+      result.name = fileName
+        .replace(".bim", "")
+        .replace(".json", "")
+        .replace("_bim", "");
+    }
+    return result;
   }
 
   validateBIM(bim: BimRoot) {
-    if (!bim || !bim.name) {
-      this.logger.error(
-        `BIM project is not formed correctly or is missing its name`,
-      );
-      throw new Error(`bim project missing name or malformed`);
+    if (!bim) {
+      this.logger.error(`BIM project is not formed correctly`);
+      throw new Error(`bim project malformed`);
     }
     if (!bim.model || !bim.model.tables || bim.model.tables.length === 0) {
       this.logger.error(`BIM project is missing a model or tables`);

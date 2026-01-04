@@ -77,9 +77,9 @@ export class DivideTemplate extends ConversionTemplate {
     }
 
     try {
-      // Convert argument tokens to MDX
-      const numeratorMdx = this.convertArgumentGroup(argGroups[0], context);
-      const denominatorMdx = this.convertArgumentGroup(argGroups[1], context);
+      // Convert argument tokens to MDX - may recursively invoke templates
+      const numeratorMdx = this.convertSubExpression(argGroups[0], context);
+      const denominatorMdx = this.convertSubExpression(argGroups[1], context);
 
       if (argGroups.length === 2) {
         // 2-arg form: DIVIDE(num, denom) → (num) / (denom)
@@ -96,7 +96,7 @@ export class DivideTemplate extends ConversionTemplate {
         );
       } else {
         // 3-arg form: DIVIDE(num, denom, alt) → IIF(denom = 0, alt, (num) / (denom))
-        const alternateResultMdx = this.convertArgumentGroup(argGroups[2], context);
+        const alternateResultMdx = this.convertSubExpression(argGroups[2], context);
         const mdxExpression =
           `IIF(${denominatorMdx} = 0, ${alternateResultMdx}, (${numeratorMdx}) / (${denominatorMdx}))`;
 
@@ -189,26 +189,5 @@ export class DivideTemplate extends ConversionTemplate {
     }
 
     return groups;
-  }
-
-  /**
-   * Convert an argument group (tokens) to MDX string
-   */
-  private convertArgumentGroup(
-    tokens: DaxToken[],
-    context: ConversionContext,
-  ): string {
-    // Build info object for token.toMdx()
-    const info = {
-      bim: context.bim,
-      expr: context.daxExpression,
-      tableName: context.tableName,
-      result: context.result,
-      attrMaps: context.attrMaps,
-      unusedTables: context.unusedTables,
-      measureConverter: context.measureConverter,
-    };
-
-    return tokens.map((token) => token.toMdx(info)).join("");
   }
 }

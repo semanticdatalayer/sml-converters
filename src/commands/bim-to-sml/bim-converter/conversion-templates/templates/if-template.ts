@@ -74,10 +74,10 @@ export class IfTemplate extends ConversionTemplate {
     }
 
     try {
-      // Convert argument tokens to MDX
-      const conditionMdx = this.convertArgumentGroup(argGroups[0], context);
-      const trueValueMdx = this.convertArgumentGroup(argGroups[1], context);
-      const falseValueMdx = this.convertArgumentGroup(argGroups[2], context);
+      // Convert argument tokens to MDX - may recursively invoke templates
+      const conditionMdx = this.convertSubExpression(argGroups[0], context);
+      const trueValueMdx = this.convertSubExpression(argGroups[1], context);
+      const falseValueMdx = this.convertSubExpression(argGroups[2], context);
 
       // DAX IF/IIF → MDX IIF (direct mapping)
       const mdxExpression = `IIF(${conditionMdx}, ${trueValueMdx}, ${falseValueMdx})`;
@@ -169,26 +169,5 @@ export class IfTemplate extends ConversionTemplate {
     }
 
     return groups;
-  }
-
-  /**
-   * Convert an argument group (tokens) to MDX string
-   */
-  private convertArgumentGroup(
-    tokens: DaxToken[],
-    context: ConversionContext,
-  ): string {
-    // Build info object for token.toMdx()
-    const info = {
-      bim: context.bim,
-      expr: context.daxExpression,
-      tableName: context.tableName,
-      result: context.result,
-      attrMaps: context.attrMaps,
-      unusedTables: context.unusedTables,
-      measureConverter: context.measureConverter,
-    };
-
-    return tokens.map((token) => token.toMdx(info)).join("");
   }
 }

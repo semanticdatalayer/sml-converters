@@ -3,6 +3,9 @@ import { DivideTemplate } from "./templates/divide-template";
 import { IfTemplate } from "./templates/if-template";
 import { IsBlankTemplate } from "./templates/isblank-template";
 import { IfErrorTemplate } from "./templates/iferror-template";
+import { SwitchTemplate } from "./templates/switch-template";
+import { CalculateTemplate } from "./templates/calculate-template";
+import { LogicalTemplate } from "./templates/logical-template";
 import { DaxToken, DaxTokenizer } from "../dax-converter";
 import {
   ConversionResult,
@@ -56,6 +59,9 @@ export class TemplateRegistry {
     this.registerTemplate(new IfTemplate());
     this.registerTemplate(new IsBlankTemplate());
     this.registerTemplate(new IfErrorTemplate());
+    this.registerTemplate(new SwitchTemplate());
+    this.registerTemplate(new CalculateTemplate());
+    this.registerTemplate(new LogicalTemplate());
 
     // Future templates can be added here:
     // this.registerTemplate(new TimeIntelligenceTemplate());

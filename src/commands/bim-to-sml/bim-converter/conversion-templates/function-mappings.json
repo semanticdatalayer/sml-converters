@@ -39,7 +39,10 @@
     "HOUR": "Hour",
     "MINUTE": "Minute",
     "SECOND": "Second",
-    "NOW": "Now"
+    "NOW": "Now",
+    "INT": "INT",
+    "TRUE": "TRUE",
+    "FALSE": "FALSE"
   },
   "unconvertible": [
     "CALCULATE",
@@ -68,7 +71,6 @@
     "MAXX",
     "COUNTX",
     "COUNTAX",
-    "COUNTROWS",
     "RANKX",
     "TOPN",
     "SAMPLE",
@@ -82,7 +84,6 @@
     "SUBSTITUTEWITHINDEX",
     "GROUPBY",
     "CURRENTGROUP",
-    "SWITCH",
     "SELECTEDVALUE",
     "VALUES",
     "DISTINCT",
@@ -101,11 +102,14 @@
     "EVALUATE"
   ],
   "complex_patterns": [
+    "CALCULATE",
     "DIVIDE",
     "IF",
     "IFERROR",
     "ISBLANK",
     "BLANK",
+    "SWITCH",
+    "COUNTROWS",
     "COALESCE",
     "DATESYTD",
     "DATESQTD",
