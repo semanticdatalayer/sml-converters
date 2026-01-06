@@ -59,6 +59,16 @@ export class DivideTemplate extends ConversionTemplate {
       return false;
     }
 
+    // CRITICAL: Reject if arguments contain unconvertible functions
+    // Per CLAUDE.md: "Converted MDX should never use functions not supported by AtScale (SUMX, FILTER, RELATED...)"
+    if (this.containsUnconvertibleFunctions(token.args, context)) {
+      this.warn(
+        `DIVIDE arguments contain unconvertible functions (SUMX, FILTER, RELATED, etc.) - rejecting conversion`,
+        context,
+      );
+      return false;
+    }
+
     return true;
   }
 

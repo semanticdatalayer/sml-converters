@@ -55,6 +55,15 @@ export class IfTemplate extends ConversionTemplate {
       return false;
     }
 
+    // CRITICAL: Reject if arguments contain unconvertible functions
+    if (this.containsUnconvertibleFunctions(token.args, context)) {
+      this.warn(
+        `${funcName} arguments contain unconvertible functions - rejecting conversion`,
+        context,
+      );
+      return false;
+    }
+
     return true;
   }
 

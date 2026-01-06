@@ -68,6 +68,17 @@ export class CalculateTemplate extends ConversionTemplate {
       }
     }
 
+    // CRITICAL: Reject if first argument (aggregation) contains unconvertible functions
+    // Note: CALCULATE itself is unconvertible per function-mappings.json, but we have
+    // a template for simple cases. However, nested unconvertible functions should be rejected.
+    if (argGroups.length > 0 && this.containsUnconvertibleFunctions(argGroups[0], context)) {
+      this.warn(
+        `CALCULATE aggregation argument contains unconvertible functions - rejecting conversion`,
+        context,
+      );
+      return false;
+    }
+
     return true;
   }
 
