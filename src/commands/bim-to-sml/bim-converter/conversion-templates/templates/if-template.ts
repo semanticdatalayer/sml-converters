@@ -45,11 +45,13 @@ export class IfTemplate extends ConversionTemplate {
       return false;
     }
 
-    // Validate argument structure - requires exactly 3 arguments
+    // Validate argument structure - requires 2 or 3 arguments
+    // 2 args: IF(condition, true_value) - false_value defaults to BLANK()
+    // 3 args: IF(condition, true_value, false_value)
     const argCount = this.countArguments(token.args);
-    if (argCount !== 3) {
+    if (argCount < 2 || argCount > 3) {
       this.warn(
-        `${funcName} function has ${argCount} arguments, expected 3`,
+        `${funcName} function has ${argCount} arguments, expected 2 or 3`,
         context,
       );
       return false;
@@ -75,9 +77,9 @@ export class IfTemplate extends ConversionTemplate {
     // Find argument boundaries (split by commas)
     const argGroups = this.splitArguments(args);
 
-    if (argGroups.length !== 3) {
+    if (argGroups.length < 2 || argGroups.length > 3) {
       return failedConversion(
-        `${funcName} requires exactly 3 arguments, got ${argGroups.length}`,
+        `${funcName} requires 2 or 3 arguments, got ${argGroups.length}`,
         token.functionAgg,
       );
     }
@@ -97,7 +99,12 @@ export class IfTemplate extends ConversionTemplate {
       // Convert argument tokens to MDX - may recursively invoke templates
       const conditionMdx = this.convertSubExpression(argGroups[0], context);
       const trueValueMdx = this.convertSubExpression(argGroups[1], context);
-      const falseValueMdx = this.convertSubExpression(argGroups[2], context);
+
+      // DAX IF supports 2 or 3 arguments
+      // If only 2 args, false value defaults to NULL
+      const falseValueMdx = argGroups.length === 3
+        ? this.convertSubExpression(argGroups[2], context)
+        : "NULL";
 
       // DAX IF/IIF → MDX IIF (direct mapping)
       const mdxExpression = `IIF(${conditionMdx}, ${trueValueMdx}, ${falseValueMdx})`;
