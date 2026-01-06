@@ -1,8 +1,28 @@
-# BIM Conversion Testing Script
+# BIM Conversion Testing Scripts
 
-Batch test BIM-to-SML conversions, track metrics, compare against baselines.
+Batch test BIM-to-SML conversions, track metrics, compare against baselines, validate SML output.
+
+## Scripts Overview
+
+1. **test-conversion** - Batch test multiple BIM files, generate reports, compare baselines
+2. **validate-conversion** - Convert single BIM file and validate with SML CLI
 
 ## Quick Start
+
+### Single File Validation
+
+```bash
+# Validate single BIM file with SML CLI
+npm run validate-conversion -- --input ./path/to/file.bim
+
+# Specify custom output directory
+npm run validate-conversion -- --input ./file.bim --output ./sml-output
+
+# Custom SML CLI path
+npm run validate-conversion -- --input ./file.bim --sml-cli /path/to/sml/bin/dev.js
+```
+
+### Batch Testing
 
 ```bash
 # Install tsx if needed
@@ -23,6 +43,29 @@ npm run test-conversion -- --input ./test-bim --verbose
 
 ## Usage
 
+### validate-conversion
+
+Converts single BIM file, validates with SML CLI, shows detailed report.
+
+```
+npm run validate-conversion -- [options]
+
+Options:
+  --input <file>      BIM file to convert (required)
+  --output <dir>      SML output directory (default: auto-generated)
+  --sml-cli <path>    Path to SML CLI (default: /Users/dianne/go/src/github.com/AtScaleInc/SML/apps/cli/bin/dev.js)
+  --verbose, -v       Show detailed logs
+```
+
+**Use this script:**
+- After code changes to validate SML generation quality
+- To debug specific conversion issues
+- To see SML validation errors/warnings
+
+### test-conversion
+
+Batch test multiple BIM files.
+
 ```
 npm run test-conversion -- [options]
 
@@ -35,7 +78,27 @@ Options:
   --verbose, -v       Show detailed logs
 ```
 
-## Report Format
+## Report Formats
+
+### validate-conversion Output
+
+Console report showing:
+
+1. **Conversion Summary**: Duration, success/failure
+2. **SML Objects**: Count of models, datasets, dimensions, metrics, relationships, connections
+3. **Calculated Metrics Analysis**:
+   - Total calculated metrics
+   - Successfully converted (MDX)
+   - TODO/unconverted count
+   - Conversion rate %
+   - Breakdown by conversion category (direct, template, VAR inlined, AI, unconvertible)
+4. **SML Validation Results**:
+   - Success/failure status
+   - Warnings (duplicates, cycle references, etc.)
+   - Errors (missing metrics, syntax issues, etc.)
+   - Full SML CLI validation output
+
+### test-conversion Output
 
 Output JSON structure:
 

@@ -85,6 +85,17 @@ export class CalculateTemplate extends ConversionTemplate {
       );
     }
 
+    // CRITICAL: Check that converted output won't contain unconvertible functions
+    // This prevents outputting invalid MDX like "IIF(CALCULATE(...), ...)"
+    for (let i = 0; i < argGroups.length; i++) {
+      if (this.containsUnconvertibleFunctions(argGroups[i], context)) {
+        return failedConversion(
+          `CALCULATE argument ${i} contains unconvertible functions - cannot convert to valid MDX`,
+          token.functionAgg,
+        );
+      }
+    }
+
     try {
       // First argument is the aggregation expression - may recursively invoke templates
       const aggregationMdx = this.convertSubExpression(argGroups[0], context);

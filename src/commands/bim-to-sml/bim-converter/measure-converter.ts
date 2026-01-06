@@ -82,7 +82,11 @@ export class MeasureConverter {
             );
             const aggFn = aggFunctionAtStart(exprLowerNoSpace);
 
-            // Confirm table and column exist
+            // DISABLED: Old code that bypassed pipeline for simple aggregate functions
+            // This code created measure references like '[Measures].[Name]' instead of
+            // properly converting through pipeline to get 'Sum([Measures].[Name])'
+            // All expressions now go through the conversion pipeline in convertMeasures()
+            /*
             if (aggFn !== "none" && isSimpleFunctionWithCol(exprLowerNoSpace)) {
               const measTblWithCol = bim.model.tables.find(
                 (table) =>
@@ -130,7 +134,7 @@ export class MeasureConverter {
                     label: meas.name,
                     folder: meas.displayFolder,
                     format: this.smlFormatFromBim(meas.formatString),
-                    expression: `[Measures].[${ref_meas_unique_name}]`, // `[Measures].[${numerator.measName}] / [Measures].[${denominator.measName}]`,
+                    expression: `[Measures].[${ref_meas_unique_name}]`,
                   };
 
                   this.addSMLCalc(
@@ -143,7 +147,9 @@ export class MeasureConverter {
                   console.log(`XXX Calc '${calc_unique_name}' from agg only`);
                 }
               }
-            } else if (
+            }
+            */
+            if (
               aggFn === "countrows" &&
               isSimpleCountRowsFunction(exprLowerNoSpace)
             ) {
@@ -527,14 +533,10 @@ export class MeasureConverter {
     );
 
     // Build MDX expression from pipeline result
-    // Add metadata comment to track conversion stage
     let mdxExpression = pipelineResult.expression || "0 /* TODO: Conversion failed */";
 
     if (pipelineResult.success && pipelineResult.category !== ConversionCategory.UNCONVERTIBLE) {
       const stageName = pipelineResult.stageName || "unknown";
-      // Add metadata comment for tracking (won't affect MDX execution)
-      mdxExpression = `${mdxExpression} /* Converted via: ${pipelineResult.category} */`;
-
       const varsInfo = pipelineResult.varsInlined
         ? ` (${pipelineResult.varsInlinedCount} VARs inlined)`
         : "";

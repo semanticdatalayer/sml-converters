@@ -107,37 +107,44 @@ export class ConversionPipeline {
     const tokenizer = new DaxTokenizer();
     const tokens = tokenizer.tokenize(daxExpression);
 
-    // Stage 1: Direct conversion
-    const stage1Result = this.tryDirectConversion(tokens, context);
-    if (stage1Result.success && stage1Result.confidence >= 0.95) {
-      this.logger.debug(`Stage 1 (Direct) succeeded: ${stage1Result.expression}`);
-      return {
-        ...stage1Result,
-        stage: 1,
-        stageName: "direct_conversion",
-      };
-    }
+    // Check if expression contains VARs - if so, skip Stages 1-3 and go to Stage 4
+    // This prevents all stages from converting expressions with VAR references that aren't inlined
+    const hasVars = this.expressionHasVars(daxExpression);
+    if (hasVars) {
+      this.logger.debug("Expression contains VARs, skipping Stages 1-3 and proceeding to Stage 4 (VAR inline)");
+    } else {
+      // Stage 1: Direct conversion
+      const stage1Result = this.tryDirectConversion(tokens, context);
+      if (stage1Result.success && stage1Result.confidence >= 0.95) {
+        this.logger.debug(`Stage 1 (Direct) succeeded: ${stage1Result.expression}`);
+        return {
+          ...stage1Result,
+          stage: 1,
+          stageName: "direct_conversion",
+        };
+      }
 
-    // Stage 2: Simple expression conversion
-    const stage2Result = this.trySimpleExpression(daxExpression, tokens, context);
-    if (stage2Result.success) {
-      this.logger.debug(`Stage 2 (Simple) succeeded: ${stage2Result.expression}`);
-      return {
-        ...stage2Result,
-        stage: 2,
-        stageName: "simple_expression",
-      };
-    }
+      // Stage 2: Simple expression conversion
+      const stage2Result = this.trySimpleExpression(daxExpression, tokens, context);
+      if (stage2Result.success) {
+        this.logger.debug(`Stage 2 (Simple) succeeded: ${stage2Result.expression}`);
+        return {
+          ...stage2Result,
+          stage: 2,
+          stageName: "simple_expression",
+        };
+      }
 
-    // Stage 3: Template conversion
-    const stage3Result = this.tryTemplateConversion(tokens, context);
-    if (stage3Result.success && stage3Result.confidence >= 0.85) {
-      this.logger.debug(`Stage 3 (Template) succeeded: ${stage3Result.expression}`);
-      return {
-        ...stage3Result,
-        stage: 3,
-        stageName: "template_conversion",
-      };
+      // Stage 3: Template conversion
+      const stage3Result = this.tryTemplateConversion(tokens, context);
+      if (stage3Result.success && stage3Result.confidence >= 0.85) {
+        this.logger.debug(`Stage 3 (Template) succeeded: ${stage3Result.expression}`);
+        return {
+          ...stage3Result,
+          stage: 3,
+          stageName: "template_conversion",
+        };
+      }
     }
 
     // Stage 4: VAR inline + retry
@@ -229,6 +236,17 @@ export class ConversionPipeline {
       );
     }
 
+    // Check if expression contains complex pattern functions that need template handling
+    // (DIVIDE, IF, etc. - functions that have templates but aren't simple direct conversions)
+    const categories = tokenizer.categorizeFunctions(this.logger);
+    if (categories.complex.length > 0) {
+      return failedConversion(
+        `Contains complex pattern functions (${categories.complex.join(", ")}) - needs template conversion`,
+        daxExpression,
+      );
+    }
+
+
     // Expression is "simple" - just convert all tokens to MDX
     try {
       const mdxParts = this.convertTokensToMdx(tokens, context);
@@ -307,7 +325,25 @@ export class ConversionPipeline {
       `VAR inlining: ${inliningResult.inlinedCount} VARs inlined, ${inliningResult.remainingCount} remaining`,
     );
 
-    // Retry stage 1: Direct conversion
+    // If VARs remain after inlining, don't retry stages - fall through to TODO
+    // Retrying with remaining VAR references produces invalid MDX
+    if (inliningResult.remainingCount > 0) {
+      this.logger.debug(
+        `${inliningResult.remainingCount} VARs could not be inlined - skipping retries, will use TODO fallback`,
+      );
+      return {
+        ...failedConversion(
+          `${inliningResult.remainingCount} VARs could not be inlined (used in unconvertible contexts)`,
+          daxExpression,
+        ),
+        stage: 4,
+        stageName: "var_inline_retry",
+        varsInlined: true,
+        varsInlinedCount: inliningResult.inlinedCount,
+      };
+    }
+
+    // All VARs were inlined - retry stage 1: Direct conversion
     const stage1Retry = this.tryDirectConversion(
       inliningResult.tokens,
       context,
@@ -478,6 +514,20 @@ export class ConversionPipeline {
     };
 
     return tokens.map((token) => token.toMdx(info));
+  }
+
+  /**
+   * Check if expression contains VAR declarations
+   * Used to detect expressions that need VAR inlining before template conversion
+   */
+  private expressionHasVars(daxExpression: string): boolean {
+    try {
+      const expression = DaxExpression.parse(daxExpression);
+      return expression.hasVariables();
+    } catch (error) {
+      // If parsing fails, assume no VARs (will fail later in pipeline anyway)
+      return false;
+    }
   }
 
   /**

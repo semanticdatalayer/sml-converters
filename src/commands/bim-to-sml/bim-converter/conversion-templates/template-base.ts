@@ -1,4 +1,4 @@
-import { DaxToken } from "../dax-converter";
+import { DaxToken, FunctionToken } from "../dax-converter";
 import { ConversionResult } from "../conversion-result";
 import { ConversionContext } from "./conversion-context";
 
@@ -98,6 +98,35 @@ export abstract class ConversionTemplate {
    */
   protected warn(message: string, context: ConversionContext): void {
     context.logger.warn(`[${this.name}] ${message}`);
+  }
+
+  /**
+   * Helper: Check if tokens contain any unconvertible functions
+   * Prevents templates from outputting invalid MDX with DAX-only functions
+   *
+   * @param tokens - Tokens to check
+   * @param context - Conversion context
+   * @returns true if tokens contain unconvertible functions
+   */
+  protected containsUnconvertibleFunctions(
+    tokens: DaxToken[],
+    context: ConversionContext,
+  ): boolean {
+    const { DirectFunctionConverter } = require("./converters/direct-function-converter");
+    const converter = DirectFunctionConverter.getInstance(context.logger);
+
+    for (const token of tokens) {
+      if (token instanceof FunctionToken) {
+        if (converter.isUnconvertibleFunction(token.functionAgg)) {
+          return true;
+        }
+        // Recursively check nested arguments
+        if (this.containsUnconvertibleFunctions(token.args, context)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**

@@ -55,10 +55,11 @@
   "main": "dist/index.js",
   "repository": "https://github.com/semanticdatalayer/sml-converters",
   "scripts": {
-    "build": "shx rm -rf dist && tsc -b",
+    "build": "shx rm -rf dist && tsc -b && shx cp src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json dist/commands/bim-to-sml/bim-converter/conversion-templates/",
     "lint": "eslint --ext ts src",
     "test": "echo \"No tests found\"",
     "test-conversion": "tsx scripts/test-bim-conversion.ts",
+    "validate-conversion": "tsx scripts/validate-bim-conversion.ts",
     "postpack": "shx rm -f oclif.manifest.json",
     "prepack": "oclif manifest && oclif readme",
     "version": "oclif readme && git add README.md"

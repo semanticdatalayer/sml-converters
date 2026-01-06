@@ -59,68 +59,20 @@ export class FunctionToken extends DaxToken {
     unusedTables: Set<string>;
     measureConverter: MeasureConverter;
   }): string {
-    if (
-      Constants.AGG_FNS.includes(
-        this.functionAgg.replace(" ", "").toLowerCase(),
-      )
-    ) {
-      const extractedMeasure = getMeasureName(
-        info.bim,
-        this,
-        info.tableName,
-        info.result,
-        info.attrMaps,
-        info.unusedTables,
-        info.measureConverter,
-      )?.measName;
-      if (extractedMeasure) {
-        return extractedMeasure;
-      }
-    }
+    // Note: Removed old AGG_FNS special handling (SUM, MAX, etc.)
+    // Those functions are now properly handled by the direct function converter
+    // in the conversion pipeline, which preserves the function wrapper.
+
     switch (this.functionAgg.replace(" ", "").toLowerCase()) {
-      case "divide":
-        // find comma
-        const comma_token_index = this.args.findIndex((token) => {
-          if (token instanceof CommaToken) {
-            // found comma
-            return true;
-          }
-          return false;
-        });
-
-        if (comma_token_index === -1) {
-          throw new Error(
-            `Invalid DAX expression for divide function: ${this.functionAgg}`,
-          );
-        }
-
-        let next_comma: number | undefined = this.args
-          .slice(comma_token_index + 1)
-          .findIndex((token) => token instanceof CommaToken);
-
-        if (next_comma !== -1) {
-          // We will not handle cases with more than 2 arguments
-          // The third argument would be the default value if the denom is 0
-          next_comma = undefined;
-        }
-        const num_mdx = this.args
-          .slice(0, comma_token_index)
-          .map((token) => token.toMdx(info))
-          .join("");
-        const denom_mdx = this.args
-          .slice(comma_token_index + 1, next_comma)
-          .map((token) => token.toMdx(info))
-          .join("");
-
-        return `(${num_mdx} / ${denom_mdx})`;
       case "round":
         return `ROUND(${this.args[0].toMdx(info)}, ${this.args[2].toMdx(
           info,
         )})`;
       default:
+        // args array includes CommaTokens, so join with "" not ", "
         return `${this.functionAgg.toUpperCase()}(${this.args
           .map((arg) => arg.toMdx(info))
-          .join(", ")}) /*TODO: Redo this with valid MDX */`;
+          .join("")})`;
     }
   }
 
@@ -182,8 +134,9 @@ export class TableColumnReference extends DaxToken {
   }
 
   toMdx(): string {
-    // Convert DAX table[column] to MDX format
-    return `[Measures].[${this.columnRef.toMdx()}]`;
+    // Convert DAX 'table'[column] to MDX [Measures].[column]
+    // columnRef.toMdx() already includes [Measures].[...] wrapping
+    return this.columnRef.toMdx();
   }
 
   toString(): string {
@@ -197,7 +150,8 @@ export class ColumnReference extends DaxToken {
   }
 
   toMdx(): string {
-    return this.columnName;
+    // DAX column/measure reference [Name] → MDX [Measures].[Name]
+    return `[Measures].[${this.columnName}]`;
   }
 
   toString(): string {
@@ -715,6 +669,10 @@ export class DaxTokenizer {
     tokens.forEach((token) => {
       if (token instanceof ParenToken || token instanceof FunctionToken) {
         typeTokens.push(...this.getAllInstanceOf(type, token.args));
+      }
+      // Search inside VAR expressions to detect unconvertible functions
+      if (token instanceof VarToken) {
+        typeTokens.push(...this.getAllInstanceOf(type, token.expression));
       }
       if (token instanceof type) {
         typeTokens.push(token as T);

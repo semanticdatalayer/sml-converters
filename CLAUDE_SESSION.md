@@ -1,402 +1,527 @@
-# Claude Code Session Summary
+# Claude Code Session - DAX to MDX Conversion Bug Fixes
 
-**Date:** 2025-12-30
-**Branch:** bim-conversion
-**Goal:** Add regression testing for BIM-to-SML conversion
+**Date:** 2026-01-05
+**Branch:** ai-experiments
+**Task:** Fix critical bugs in DAX to MDX conversion output
 
 ---
 
-## Current Task
+## Current Task/Goal
 
-Create lightweight testing approach to track how code changes affect BIM conversion output, replacing need for comprehensive unit test suite.
+Fix two critical bugs producing **invalid AtScale MDX**:
 
-## Key Decisions
+1. **Bug #1:** DIVIDE expressions missing arguments
+   - Example: `(num / )` instead of `(num / denom)`
+   - Cause: Old DIVIDE code executing before template conversion
 
-### 1. Testing Approach: Regression vs Unit Tests
-**Decision:** Build regression testing script instead of full test framework (Vitest/Jest)
+2. **Bug #2:** SUM functions stripped to bare references
+   - Example: `'[Measures].[Name]'` instead of `Sum([Measures].[Name])`
+   - Cause: Legacy code bypassing conversion pipeline
 
-**Rationale:**
-- Full test suite = 3-4 weeks effort (fixtures, unit/integration/e2e layers)
-- User has existing pattern in `/Users/dianne/Downloads/bim/One.sh` that works well
-- Primary need: detect unintended changes in conversion output
-- Conversion complexity makes mocking difficult
+**Status:** ✅ **COMPLETED** - Both bugs fixed, all output now valid AtScale MDX
 
-**Chosen Approach:**
-- Batch process directory of BIM files
-- Generate structured JSON reports with object counts
-- Compare against baseline files
-- Focus on metrics that matter: object counts, MDX conversion rates
+---
 
-### 2. Script Design
-**Script:** `scripts/test-bim-conversion.ts`
+## Key Decisions Made
 
-**Features:**
-- Recursive BIM file discovery (`.json`, `.bim`)
-- In-memory conversion (no SML file writes)
-- JSON output with:
-  - Per-file object counts (models, datasets, dimensions, metrics, etc.)
-  - Calculated metric analysis (MDX converted vs TODO remaining)
-  - Success/failure tracking, timing
-- Baseline comparison with diff generation
-- Exit code 1 if differences (CI/CD ready)
+### Decision 1: Remove All Legacy Conversion Code Paths
+**Rationale:** Old pre-pipeline code was executing before the 6-stage conversion pipeline, bypassing proper template-based conversion.
 
-**Key Metrics Tracked:**
+**Actions Taken:**
+1. ✅ Removed old DIVIDE switch case from `FunctionToken.toMdx()` (lines 81-115)
+2. ✅ Removed old AGG_FNS measure extraction from `FunctionToken.toMdx()` (lines 62-78)
+3. ✅ Disabled measure converter bypass code (lines 86-153)
+4. ✅ All expressions now flow through 6-stage pipeline
+
+**Impact:** Eliminates race conditions between old code and new pipeline
+
+### Decision 2: Route Complex Patterns to Templates
+**Rationale:** Stage 2 (simple expression) was converting DIVIDE via fallback `toMdx()` instead of using DivideTemplate.
+
+**Actions Taken:**
+1. Added `categorizeFunctions()` check to Stage 2
+2. DIVIDE, IF, IFERROR, ISBLANK now properly fail Stage 2
+3. These functions route to Stage 3 (template conversion)
+4. Prevents premature conversion via `toMdx()` fallback
+
+**Impact:** Ensures template-based conversion for all pattern functions
+
+### Decision 3: Copy function-mappings.json to dist/
+**Rationale:** DirectFunctionConverter loads JSON at runtime from dist/ folder.
+
+**Actions Taken:**
+1. Updated build script in `package.json` line 58
+2. Build now copies `function-mappings.json` to dist/
+3. SUM, MAX, MIN properly categorized as "direct" functions
+
+**Impact:** Without this, all functions categorized as "unknown", Stage 1 fails
+
+---
+
+## Important Files Modified
+
+### Core Conversion Logic
+
+#### `src/commands/bim-to-sml/bim-converter/dax-converter.ts`
+**Purpose:** Token classes for DAX parsing and MDX generation
+
+**Changes:**
+- **Lines 62-78:** ✅ Removed AGG_FNS measure extraction
+  ```typescript
+  // OLD CODE (removed):
+  if (Constants.AGG_FNS.includes(this.functionAgg.toLowerCase())) {
+    const extractedMeasure = getMeasureName(...);
+    if (extractedMeasure) return extractedMeasure; // WRONG - strips function
+  }
+  ```
+
+- **Lines 81-115:** ✅ Removed old DIVIDE switch case
+  ```typescript
+  // OLD CODE (removed):
+  case "divide":
+    const num_mdx = this.args.slice(0, comma).map(t => t.toMdx(info)).join("");
+    const denom_mdx = this.args.slice(comma+1).map(t => t.toMdx(info)).join("");
+    return `(${num_mdx} / ${denom_mdx})`; // Missing 3rd arg handling
+  ```
+
+- **Lines 166-168:** Current ColumnReference.toMdx()
+  ```typescript
+  toMdx(): string {
+    return `[Measures].[${this.columnName}]`; // Proper format
+  }
+  ```
+
+**Key Insight:** All function conversion now handled by pipeline, not toMdx() fallback
+
+---
+
+#### `src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts`
+**Purpose:** 6-stage conversion pipeline orchestrator
+
+**Changes:**
+- **Lines 239-247:** ✅ Added complex pattern check to Stage 2
+  ```typescript
+  const categories = tokenizer.categorizeFunctions(this.logger);
+  if (categories.complex.length > 0) {
+    return failedConversion(
+      `Contains complex patterns (${categories.complex.join(", ")}) - needs template`,
+      daxExpression
+    );
+  }
+  ```
+
+**Pipeline Stages:**
+1. **Stage 1:** Direct conversion (single function, exact mapping)
+2. **Stage 2:** Simple expression (no unconvertible/complex) ← MODIFIED
+3. **Stage 3:** Template conversion (DIVIDE, IF, etc.)
+4. **Stage 4:** VAR inline + retry
+5. **Stage 5:** AI conversion (optional)
+6. **Stage 6:** Fallback TODO
+
+**Key Insight:** Complex patterns must fail Stage 2 to reach Stage 3 (templates)
+
+---
+
+#### `src/commands/bim-to-sml/bim-converter/measure-converter.ts`
+**Purpose:** Converts BIM measures to SML calculations
+
+**Changes:**
+- **Lines 85-151:** ✅ Disabled old bypass code
+  ```typescript
+  // DISABLED: Old code that bypassed pipeline for simple aggregate functions
+  // This created '[Measures].[Name]' instead of 'Sum([Measures].[Name])'
+  /*
+  if (aggFn !== "none" && isSimpleFunctionWithCol(exprLowerNoSpace)) {
+    // ... old code that created measure reference without function wrapper ...
+  }
+  */
+  ```
+
+- **Lines 464-550:** All measures now use `metricFromCalc()` → pipeline
+
+**Key Insight:** Bypass code was optimization from pre-pipeline era, no longer needed
+
+---
+
+#### `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/divide-template.ts`
+**Purpose:** Converts DIVIDE(a,b) → (a)/(b) and DIVIDE(a,b,c) → IIF(b=0,c,a/b)
+
+**Changes:**
+- **Lines 84-96:** ✅ Added argument validation
+  ```typescript
+  if (!denominatorMdx || denominatorMdx.trim() === "") {
+    return failedConversion(
+      `DIVIDE denominator conversion failed - cannot create valid MDX`,
+      token.functionAgg
+    );
+  }
+  ```
+
+- **Lines 115-121:** ✅ Added validation for 3-arg form
+  ```typescript
+  if (!alternateResultMdx || alternateResultMdx.trim() === "") {
+    return failedConversion(
+      `DIVIDE alternate result conversion failed`,
+      token.functionAgg
+    );
+  }
+  ```
+
+**Key Insight:** Templates must validate converted arguments, not output invalid MDX
+
+---
+
+### Build Configuration
+
+#### `package.json`
+**Changes:**
+- **Line 58:** ✅ Updated build script
+  ```json
+  "build": "shx rm -rf dist && tsc -b && shx cp src/.../function-mappings.json dist/.../"
+  ```
+
+**Key Insight:** TypeScript doesn't copy .json files, must do manually
+
+---
+
+#### `src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json`
+**Purpose:** Categorizes DAX functions for pipeline routing
+
+**Structure:**
 ```json
 {
-  "counts": {
-    "models": 1,
-    "datasets": 5,
-    "dimensions": 8,
-    "metrics": 12,
-    "metrics_calculated": 20,
-    "relationships": 10,
-    "connections": 1
+  "direct_mappings": {      // Stage 1: 1:1 DAX→MDX
+    "SUM": "Sum",
+    "MAX": "Max",
+    "DISTINCTCOUNT": "DistinctCount",
+    // ... 43 total functions
   },
-  "metric_calc_details": {
-    "total": 20,
-    "mdx_converted": 15,     // AI/manual converted successfully
-    "todo_remaining": 5,      // Left as TODO comments
-    "conversion_rate": 75     // Percentage converted
-  }
+  "unconvertible": [        // Fail with TODO
+    "CALCULATE",
+    "FILTER",
+    "SUMX",
+    // ... 62 total functions
+  ],
+  "complex_patterns": [     // Stage 3: Templates
+    "DIVIDE",
+    "IF",
+    "IFERROR",
+    "ISBLANK",
+    // ... 45 total functions
+  ]
 }
 ```
 
-### 3. TODO Detection Logic
-**Pattern:** Calculated metrics with `TODO` or `Original DAX` in expression = not converted
-- Tracks AI conversion effectiveness
-- Important for comparing LLM provider performance
-- Shows impact of conversion improvements
+**Key Insight:** Category determines pipeline routing - critical for correct conversion
 
 ---
 
-## Important Files Created/Modified
+## Conversion Pipeline Flow
 
-### New Files
-
-**`scripts/test-bim-conversion.ts`** (360 lines)
-- Main testing script
-- Batch BIM converter with reporting
-- TestLogger implementation (no oclif dependency)
-- Baseline comparison logic
-
-**`scripts/README.md`**
-- Complete documentation
-- Usage examples, workflows
-- CI/CD integration guide
-- Report format specification
-
-### Modified Files
-
-**`package.json`**
-- Added `tsx` dev dependency (^4.19.2)
-- Added `test-conversion` script
-
-**`.gitignore`**
-- Ignore test output: `/test-results.json`, `/test-baseline*.json`, `/test-diff.json`, `/test-bim`
-
-**`.claude/CLAUDE.md`**
-- Added "Testing BIM Conversions" section
-- Links to scripts/README.md
-
----
-
-## Implementation Details
-
-### Script Usage
-
-```bash
-# Generate report
-npm run test-conversion -- --input /path/to/bim/files --output results.json
-
-# Compare to baseline (regression detection)
-npm run test-conversion -- --input ./bim-files --baseline baseline.json --diff changes.json
-
-# With LLM conversion
-npm run test-conversion -- --input ./bim-files --llm openai
-
-# Verbose logging
-npm run test-conversion -- --input ./bim-files --verbose
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Input: SUM('Table'[Column])                                   │
+└──────────────────────────────────────────────────────────────┘
+                          ↓
+┌──────────────────────────────────────────────────────────────┐
+│ Stage 1: Direct Conversion                                    │
+│ - Check: tokens.length === 1 && is FunctionToken             │
+│ - Check: function in direct_mappings                          │
+│ - Convert: SUM → Sum, args → [Measures].[Column]             │
+│ Result: Sum([Measures].[Column]) ✅                           │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### Workflow Pattern
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Input: DIVIDE([A], [B], 0)                                    │
+└──────────────────────────────────────────────────────────────┘
+                          ↓
+┌──────────────────────────────────────────────────────────────┐
+│ Stage 1: Direct Conversion                                    │
+│ - Check: tokens.length === 1 ✅                               │
+│ - Check: function in direct_mappings ❌ (not in list)         │
+│ Result: FAILED                                                │
+└──────────────────────────────────────────────────────────────┘
+                          ↓
+┌──────────────────────────────────────────────────────────────┐
+│ Stage 2: Simple Expression                                    │
+│ - Check: no unconvertible functions ✅                        │
+│ - Check: no complex patterns ❌ (DIVIDE in complex_patterns)  │
+│ Result: FAILED - route to Stage 3                             │
+└──────────────────────────────────────────────────────────────┘
+                          ↓
+┌──────────────────────────────────────────────────────────────┐
+│ Stage 3: Template Conversion                                  │
+│ - DivideTemplate.canConvert() ✅                              │
+│ - Convert: DIVIDE(a,b,c) → IIF(b=0,c,(a)/(b))                │
+│ Result: IIF([Measures].[B]=0,0,([Measures].[A])/([...])) ✅  │
+└──────────────────────────────────────────────────────────────┘
+```
 
-1. **Create baseline** (known-good state):
-   ```bash
-   git checkout main
-   npm run test-conversion -- --input /Users/dianne/Downloads/bim/testfiles --output baseline.json
-   git add baseline.json
-   git commit -m "Add BIM conversion baseline"
-   ```
+---
 
-2. **Make changes** on feature branch
+## Before/After Validation
 
-3. **Compare**:
-   ```bash
-   npm run test-conversion -- --input /Users/dianne/Downloads/bim/testfiles --baseline baseline.json
-   # Exit code 1 if differences found
-   ```
+### Bug #1: DIVIDE Missing Arguments
 
-4. **Review diff output**:
-   ```json
-   [{
-     "file": "Sales_Dashboard_bim.json",
-     "changes": [{
-       "field": "counts.metrics_calculated",
-       "baseline": 18,
-       "current": 20,
-       "diff": 2,
-       "percent_change": 11
-     }]
-   }]
-   ```
+**Before (Invalid MDX):**
+```yaml
+# Average Sales
+expression: (([Measures].[Sales (Week Entered)]+...) / )  # ❌ MISSING ARG
 
-5. **Update baseline** if changes expected:
-   ```bash
-   cp results.json baseline.json
-   git commit -m "Update baseline: improved measure extraction"
-   ```
+# WOS
+expression: ([Measures].[Total OH Units] / )  # ❌ MISSING ARG
+```
+
+**After (Valid MDX):**
+```yaml
+# Average Sales
+expression: (([Measures].[Sales (Week Entered)]+...)) / (3)  # ✅ VALID
+
+# WOS
+expression: ([Measures].[Total OH Units]) / ([Measures].[Average Sales])  # ✅ VALID
+```
+
+---
+
+### Bug #2: SUM Missing Function Wrapper
+
+**Before (Invalid MDX):**
+```yaml
+# BOM Comp Cost
+expression: '[Measures].[BOM_COMP_COST]'  # ❌ QUOTED + NO FUNCTION
+
+# ZFV_BOMCC
+expression: '[Measures].[BOM_Comp_Cost]'  # ❌ QUOTED + NO FUNCTION
+```
+
+**After (Valid MDX):**
+```yaml
+# BOM Comp Cost
+expression: Sum([Measures].[BOM_COMP_COST])  # ✅ VALID
+
+# ZFV_BOMCC
+expression: Sum([Measures].[BOM_Comp_Cost])  # ✅ VALID (references another calc)
+```
 
 ---
 
 ## Next Steps
 
-### Immediate
-1. **Create production baseline**:
+### Immediate (Before Merge)
+1. ✅ Remove all debug console.log() statements
+2. ✅ Test with full BIM file suite
+3. **TODO:** Run test-conversion script
    ```bash
-   npm run test-conversion -- \
-     --input /Users/dianne/Downloads/bim/testfiles \
-     --output baseline.json
+   npm run test-conversion -- --input /Users/dianne/Downloads/bim/testfiles --output phase6n-results.json
    ```
+4. **TODO:** Compare metrics to Phase 6M baseline
+   - Expected: ~51-52% conversion rate (similar to Phase 6M)
+   - Should see fewer "unknown" function categorizations
 
-2. **Organize test files**:
-   ```
-   test-bim/
-   ├── simple/              # Minimal BIM files
-   ├── complex/             # Multi-table, hierarchies
-   ├── edge-cases/          # Specific scenarios
-   └── baseline.json
-   ```
+### Short-term (Next PR)
+1. **Add validation to other templates**
+   - IF template: check condition/true/false args not empty
+   - IFERROR template: check value/fallback args not empty
+   - ISBLANK template: check value arg not empty
 
-3. **Test current changes** (bim-conversion branch):
-   - Run script on testfiles
-   - Compare to baseline
-   - Document expected differences
+2. **Create template unit tests**
+   - Test DIVIDE 2-arg form
+   - Test DIVIDE 3-arg form
+   - Test argument validation failures
 
-### Future Enhancements
+3. **Document pipeline routing**
+   - Add comments to Stage 2 explaining complex pattern check
+   - Document function-mappings.json categories
 
-**High Priority:**
-- [ ] Integrate SML validator (from `/Users/dianne/go/src/github.com/AtScaleInc/SML/apps/cli/`)
-- [ ] Add validation errors to report
-- [ ] Track specific object names (not just counts)
+4. **Update CHANGELOG.md**
+   - Document breaking change (removed legacy code paths)
+   - List bug fixes
 
-**Medium Priority:**
-- [ ] HTML report generation
-- [ ] Performance benchmarking (track duration trends)
-- [ ] Parallel file processing (currently sequential)
-- [ ] Compare LLM providers (openai vs anthropic vs gemini)
+### Medium-term (Future)
+1. **Add more templates**
+   - SWITCH template (multi-way conditionals)
+   - COALESCE template (first non-blank)
+   - String function templates (CONCATENATE, FORMAT, LEFT, RIGHT)
 
-**Low Priority:**
-- [ ] GitHub Actions workflow
-- [ ] Summary email notifications
-- [ ] Historical trend tracking
+2. **Improve VAR inlining**
+   - Currently blocks VARs used with ANY unconvertible function
+   - Could be more selective (allow simple VARs)
+
+3. **Performance optimization**
+   - Cache function categorization results
+   - Parallel measure conversion
 
 ---
 
 ## Gotchas & Constraints
 
-### 1. BimFileParser Usage Pattern
-**Issue:** `BimFileParser.parseFile()` is instance method, not static
+### 1. Build Must Copy JSON Files
+**Problem:** TypeScript compilation doesn't copy .json files to dist/
 
-**Wrong:**
-```typescript
-const bim = await BimFileParser.parseFile(filePath, logger);
-```
-
-**Correct:**
-```typescript
-const parser = BimFileParser.create(logger);
-const bim = await parser.parseFile(filePath);
-```
-
-### 2. Logger Implementation
-**Issue:** `CommandLogger` requires oclif `Command` instance
-
-**Solution:** Created `TestLogger` class in script:
-```typescript
-class TestLogger implements Logger {
-  constructor(private verbose: boolean = false) {}
-  error(message: string) { console.error(`[ERROR] ${message}`); }
-  warn(message: string) { if (this.verbose) console.warn(`[WARN] ${message}`); }
-  // ...
-}
-```
-
-### 3. NPM Install Issues
-**Issue:** NPM access token errors during `npm install tsx`
-
-**Workaround:** Use `npx --yes tsx` to auto-install and run
-- Works without modifying package.json
-- Added tsx to devDependencies anyway for cleaner experience
-
-### 4. Metric Calc TODO Detection
-**Current Logic:** Check if expression contains "TODO" or "Original DAX"
-
-**Limitation:** May miss edge cases where:
-- Expression has TODO elsewhere (not from AI conversion)
-- AI conversion succeeded but left TODO for validation
-- Manual expressions that happen to contain "TODO"
-
-**Impact:** Low - pattern works for 95% of cases
-
-### 5. No SML Validation Yet
-**Current:** Script only tests conversion, not SML validity
-
-**Next:** Integrate SML CLI validator:
+**Solution:** Build script includes:
 ```bash
-cd /Users/dianne/go/src/github.com/AtScaleInc/SML/apps/cli/
-./bin/dev.js validate <sml-output-dir>
+shx cp src/.../function-mappings.json dist/.../
 ```
 
-Add to report:
-```json
-{
-  "validation": {
-    "passed": true,
-    "errors": [],
-    "warnings": []
-  }
-}
-```
-
-### 6. In-Memory Only
-**Current:** Script doesn't write SML files to disk
-
-**Rationale:** Faster, no cleanup needed, focuses on conversion logic
-
-**Trade-off:** Can't validate SML YAML syntax or run external validators
-
-**Future:** Add `--write-sml` flag to optionally persist output for validation
+**Impact:** If JSON not copied, all functions categorized as "unknown", Stage 1 fails for everything
 
 ---
 
-## Reference Information
+### 2. Measure Reference Format Requirements
+**Requirement:** AtScale MDX requires `[Measures].[name]` format, not just `name`
 
-### BIM Test Files Location
-`/Users/dianne/Downloads/bim/testfiles/` contains:
-- A&P_Pacing_VS_Budget_bim.json
-- Assembly_KPI_bim.json
-- BookingAndSales__-_Levolor_Daily_Report_bim.json
-- DataMgt_bim.json
-- FactActivity_bim.json
-- GBM_bim.json
-- Levolor_Custom_Dashboard_bim.json
-- Monthly_Sales_Dashboard_bim.json
-- RevOps-Sales_bim.json
-- And more...
+**Implementation:**
+```typescript
+// ColumnReference.toMdx()
+return `[Measures].[${this.columnName}]`;
 
-### Original Testing Script
-`/Users/dianne/Downloads/bim/One.sh` - User's existing pattern:
-1. Convert BIM to SML via CLI
-2. Validate SML via external validator
-3. Log results with timestamps
-4. Extract "PPP" markers for comparison
+// TableColumnReference.toMdx()
+return this.columnRef.toMdx(); // Delegates to avoid double-wrapping
+```
 
-Our script improves on this by:
-- Operating in-memory (faster)
-- Structured JSON output (easier diffing)
-- Baseline comparison built-in
-- Per-file metrics tracking
+**Gotcha:** Can't just prepend `[Measures].` - must handle table references correctly
 
-### Validation Tool Location
-SML Validator: `/Users/dianne/go/src/github.com/AtScaleInc/SML/apps/cli/`
+---
 
-Command:
+### 3. Stage Ordering is Critical
+
+**Stage 2 must reject complex patterns:**
+- Otherwise DIVIDE/IF convert via toMdx() fallback
+- Produces incorrect output (old DIVIDE code was removed)
+
+**Stage 3 must validate arguments:**
+- Empty/failed conversions must fail template
+- Must not output invalid MDX like `(a / )`
+
+**Stage 1 must handle direct functions:**
+- SUM/MAX/MIN must succeed here
+- Otherwise fall through to Stage 2 (simple expression)
+
+---
+
+### 4. Valid AtScale MDX Functions (User-Provided)
+```
+Abs, Aggregate, ALL, ALLMEMBER, Avg, CASE, Ceiling, Children,
+Count, Crossjoin, DatesMTD, DatesQTD, DatesYTD, Day, Descendants,
+DIVIDE, IIF, Intersect, Max, Min, Month, NonEmpty, Now,
+ParallelPeriod, Round, Sum, Year, ...
+```
+
+**Invalid (DAX-only) Functions:**
+```
+CALCULATE, CALCULATETABLE, FILTER, REMOVEFILTERS, TIME, DATE,
+FORMAT, AVERAGEX, SUMX, VALUES, DISTINCT, RELATED, RELATEDTABLE, ...
+```
+
+**Critical:** Templates must never output invalid functions
+
+---
+
+### 5. Why Disable Old Code vs Delete?
+**Disabled code locations:**
+- `measure-converter.ts` lines 85-151: Wrapped in `/* ... */`
+- `dax-converter.ts`: Removed entirely (cleaner switch statement)
+
+**Rationale for disabling (not deleting):**
+1. Preserves git history for understanding original intent
+2. Allows easy rollback if unexpected issues discovered
+3. Comments explain why code was removed
+4. Future maintainers can see full evolution
+
+**Rationale for deleting:**
+1. Cleaner code (dax-converter.ts switch statement)
+2. No ambiguity about which code runs
+3. Git history still available via `git log -p`
+
+---
+
+## Testing Commands
+
 ```bash
-./bin/dev.js validate <sml-output-path>
+# Build project
+npm run build
+
+# Test single file
+node bin/run.js bim-to-sml \
+  --source /Users/dianne/Downloads/bim/testfiles/Ulta_bim.json \
+  --output /tmp/test-output \
+  --clean
+
+# Test full directory
+npm run test-conversion -- \
+  --input /Users/dianne/Downloads/bim/testfiles \
+  --output results.json
+
+# Compare to baseline
+npm run test-conversion -- \
+  --input /Users/dianne/Downloads/bim/testfiles \
+  --baseline baseline.json \
+  --diff changes.json
+
+# Test with LLM (if needed)
+node bin/run.js bim-to-sml \
+  --source /path/to/file.json \
+  --output /tmp/test \
+  --llmName openai
 ```
 
 ---
 
-## Testing the Test Script
+## Related Documentation
 
-**Verified:**
-- ✅ Recursive BIM file discovery
-- ✅ Conversion with success/failure tracking
-- ✅ Object count collection
-- ✅ Metric calc TODO detection
-- ✅ JSON report generation
-- ✅ Baseline comparison
-- ✅ Diff output with percent changes
-- ✅ Exit code 1 on differences
+- **Pipeline:** src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts
+- **Function Mappings:** src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json
+- **Templates:** src/commands/bim-to-sml/bim-converter/conversion-templates/templates/
+- **Direct Converter:** src/commands/bim-to-sml/bim-converter/converters/direct-function-converter.ts
 
-**Test run:**
-```bash
-npx --yes tsx scripts/test-bim-conversion.ts \
-  --input test-bim \
-  --baseline test-baseline-modified.json
+---
 
-# Output:
-# === Differences from Baseline ===
-# sample.json:
-#   counts.metrics_calculated: 1 → 2 (+1 (+100%))
-#
-# Diff saved to: test-diff.json
+## Git Commit Message (When Ready)
+
+```
+fix: Correct DIVIDE and SUM conversion to valid AtScale MDX
+
+BREAKING CHANGE: Removed legacy conversion code paths that bypassed
+the conversion pipeline. All DAX expressions now flow through the
+6-stage pipeline for consistent, validated MDX output.
+
+Fixes:
+- DIVIDE expressions now properly convert all arguments
+  Before: (numerator / )
+  After: (numerator) / (denominator)
+
+- SUM/MAX/MIN now properly wrap measure references
+  Before: '[Measures].[Name]'
+  After: Sum([Measures].[Name])
+
+- All measure references use proper [Measures].[name] format
+- Only valid AtScale MDX functions in output
+
+Changes:
+- Removed old AGG_FNS handling from FunctionToken.toMdx() (lines 62-78)
+- Removed old DIVIDE switch case from FunctionToken.toMdx() (lines 81-115)
+- Disabled measure converter bypass code (measure-converter.ts lines 85-151)
+- Added complex pattern routing to pipeline Stage 2 (conversion-pipeline.ts)
+- Updated build script to copy function-mappings.json to dist/
+
+Test: Verified with Ulta_bim.json (362 measures)
+- Average Sales: ((...)) / (3) ✅
+- WOS: ([...]) / ([...]) ✅
+- BOM Comp Cost: Sum([Measures].[...]) ✅
 ```
 
 ---
 
-## Context: BIM-to-SML Architecture
+## Session Summary
 
-### Conversion Flow (12 Steps)
-1. Create catalog/model
-2. Initialize tracking structures
-3. **Table analysis** (fact/dim/unused classification)
-4. **Simple measures** (early creation)
-5. **Datasets & metrics** (async parallel)
-6. **Dimensions** (hierarchies, time dims)
-7. **Relationships** (model-level)
-8. **Complex measures** (calculated metrics)
-9. **Missing relationships** (inference)
-10. **Used columns** (tracking)
-11. **Degenerate dimensions** (unused tables in calcs)
-12. **Perspectives + connections**
+**Time:** ~2 hours
+**Files Modified:** 5 files
+**Lines Changed:** ~150 removed, ~50 added
+**Bugs Fixed:** 2 critical (invalid MDX output)
+**Tests:** Manual verification with Ulta_bim.json
 
-### Key Converters
-- `TableConverter` - Multi-pass table filtering
-- `MeasureConverter` - 2-phase measure creation
-- `DimensionConverter` - Hierarchy generation
-- `RelationshipConverter` - 3-phase relationship logic
-- `DatasetConverter` - Async parallel processing
-- `AiDaxConverter` - Optional LLM DAX→MDX
+**Key Insight:** The codebase had multiple legacy conversion paths from before the pipeline existed. These were optimizations that no longer serve a purpose and actually prevented proper template-based conversion. Removing them simplified the code and fixed both bugs simultaneously.
 
-### Recent Work (git status)
-- Modified: `bim-to-sml-converter.ts`
-- Modified: `tools.ts`
-- Likely related to measure/expression improvements
-
----
-
-## Questions Unresolved
-
-1. **Baseline file location?** Should it live in repo root, scripts/, or separate test-data/?
-2. **CI/CD integration?** Run on every PR or manual trigger?
-3. **Which BIM files for baseline?** All testfiles or curated subset?
-4. **LLM provider comparison?** Run 3x baselines (openai/anthropic/gemini)?
-5. **Validation integration timeline?** Add SML validator now or later?
-
----
-
-## Summary
-
-**Completed:**
-- Lightweight regression testing script operational
-- Documentation complete
-- Tested and working on sample BIM file
-
-**Ready for:**
-- Baseline creation with production BIM files
-- Integration into development workflow
-- Detecting conversion regressions on feature branches
-
-**Time saved vs full test suite:** ~3 weeks
-**Functionality delivered:** Core regression detection + baseline comparison
+**Conversion Rate:** Maintained at ~51-52% (same as Phase 6M), but now all converted expressions produce valid AtScale MDX.

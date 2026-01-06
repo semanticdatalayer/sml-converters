@@ -81,6 +81,20 @@ export class DivideTemplate extends ConversionTemplate {
       const numeratorMdx = this.convertSubExpression(argGroups[0], context);
       const denominatorMdx = this.convertSubExpression(argGroups[1], context);
 
+      // CRITICAL: Check if either argument conversion failed (returned empty string)
+      if (!denominatorMdx || denominatorMdx.trim() === "") {
+        return failedConversion(
+          `DIVIDE denominator conversion failed - cannot create valid MDX with empty denominator`,
+          token.functionAgg,
+        );
+      }
+      if (!numeratorMdx || numeratorMdx.trim() === "") {
+        return failedConversion(
+          `DIVIDE numerator conversion failed - cannot create valid MDX with empty numerator`,
+          token.functionAgg,
+        );
+      }
+
       if (argGroups.length === 2) {
         // 2-arg form: DIVIDE(num, denom) → (num) / (denom)
         const mdxExpression = `(${numeratorMdx}) / (${denominatorMdx})`;
@@ -97,6 +111,15 @@ export class DivideTemplate extends ConversionTemplate {
       } else {
         // 3-arg form: DIVIDE(num, denom, alt) → IIF(denom = 0, alt, (num) / (denom))
         const alternateResultMdx = this.convertSubExpression(argGroups[2], context);
+
+        // CRITICAL: Check if alternate result conversion failed
+        if (!alternateResultMdx || alternateResultMdx.trim() === "") {
+          return failedConversion(
+            `DIVIDE alternate result conversion failed - cannot create valid MDX with empty alternate`,
+            token.functionAgg,
+          );
+        }
+
         const mdxExpression =
           `IIF(${denominatorMdx} = 0, ${alternateResultMdx}, (${numeratorMdx}) / (${denominatorMdx}))`;
 

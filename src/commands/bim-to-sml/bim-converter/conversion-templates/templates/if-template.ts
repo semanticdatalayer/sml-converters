@@ -73,6 +73,17 @@ export class IfTemplate extends ConversionTemplate {
       );
     }
 
+    // CRITICAL: Check that arguments don't contain unconvertible functions
+    // This prevents outputting invalid MDX like "IIF(CALCULATE(...), ...)"
+    for (let i = 0; i < argGroups.length; i++) {
+      if (this.containsUnconvertibleFunctions(argGroups[i], context)) {
+        return failedConversion(
+          `${funcName} argument ${i} contains unconvertible functions - cannot convert to valid MDX`,
+          token.functionAgg,
+        );
+      }
+    }
+
     try {
       // Convert argument tokens to MDX - may recursively invoke templates
       const conditionMdx = this.convertSubExpression(argGroups[0], context);

@@ -1,0 +1,2746 @@
+{
+  "timestamp": "2026-01-03T02:12:21.394Z",
+  "input_directory": "/Users/dianne/Downloads/bim/testfiles",
+  "total_files": 116,
+  "successful": 83,
+  "failed": 33,
+  "llm_enabled": false,
+  "summaries": [
+    {
+      "file": "A&P_Pacing_VS_Budget_bim.json",
+      "success": true,
+      "duration_ms": 13,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 2,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 2,
+        "mdx_converted": 0,
+        "todo_remaining": 2,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 2
+        }
+      }
+    },
+    {
+      "file": "Assembly_KPI_bim.json",
+      "success": true,
+      "duration_ms": 46,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 303,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 303,
+        "mdx_converted": 43,
+        "todo_remaining": 260,
+        "conversion_rate": 14,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 43,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 260
+        }
+      }
+    },
+    {
+      "file": "Assembly_KPIs_Model_bim.json",
+      "success": true,
+      "duration_ms": 28,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 237,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 237,
+        "mdx_converted": 33,
+        "todo_remaining": 204,
+        "conversion_rate": 14,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 33,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 204
+        }
+      }
+    },
+    {
+      "file": "BayerVital_bim.json",
+      "success": false,
+      "error": "Unknown time field in field: KalenderJahr",
+      "duration_ms": 27,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "BookingAndSales__-_Levolor_Daily_Report_bim.json",
+      "success": true,
+      "duration_ms": 5,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 2,
+        "metrics": 8,
+        "metrics_calculated": 22,
+        "relationships": 3,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 22,
+        "mdx_converted": 1,
+        "todo_remaining": 21,
+        "conversion_rate": 5,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 1,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 21
+        }
+      }
+    },
+    {
+      "file": "Booking_And_Sales_Dataset_bim.json",
+      "success": true,
+      "duration_ms": 6,
+      "counts": {
+        "models": 1,
+        "datasets": 4,
+        "dimensions": 3,
+        "metrics": 27,
+        "metrics_calculated": 16,
+        "relationships": 6,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 16,
+        "mdx_converted": 0,
+        "todo_remaining": 16,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 16
+        }
+      }
+    },
+    {
+      "file": "Booking_Forecast_Dashboard_bim.json",
+      "success": true,
+      "duration_ms": 6,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 2,
+        "metrics": 21,
+        "metrics_calculated": 35,
+        "relationships": 3,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 35,
+        "mdx_converted": 7,
+        "todo_remaining": 28,
+        "conversion_rate": 20,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 7,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 28
+        }
+      }
+    },
+    {
+      "file": "CBG_Points_Leaderboard_bim.json",
+      "success": true,
+      "duration_ms": 6,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 1,
+        "metrics": 33,
+        "metrics_calculated": 20,
+        "relationships": 2,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 20,
+        "mdx_converted": 4,
+        "todo_remaining": 16,
+        "conversion_rate": 20,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 4,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 16
+        }
+      }
+    },
+    {
+      "file": "Category_Analysis_bim.json",
+      "success": true,
+      "duration_ms": 8,
+      "counts": {
+        "models": 1,
+        "datasets": 6,
+        "dimensions": 4,
+        "metrics": 11,
+        "metrics_calculated": 45,
+        "relationships": 8,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 45,
+        "mdx_converted": 35,
+        "todo_remaining": 10,
+        "conversion_rate": 78,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 35,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 10
+        }
+      }
+    },
+    {
+      "file": "Commercial_-_NA_bim.json",
+      "success": true,
+      "duration_ms": 75,
+      "counts": {
+        "models": 1,
+        "datasets": 11,
+        "dimensions": 5,
+        "metrics": 8,
+        "metrics_calculated": 677,
+        "relationships": 21,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 677,
+        "mdx_converted": 164,
+        "todo_remaining": 513,
+        "conversion_rate": 24,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 164,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 513
+        }
+      }
+    },
+    {
+      "file": "Commercial_KPIs_bim.json",
+      "success": true,
+      "duration_ms": 79,
+      "counts": {
+        "models": 1,
+        "datasets": 2,
+        "dimensions": 1,
+        "metrics": 7,
+        "metrics_calculated": 477,
+        "relationships": 1,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 477,
+        "mdx_converted": 81,
+        "todo_remaining": 396,
+        "conversion_rate": 17,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 81,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 396
+        }
+      }
+    },
+    {
+      "file": "Corole_Fabrics_Invoices_bim.json",
+      "success": true,
+      "duration_ms": 2,
+      "counts": {
+        "models": 1,
+        "datasets": 4,
+        "dimensions": 3,
+        "metrics": 47,
+        "metrics_calculated": 0,
+        "relationships": 6,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "DaVinci_Usage_Metrics_Report_bim.json",
+      "success": true,
+      "duration_ms": 10,
+      "counts": {
+        "models": 1,
+        "datasets": 10,
+        "dimensions": 6,
+        "metrics": 24,
+        "metrics_calculated": 48,
+        "relationships": 14,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 48,
+        "mdx_converted": 20,
+        "todo_remaining": 28,
+        "conversion_rate": 42,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 20,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 28
+        }
+      }
+    },
+    {
+      "file": "DataMgt_bim.json",
+      "success": true,
+      "duration_ms": 35,
+      "counts": {
+        "models": 1,
+        "datasets": 33,
+        "dimensions": 25,
+        "metrics": 8,
+        "metrics_calculated": 155,
+        "relationships": 52,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 155,
+        "mdx_converted": 19,
+        "todo_remaining": 136,
+        "conversion_rate": 12,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 19,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 136
+        }
+      }
+    },
+    {
+      "file": "Dealer_Performance_Dashboard_bim.json",
+      "success": true,
+      "duration_ms": 91,
+      "counts": {
+        "models": 1,
+        "datasets": 2,
+        "dimensions": 1,
+        "metrics": 7,
+        "metrics_calculated": 477,
+        "relationships": 1,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 477,
+        "mdx_converted": 81,
+        "todo_remaining": 396,
+        "conversion_rate": 17,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 81,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 396
+        }
+      }
+    },
+    {
+      "file": "EU_Safety_Model_bim.json",
+      "success": true,
+      "duration_ms": 1,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 2,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 2,
+        "mdx_converted": 0,
+        "todo_remaining": 2,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 2
+        }
+      }
+    },
+    {
+      "file": "External_Dashboard_Index_bim.json",
+      "success": true,
+      "duration_ms": 2,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "FactAccountAging_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "FactAccountsReceivable_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "FactActivityTask_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "FactActivity_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "FactAutoCoverage_Pivot_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "FactBillingRegister_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "FactCoverage_Pivot_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "FactDepositRegister_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 0,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "FactGeneralLedgerRegister_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "FactPolicyLine_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 2,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "FactPolicyLocation_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 5,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "FactProduction_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 2,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "FactTransactionReconciliation_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 0,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "GBM_bim.json",
+      "success": true,
+      "duration_ms": 166,
+      "counts": {
+        "models": 1,
+        "datasets": 16,
+        "dimensions": 8,
+        "metrics": 12,
+        "metrics_calculated": 2123,
+        "relationships": 39,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 2123,
+        "mdx_converted": 711,
+        "todo_remaining": 1412,
+        "conversion_rate": 33,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 711,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 1412
+        }
+      }
+    },
+    {
+      "file": "Global_Report_-_Assembly_KPIs_bim.json",
+      "success": true,
+      "duration_ms": 69,
+      "counts": {
+        "models": 1,
+        "datasets": 2,
+        "dimensions": 1,
+        "metrics": 55,
+        "metrics_calculated": 341,
+        "relationships": 1,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 341,
+        "mdx_converted": 19,
+        "todo_remaining": 322,
+        "conversion_rate": 6,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 19,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 322
+        }
+      }
+    },
+    {
+      "file": "HDNA_Magellan_Report_bim.json",
+      "success": true,
+      "duration_ms": 9,
+      "counts": {
+        "models": 1,
+        "datasets": 2,
+        "dimensions": 1,
+        "metrics": 10,
+        "metrics_calculated": 32,
+        "relationships": 2,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 32,
+        "mdx_converted": 6,
+        "todo_remaining": 26,
+        "conversion_rate": 19,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 6,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 26
+        }
+      }
+    },
+    {
+      "file": "HDT07_Overview_bim.json",
+      "success": true,
+      "duration_ms": 1,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "Hilcorp_SSAS_Model_bim.json",
+      "success": true,
+      "duration_ms": 16,
+      "counts": {
+        "models": 1,
+        "datasets": 23,
+        "dimensions": 18,
+        "metrics": 14,
+        "metrics_calculated": 42,
+        "relationships": 35,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 42,
+        "mdx_converted": 15,
+        "todo_remaining": 27,
+        "conversion_rate": 36,
+        "by_category": {
+          "direct_conversion": 2,
+          "template_conversion": 13,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 27
+        }
+      }
+    },
+    {
+      "file": "Hilcorp_bim.json",
+      "success": true,
+      "duration_ms": 15,
+      "counts": {
+        "models": 1,
+        "datasets": 23,
+        "dimensions": 18,
+        "metrics": 14,
+        "metrics_calculated": 42,
+        "relationships": 35,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 42,
+        "mdx_converted": 15,
+        "todo_remaining": 27,
+        "conversion_rate": 36,
+        "by_category": {
+          "direct_conversion": 2,
+          "template_conversion": 13,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 27
+        }
+      }
+    },
+    {
+      "file": "Interactive_PVM_bim.json",
+      "success": true,
+      "duration_ms": 8,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 10,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 10,
+        "mdx_converted": 1,
+        "todo_remaining": 9,
+        "conversion_rate": 10,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 1,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 9
+        }
+      }
+    },
+    {
+      "file": "Jira_bim.json",
+      "success": true,
+      "duration_ms": 9,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 2,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 2,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "KPI_Tracker_bim.json",
+      "success": true,
+      "duration_ms": 18,
+      "counts": {
+        "models": 1,
+        "datasets": 6,
+        "dimensions": 4,
+        "metrics": 23,
+        "metrics_calculated": 146,
+        "relationships": 8,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 146,
+        "mdx_converted": 60,
+        "todo_remaining": 86,
+        "conversion_rate": 41,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 60,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 86
+        }
+      }
+    },
+    {
+      "file": "Levolor_Custom_Dashboard_bim.json",
+      "success": true,
+      "duration_ms": 6,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 2,
+        "metrics": 41,
+        "metrics_calculated": 35,
+        "relationships": 7,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 35,
+        "mdx_converted": 8,
+        "todo_remaining": 27,
+        "conversion_rate": 23,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 8,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 27
+        }
+      }
+    },
+    {
+      "file": "Levolor_Daily_Report_-_Hana_Validation_bim.json",
+      "success": true,
+      "duration_ms": 5,
+      "counts": {
+        "models": 1,
+        "datasets": 2,
+        "dimensions": 1,
+        "metrics": 10,
+        "metrics_calculated": 14,
+        "relationships": 2,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 14,
+        "mdx_converted": 0,
+        "todo_remaining": 14,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 14
+        }
+      }
+    },
+    {
+      "file": "MDWCoverageGRG_bim.json",
+      "success": false,
+      "error": "Unexpected token '<', \"<Create xm\"... is not valid JSON",
+      "duration_ms": 3,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "MDWPolicyCubeXMLA_bim.json",
+      "success": false,
+      "error": "Unexpected token '<', \"<DataSourc\"... is not valid JSON",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "MDWPolicyGRG_bim.json",
+      "success": false,
+      "error": "Unexpected token '<', \"<Create xm\"... is not valid JSON",
+      "duration_ms": 6,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "MDWRateChange_bim.json",
+      "success": false,
+      "error": "Unexpected token '<', \"<Create xm\"... is not valid JSON",
+      "duration_ms": 3,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "MDWRetention_bim.json",
+      "success": false,
+      "error": "Unexpected token '<', \"<Create xm\"... is not valid JSON",
+      "duration_ms": 4,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "MDWVehicleGRG_bim.json",
+      "success": false,
+      "error": "Unexpected token '<', \"<Create xm\"... is not valid JSON",
+      "duration_ms": 5,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "Machining_Performance.Loss__Model_bim.json",
+      "success": true,
+      "duration_ms": 51,
+      "counts": {
+        "models": 1,
+        "datasets": 29,
+        "dimensions": 19,
+        "metrics": 113,
+        "metrics_calculated": 231,
+        "relationships": 47,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 231,
+        "mdx_converted": 106,
+        "todo_remaining": 125,
+        "conversion_rate": 46,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 106,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 125
+        }
+      }
+    },
+    {
+      "file": "Magellan_-_Usage_Metrics_Report_bim.json",
+      "success": true,
+      "duration_ms": 11,
+      "counts": {
+        "models": 1,
+        "datasets": 10,
+        "dimensions": 6,
+        "metrics": 24,
+        "metrics_calculated": 48,
+        "relationships": 14,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 48,
+        "mdx_converted": 20,
+        "todo_remaining": 28,
+        "conversion_rate": 42,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 20,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 28
+        }
+      }
+    },
+    {
+      "file": "Magellan_Budgets_bim.json",
+      "success": true,
+      "duration_ms": 2,
+      "counts": {
+        "models": 1,
+        "datasets": 2,
+        "dimensions": 1,
+        "metrics": 33,
+        "metrics_calculated": 0,
+        "relationships": 3,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "Magellan_CBG_Points_Leaderboard_bim.json",
+      "success": true,
+      "duration_ms": 7,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 1,
+        "metrics": 33,
+        "metrics_calculated": 20,
+        "relationships": 2,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 20,
+        "mdx_converted": 4,
+        "todo_remaining": 16,
+        "conversion_rate": 20,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 4,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 16
+        }
+      }
+    },
+    {
+      "file": "Magellan_Daily_Sales_bim.json",
+      "success": true,
+      "duration_ms": 87,
+      "counts": {
+        "models": 1,
+        "datasets": 21,
+        "dimensions": 17,
+        "metrics": 65,
+        "metrics_calculated": 360,
+        "relationships": 67,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 360,
+        "mdx_converted": 33,
+        "todo_remaining": 327,
+        "conversion_rate": 9,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 33,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 327
+        }
+      }
+    },
+    {
+      "file": "Magellan_RLS_Test_-_12-11-24_bim.json",
+      "success": true,
+      "duration_ms": 3,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 2,
+        "metrics": 42,
+        "metrics_calculated": 6,
+        "relationships": 5,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 6,
+        "mdx_converted": 4,
+        "todo_remaining": 2,
+        "conversion_rate": 67,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 4,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 2
+        }
+      }
+    },
+    {
+      "file": "Magellan_Refresh_Test_-_12-10-2024_bim.json",
+      "success": true,
+      "duration_ms": 1,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "Magellan_bim.json",
+      "success": true,
+      "duration_ms": 2,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 2,
+        "metrics": 42,
+        "metrics_calculated": 6,
+        "relationships": 5,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 6,
+        "mdx_converted": 4,
+        "todo_remaining": 2,
+        "conversion_rate": 67,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 4,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 2
+        }
+      }
+    },
+    {
+      "file": "Manual_Load_Tracking_bim.json",
+      "success": true,
+      "duration_ms": 2,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 15,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 15,
+        "mdx_converted": 5,
+        "todo_remaining": 10,
+        "conversion_rate": 33,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 5,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 10
+        }
+      }
+    },
+    {
+      "file": "Market_Intel_Updates_bim.json",
+      "success": true,
+      "duration_ms": 4,
+      "counts": {
+        "models": 1,
+        "datasets": 2,
+        "dimensions": 1,
+        "metrics": 8,
+        "metrics_calculated": 19,
+        "relationships": 1,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 19,
+        "mdx_converted": 5,
+        "todo_remaining": 14,
+        "conversion_rate": 26,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 5,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 14
+        }
+      }
+    },
+    {
+      "file": "Marketing_-_Advertising_bim.json",
+      "success": true,
+      "duration_ms": 15,
+      "counts": {
+        "models": 1,
+        "datasets": 5,
+        "dimensions": 3,
+        "metrics": 17,
+        "metrics_calculated": 64,
+        "relationships": 6,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 64,
+        "mdx_converted": 9,
+        "todo_remaining": 55,
+        "conversion_rate": 14,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 9,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 55
+        }
+      }
+    },
+    {
+      "file": "Marketing_-_Bookings_bim.json",
+      "success": true,
+      "duration_ms": 4,
+      "counts": {
+        "models": 1,
+        "datasets": 2,
+        "dimensions": 1,
+        "metrics": 10,
+        "metrics_calculated": 18,
+        "relationships": 2,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 18,
+        "mdx_converted": 4,
+        "todo_remaining": 14,
+        "conversion_rate": 22,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 4,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 14
+        }
+      }
+    },
+    {
+      "file": "Marketing_-_Funnel_Performance_bim.json",
+      "success": true,
+      "duration_ms": 11,
+      "counts": {
+        "models": 1,
+        "datasets": 11,
+        "dimensions": 4,
+        "metrics": 21,
+        "metrics_calculated": 46,
+        "relationships": 16,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 46,
+        "mdx_converted": 36,
+        "todo_remaining": 10,
+        "conversion_rate": 78,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 36,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 10
+        }
+      }
+    },
+    {
+      "file": "Marketing_-_Macro_bim.json",
+      "success": true,
+      "duration_ms": 1,
+      "counts": {
+        "models": 1,
+        "datasets": 2,
+        "dimensions": 1,
+        "metrics": 6,
+        "metrics_calculated": 1,
+        "relationships": 2,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 1,
+        "mdx_converted": 0,
+        "todo_remaining": 1,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 1
+        }
+      }
+    },
+    {
+      "file": "Marketing_bim.json",
+      "success": true,
+      "duration_ms": 2,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 2,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 2,
+        "mdx_converted": 0,
+        "todo_remaining": 2,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 2
+        }
+      }
+    },
+    {
+      "file": "Model_bim.json",
+      "success": false,
+      "error": "Unexpected token 'm', \"model Mode\"... is not valid JSON",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "Monthly_Sales_Dashboard_bim.json",
+      "success": true,
+      "duration_ms": 60,
+      "counts": {
+        "models": 1,
+        "datasets": 6,
+        "dimensions": 5,
+        "metrics": 23,
+        "metrics_calculated": 193,
+        "relationships": 7,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 193,
+        "mdx_converted": 64,
+        "todo_remaining": 129,
+        "conversion_rate": 33,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 64,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 129
+        }
+      }
+    },
+    {
+      "file": "Most_Loved_Index_bim.json",
+      "success": true,
+      "duration_ms": 2,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "Most_Loved_bim.json",
+      "success": true,
+      "duration_ms": 21,
+      "counts": {
+        "models": 1,
+        "datasets": 2,
+        "dimensions": 1,
+        "metrics": 57,
+        "metrics_calculated": 48,
+        "relationships": 2,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 48,
+        "mdx_converted": 7,
+        "todo_remaining": 41,
+        "conversion_rate": 15,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 7,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 41
+        }
+      }
+    },
+    {
+      "file": "Operational_KPI_BIM_file_bim.json",
+      "success": true,
+      "duration_ms": 80,
+      "counts": {
+        "models": 1,
+        "datasets": 52,
+        "dimensions": 28,
+        "metrics": 211,
+        "metrics_calculated": 1156,
+        "relationships": 72,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 1156,
+        "mdx_converted": 37,
+        "todo_remaining": 1119,
+        "conversion_rate": 3,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 37,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 1119
+        }
+      }
+    },
+    {
+      "file": "PBI_Sessions_x_rac_global_test_HD_bim.json",
+      "success": true,
+      "duration_ms": 7,
+      "counts": {
+        "models": 1,
+        "datasets": 4,
+        "dimensions": 3,
+        "metrics": 9,
+        "metrics_calculated": 40,
+        "relationships": 4,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 40,
+        "mdx_converted": 24,
+        "todo_remaining": 16,
+        "conversion_rate": 60,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 24,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 16
+        }
+      }
+    },
+    {
+      "file": "PFM_bim.json",
+      "success": true,
+      "duration_ms": 70,
+      "counts": {
+        "models": 1,
+        "datasets": 25,
+        "dimensions": 8,
+        "metrics": 71,
+        "metrics_calculated": 338,
+        "relationships": 42,
+        "connections": 3
+      },
+      "metric_calc_details": {
+        "total": 338,
+        "mdx_converted": 115,
+        "todo_remaining": 223,
+        "conversion_rate": 34,
+        "by_category": {
+          "direct_conversion": 2,
+          "template_conversion": 113,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 223
+        }
+      }
+    },
+    {
+      "file": "PFM_bim_2.json",
+      "success": true,
+      "duration_ms": 67,
+      "counts": {
+        "models": 1,
+        "datasets": 27,
+        "dimensions": 8,
+        "metrics": 100,
+        "metrics_calculated": 450,
+        "relationships": 45,
+        "connections": 3
+      },
+      "metric_calc_details": {
+        "total": 450,
+        "mdx_converted": 165,
+        "todo_remaining": 285,
+        "conversion_rate": 37,
+        "by_category": {
+          "direct_conversion": 2,
+          "template_conversion": 163,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 285
+        }
+      }
+    },
+    {
+      "file": "PMG_bim.json",
+      "success": true,
+      "duration_ms": 81,
+      "counts": {
+        "models": 1,
+        "datasets": 52,
+        "dimensions": 28,
+        "metrics": 211,
+        "metrics_calculated": 1156,
+        "relationships": 72,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 1156,
+        "mdx_converted": 37,
+        "todo_remaining": 1119,
+        "conversion_rate": 3,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 37,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 1119
+        }
+      }
+    },
+    {
+      "file": "POC_bim.json",
+      "success": true,
+      "duration_ms": 13,
+      "counts": {
+        "models": 1,
+        "datasets": 13,
+        "dimensions": 6,
+        "metrics": 34,
+        "metrics_calculated": 93,
+        "relationships": 9,
+        "connections": 2
+      },
+      "metric_calc_details": {
+        "total": 93,
+        "mdx_converted": 71,
+        "todo_remaining": 22,
+        "conversion_rate": 76,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 71,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 22
+        }
+      }
+    },
+    {
+      "file": "PTM_bim.json",
+      "success": true,
+      "duration_ms": 17,
+      "counts": {
+        "models": 1,
+        "datasets": 11,
+        "dimensions": 10,
+        "metrics": 23,
+        "metrics_calculated": 75,
+        "relationships": 11,
+        "connections": 2
+      },
+      "metric_calc_details": {
+        "total": 75,
+        "mdx_converted": 12,
+        "todo_remaining": 63,
+        "conversion_rate": 16,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 12,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 63
+        }
+      }
+    },
+    {
+      "file": "PV_Top_2k_Customers_bim.json",
+      "success": true,
+      "duration_ms": 4,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 2,
+        "metrics": 43,
+        "metrics_calculated": 15,
+        "relationships": 5,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 15,
+        "mdx_converted": 3,
+        "todo_remaining": 12,
+        "conversion_rate": 20,
+        "by_category": {
+          "direct_conversion": 1,
+          "template_conversion": 2,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 12
+        }
+      }
+    },
+    {
+      "file": "PlanogramInformational_bim.json",
+      "success": true,
+      "duration_ms": 3,
+      "counts": {
+        "models": 1,
+        "datasets": 9,
+        "dimensions": 8,
+        "metrics": 5,
+        "metrics_calculated": 10,
+        "relationships": 8,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 10,
+        "mdx_converted": 4,
+        "todo_remaining": 6,
+        "conversion_rate": 40,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 4,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 6
+        }
+      }
+    },
+    {
+      "file": "PlanogramIntegration_bim.json",
+      "success": true,
+      "duration_ms": 4,
+      "counts": {
+        "models": 1,
+        "datasets": 8,
+        "dimensions": 7,
+        "metrics": 17,
+        "metrics_calculated": 36,
+        "relationships": 7,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 36,
+        "mdx_converted": 32,
+        "todo_remaining": 4,
+        "conversion_rate": 89,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 32,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 4
+        }
+      }
+    },
+    {
+      "file": "Planogram_Informational_DataModel_bim.json",
+      "success": true,
+      "duration_ms": 4,
+      "counts": {
+        "models": 1,
+        "datasets": 9,
+        "dimensions": 8,
+        "metrics": 5,
+        "metrics_calculated": 10,
+        "relationships": 8,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 10,
+        "mdx_converted": 4,
+        "todo_remaining": 6,
+        "conversion_rate": 40,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 4,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 6
+        }
+      }
+    },
+    {
+      "file": "Planogram_Integration_DataModel_bim.json",
+      "success": true,
+      "duration_ms": 3,
+      "counts": {
+        "models": 1,
+        "datasets": 8,
+        "dimensions": 7,
+        "metrics": 17,
+        "metrics_calculated": 36,
+        "relationships": 7,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 36,
+        "mdx_converted": 32,
+        "todo_remaining": 4,
+        "conversion_rate": 89,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 32,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 4
+        }
+      }
+    },
+    {
+      "file": "Price_Checker_bim.json",
+      "success": true,
+      "duration_ms": 2,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "Product_-_Fabric_Color_Report_bim.json",
+      "success": true,
+      "duration_ms": 3,
+      "counts": {
+        "models": 1,
+        "datasets": 2,
+        "dimensions": 1,
+        "metrics": 8,
+        "metrics_calculated": 3,
+        "relationships": 2,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 3,
+        "mdx_converted": 0,
+        "todo_remaining": 3,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 3
+        }
+      }
+    },
+    {
+      "file": "Product_Performance_bim.json",
+      "success": true,
+      "duration_ms": 5,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 2,
+        "metrics": 25,
+        "metrics_calculated": 3,
+        "relationships": 3,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 3,
+        "mdx_converted": 0,
+        "todo_remaining": 3,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 3
+        }
+      }
+    },
+    {
+      "file": "QA_Dashboard_-_Last_7_Days_bim.json",
+      "success": true,
+      "duration_ms": 6,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 2,
+        "metrics": 45,
+        "metrics_calculated": 30,
+        "relationships": 5,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 30,
+        "mdx_converted": 4,
+        "todo_remaining": 26,
+        "conversion_rate": 13,
+        "by_category": {
+          "direct_conversion": 2,
+          "template_conversion": 2,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 26
+        }
+      }
+    },
+    {
+      "file": "RetailPolicyLine_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "Retail_Account_Policy_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 2,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "RevOps-Sales2_bim.json",
+      "success": true,
+      "duration_ms": 7,
+      "counts": {
+        "models": 1,
+        "datasets": 31,
+        "dimensions": 23,
+        "metrics": 214,
+        "metrics_calculated": 9,
+        "relationships": 94,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 9,
+        "mdx_converted": 6,
+        "todo_remaining": 3,
+        "conversion_rate": 67,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 6,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 3
+        }
+      }
+    },
+    {
+      "file": "RevOps-Sales_bim.json",
+      "success": true,
+      "duration_ms": 6,
+      "counts": {
+        "models": 1,
+        "datasets": 31,
+        "dimensions": 23,
+        "metrics": 214,
+        "metrics_calculated": 9,
+        "relationships": 94,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 9,
+        "mdx_converted": 6,
+        "todo_remaining": 3,
+        "conversion_rate": 67,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 6,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 3
+        }
+      }
+    },
+    {
+      "file": "RevOps_bim.json",
+      "success": true,
+      "duration_ms": 7,
+      "counts": {
+        "models": 1,
+        "datasets": 31,
+        "dimensions": 23,
+        "metrics": 214,
+        "metrics_calculated": 9,
+        "relationships": 94,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 9,
+        "mdx_converted": 6,
+        "todo_remaining": 3,
+        "conversion_rate": 67,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 6,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 3
+        }
+      }
+    },
+    {
+      "file": "SLSDriverGRG_bim.json",
+      "success": false,
+      "error": "Unexpected token '<', \"<Create xm\"... is not valid JSON",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "SLSPolicyGRG_bim.json",
+      "success": false,
+      "error": "Unexpected token '<', \"<Create xm\"... is not valid JSON",
+      "duration_ms": 2,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "SLSRateChange_bim.json",
+      "success": false,
+      "error": "Unexpected token '<', \"<Create xm\"... is not valid JSON",
+      "duration_ms": 1,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "SLSRetention_bim.json",
+      "success": false,
+      "error": "Unexpected token '<', \"<Create xm\"... is not valid JSON",
+      "duration_ms": 2,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "SLSVehicleGRG_bim.json",
+      "success": false,
+      "error": "Unexpected token '<', \"<Create xm\"... is not valid JSON",
+      "duration_ms": 3,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "Sample_Conversion_Rates_bim.json",
+      "success": true,
+      "duration_ms": 3,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 2,
+        "metrics": 9,
+        "metrics_calculated": 0,
+        "relationships": 4,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "Similarweb_Benchmark_bim.json",
+      "success": true,
+      "duration_ms": 0,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "Size_Heat_Map_bim.json",
+      "success": true,
+      "duration_ms": 1,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "StateSt_bim.json",
+      "success": true,
+      "duration_ms": 618,
+      "counts": {
+        "models": 1,
+        "datasets": 45,
+        "dimensions": 29,
+        "metrics": 280,
+        "metrics_calculated": 1417,
+        "relationships": 42,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 1417,
+        "mdx_converted": 865,
+        "todo_remaining": 552,
+        "conversion_rate": 61,
+        "by_category": {
+          "direct_conversion": 6,
+          "template_conversion": 859,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 552
+        }
+      }
+    },
+    {
+      "file": "Supplier_Directory_bim.json",
+      "success": true,
+      "duration_ms": 2,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 2,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 2,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "System_Health_bim.json",
+      "success": true,
+      "duration_ms": 35,
+      "counts": {
+        "models": 1,
+        "datasets": 6,
+        "dimensions": 4,
+        "metrics": 23,
+        "metrics_calculated": 146,
+        "relationships": 8,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 146,
+        "mdx_converted": 60,
+        "todo_remaining": 86,
+        "conversion_rate": 41,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 60,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 86
+        }
+      }
+    },
+    {
+      "file": "TPCDS_bim.json",
+      "success": true,
+      "duration_ms": 6,
+      "counts": {
+        "models": 1,
+        "datasets": 23,
+        "dimensions": 17,
+        "metrics": 143,
+        "metrics_calculated": 24,
+        "relationships": 75,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 24,
+        "mdx_converted": 24,
+        "todo_remaining": 0,
+        "conversion_rate": 100,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 24,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "TestDM.json",
+      "success": true,
+      "duration_ms": 63,
+      "counts": {
+        "models": 1,
+        "datasets": 33,
+        "dimensions": 25,
+        "metrics": 8,
+        "metrics_calculated": 155,
+        "relationships": 52,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 155,
+        "mdx_converted": 19,
+        "todo_remaining": 136,
+        "conversion_rate": 12,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 19,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 136
+        }
+      }
+    },
+    {
+      "file": "Trade_Tracker_bim.json",
+      "success": true,
+      "duration_ms": 2,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 11,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 11,
+        "mdx_converted": 0,
+        "todo_remaining": 11,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 11
+        }
+      }
+    },
+    {
+      "file": "Trek_bim.json",
+      "success": true,
+      "duration_ms": 1,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 1,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 1,
+        "mdx_converted": 1,
+        "todo_remaining": 0,
+        "conversion_rate": 100,
+        "by_category": {
+          "direct_conversion": 1,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "UOM_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 7,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "Ulta_bim.json",
+      "success": true,
+      "duration_ms": 109,
+      "counts": {
+        "models": 1,
+        "datasets": 10,
+        "dimensions": 5,
+        "metrics": 71,
+        "metrics_calculated": 362,
+        "relationships": 21,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 362,
+        "mdx_converted": 113,
+        "todo_remaining": 249,
+        "conversion_rate": 31,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 113,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 249
+        }
+      }
+    },
+    {
+      "file": "Usage_Metrics_Report_bim.json",
+      "success": true,
+      "duration_ms": 16,
+      "counts": {
+        "models": 1,
+        "datasets": 10,
+        "dimensions": 6,
+        "metrics": 24,
+        "metrics_calculated": 48,
+        "relationships": 14,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 48,
+        "mdx_converted": 20,
+        "todo_remaining": 28,
+        "conversion_rate": 42,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 20,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 28
+        }
+      }
+    },
+    {
+      "file": "Voice_of_Customer_Insights_(NA)_bim.json",
+      "success": true,
+      "duration_ms": 2,
+      "counts": {
+        "models": 1,
+        "datasets": 2,
+        "dimensions": 1,
+        "metrics": 7,
+        "metrics_calculated": 0,
+        "relationships": 2,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 0,
+        "mdx_converted": 0,
+        "todo_remaining": 0,
+        "conversion_rate": 0,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 0,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "cx_dashboard_v2_5_bim.json",
+      "success": true,
+      "duration_ms": 6,
+      "counts": {
+        "models": 1,
+        "datasets": 3,
+        "dimensions": 2,
+        "metrics": 45,
+        "metrics_calculated": 12,
+        "relationships": 4,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 12,
+        "mdx_converted": 9,
+        "todo_remaining": 3,
+        "conversion_rate": 75,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 9,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 3
+        }
+      }
+    },
+    {
+      "file": "eSalesAnalytics_bim.json",
+      "success": false,
+      "error": "Unknown time field in field: ThirdName",
+      "duration_ms": 170,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "epm_mtd_bim.json",
+      "success": true,
+      "duration_ms": 5,
+      "counts": {
+        "models": 1,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 31,
+        "relationships": 0,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 31,
+        "mdx_converted": 24,
+        "todo_remaining": 7,
+        "conversion_rate": 77,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 24,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 7
+        }
+      }
+    },
+    {
+      "file": "finance_bim.json",
+      "success": true,
+      "duration_ms": 5,
+      "counts": {
+        "models": 1,
+        "datasets": 9,
+        "dimensions": 7,
+        "metrics": 2,
+        "metrics_calculated": 26,
+        "relationships": 9,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 26,
+        "mdx_converted": 8,
+        "todo_remaining": 18,
+        "conversion_rate": 31,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 8,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 18
+        }
+      }
+    },
+    {
+      "file": "hardware_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 5,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "magalu_bim.json",
+      "success": true,
+      "duration_ms": 62,
+      "counts": {
+        "models": 1,
+        "datasets": 115,
+        "dimensions": 81,
+        "metrics": 354,
+        "metrics_calculated": 410,
+        "relationships": 571,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 410,
+        "mdx_converted": 277,
+        "todo_remaining": 133,
+        "conversion_rate": 68,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 277,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 133
+        }
+      }
+    },
+    {
+      "file": "mol.bim.json",
+      "success": true,
+      "duration_ms": 637,
+      "counts": {
+        "models": 1,
+        "datasets": 145,
+        "dimensions": 74,
+        "metrics": 144,
+        "metrics_calculated": 2359,
+        "relationships": 239,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 2359,
+        "mdx_converted": 340,
+        "todo_remaining": 2019,
+        "conversion_rate": 14,
+        "by_category": {
+          "direct_conversion": 3,
+          "template_conversion": 337,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 2019
+        }
+      }
+    },
+    {
+      "file": "software_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 4,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    },
+    {
+      "file": "tables_bim.json",
+      "success": true,
+      "duration_ms": 5,
+      "counts": {
+        "models": 1,
+        "datasets": 23,
+        "dimensions": 17,
+        "metrics": 143,
+        "metrics_calculated": 24,
+        "relationships": 75,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 24,
+        "mdx_converted": 24,
+        "todo_remaining": 0,
+        "conversion_rate": 100,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 24,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 0
+        }
+      }
+    },
+    {
+      "file": "vulnerabilities_bim.json",
+      "success": false,
+      "error": "bim project missing name or malformed",
+      "duration_ms": 0,
+      "counts": {
+        "models": 0,
+        "datasets": 0,
+        "dimensions": 0,
+        "metrics": 0,
+        "metrics_calculated": 0,
+        "relationships": 0,
+        "connections": 0
+      }
+    }
+  ]
+}

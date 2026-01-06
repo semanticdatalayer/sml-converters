@@ -52,6 +52,7 @@
     "ALLEXCEPT",
     "ALLNOBLANKROW",
     "ALLSELECTED",
+    "REMOVEFILTERS",
     "EARLIER",
     "EARLIEST",
     "HASONEVALUE",
@@ -99,7 +100,12 @@
     "CROSSJOIN",
     "VAR",
     "RETURN",
-    "EVALUATE"
+    "EVALUATE",
+    "TIME",
+    "DATE",
+    "DATETIME",
+    "FORMAT",
+    "FIXED"
   ],
   "complex_patterns": [
     "CALCULATE",
