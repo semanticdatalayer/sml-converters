@@ -705,6 +705,15 @@ async function main() {
           calculate: 0,
           other: 0,
         },
+        todo_by_function_multi: {
+          "x-agg": 0,
+          filter: 0,
+          time: 0,
+          selected: 0,
+          relationship: 0,
+          calculate: 0,
+          other: 0,
+        },
       },
     };
   } else {
