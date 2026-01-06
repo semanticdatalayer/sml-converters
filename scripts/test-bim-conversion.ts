@@ -70,6 +70,24 @@ interface ConversionSummary {
       ai_conversion: number;
       unconvertible: number;
     };
+    todo_by_function?: {
+      "x-agg": number;
+      filter: number;
+      time: number;
+      selected: number;
+      relationship: number;
+      calculate: number;
+      other: number;
+    };
+    todo_by_function_multi?: {
+      "x-agg": number;
+      filter: number;
+      time: number;
+      selected: number;
+      relationship: number;
+      calculate: number;
+      other: number;
+    };
   };
 }
 
@@ -150,6 +168,263 @@ function detectCategory(metric: any): string {
   return "template_conversion";
 }
 
+/**
+ * Categorizes unconvertible function in TODO expression
+ * Only returns first category match
+ */
+function categorizeTodoFunction(expr: string): string {
+  const upperExpr = expr.toUpperCase();
+
+  // x-agg: iteration functions
+  if (
+    /SUMX\b/.test(upperExpr) ||
+    /AVERAGEX\b/.test(upperExpr) ||
+    /AVGX\b/.test(upperExpr) ||
+    /MINX\b/.test(upperExpr) ||
+    /MAXX\b/.test(upperExpr) ||
+    /COUNTX\b/.test(upperExpr) ||
+    /RANKX\b/.test(upperExpr)
+  ) {
+    return "x-agg";
+  }
+
+  // filter: filter context functions
+  if (
+    /FILTER\b/.test(upperExpr) ||
+    /HASONEFILTER\b/.test(upperExpr) ||
+    /ISFILTERED\b/.test(upperExpr) ||
+    /KEEPFILTERS\b/.test(upperExpr) ||
+    /REMOVEFILTERS\b/.test(upperExpr) ||
+    /CROSSFILTER\b/.test(upperExpr) ||
+    /ISCROSSFILTERED\b/.test(upperExpr)
+  ) {
+    return "filter";
+  }
+
+  // time: time intelligence functions
+  if (
+    /TOTALYTD\b/.test(upperExpr) ||
+    /TOTALQTD\b/.test(upperExpr) ||
+    /TOTALMTD\b/.test(upperExpr) ||
+    /SAMEPERIODLASTYEAR\b/.test(upperExpr) ||
+    /DATEADD\b/.test(upperExpr) ||
+    /DATESBETWEEN\b/.test(upperExpr) ||
+    /DATESINPERIOD\b/.test(upperExpr) ||
+    /DATESYTD\b/.test(upperExpr) ||
+    /DATESQTD\b/.test(upperExpr) ||
+    /DATESMTD\b/.test(upperExpr) ||
+    /PARALLELPERIOD\b/.test(upperExpr) ||
+    /NEXTDAY\b/.test(upperExpr) ||
+    /NEXTMONTH\b/.test(upperExpr) ||
+    /NEXTQUARTER\b/.test(upperExpr) ||
+    /NEXTYEAR\b/.test(upperExpr) ||
+    /PREVIOUSDAY\b/.test(upperExpr) ||
+    /PREVIOUSMONTH\b/.test(upperExpr) ||
+    /PREVIOUSQUARTER\b/.test(upperExpr) ||
+    /PREVIOUSYEAR\b/.test(upperExpr)
+  ) {
+    return "time";
+  }
+
+  // selected: selection context functions
+  if (
+    /SELECTEDVALUE\b/.test(upperExpr) ||
+    /HASONEVALUE\b/.test(upperExpr) ||
+    /ALLSELECTED\b/.test(upperExpr) ||
+    /ISINSCOPE\b/.test(upperExpr) ||
+    /SELECTEDMEASURE\b/.test(upperExpr) ||
+    /ISSELECTEDMEASURE\b/.test(upperExpr)
+  ) {
+    return "selected";
+  }
+
+  // relationship: relationship and table functions
+  if (
+    /RELATED\b/.test(upperExpr) ||
+    /LOOKUPVALUE\b/.test(upperExpr) ||
+    /PATH\b/.test(upperExpr) ||
+    /VALUES\b/.test(upperExpr) ||
+    /DISTINCT\b/.test(upperExpr) ||
+    /CROSSJOIN\b/.test(upperExpr) ||
+    /CURRENTGROUP\b/.test(upperExpr) ||
+    /GROUPBY\b/.test(upperExpr) ||
+    /NATURALINNERJOIN\b/.test(upperExpr) ||
+    /NATURALLEFTOUTERJOIN\b/.test(upperExpr) ||
+    /INTERSECT\b/.test(upperExpr) ||
+    /UNION\b/.test(upperExpr) ||
+    /EXCEPT\b/.test(upperExpr)
+  ) {
+    return "relationship";
+  }
+
+  // calculate: CALCULATE/CALCULATETABLE
+  if (
+    /CALCULATE\b/.test(upperExpr) ||
+    /CALCULATETABLE\b/.test(upperExpr)
+  ) {
+    return "calculate";
+  }
+
+  return "other";
+}
+
+/**
+ * Categorize TODO expression by ALL matching categories (multi-category)
+ */
+function categorizeTodoFunctionMulti(expr: string): string[] {
+  const upperExpr = expr.toUpperCase();
+  const categories: string[] = [];
+
+  // x-agg: iteration functions
+  if (
+    /SUMX\b/.test(upperExpr) ||
+    /AVERAGEX\b/.test(upperExpr) ||
+    /AVGX\b/.test(upperExpr) ||
+    /MINX\b/.test(upperExpr) ||
+    /MAXX\b/.test(upperExpr) ||
+    /COUNTX\b/.test(upperExpr) ||
+    /RANKX\b/.test(upperExpr)
+  ) {
+    categories.push("x-agg");
+  }
+
+  // filter: filter context functions
+  if (
+    /FILTER\b/.test(upperExpr) ||
+    /HASONEFILTER\b/.test(upperExpr) ||
+    /ISFILTERED\b/.test(upperExpr) ||
+    /KEEPFILTERS\b/.test(upperExpr) ||
+    /REMOVEFILTERS\b/.test(upperExpr) ||
+    /CROSSFILTER\b/.test(upperExpr) ||
+    /ISCROSSFILTERED\b/.test(upperExpr)
+  ) {
+    categories.push("filter");
+  }
+
+  // time: time intelligence functions
+  if (
+    /TOTALYTD\b/.test(upperExpr) ||
+    /TOTALQTD\b/.test(upperExpr) ||
+    /TOTALMTD\b/.test(upperExpr) ||
+    /SAMEPERIODLASTYEAR\b/.test(upperExpr) ||
+    /DATEADD\b/.test(upperExpr) ||
+    /DATESBETWEEN\b/.test(upperExpr) ||
+    /DATESINPERIOD\b/.test(upperExpr) ||
+    /DATESYTD\b/.test(upperExpr) ||
+    /DATESQTD\b/.test(upperExpr) ||
+    /DATESMTD\b/.test(upperExpr) ||
+    /PARALLELPERIOD\b/.test(upperExpr) ||
+    /NEXTDAY\b/.test(upperExpr) ||
+    /NEXTMONTH\b/.test(upperExpr) ||
+    /NEXTQUARTER\b/.test(upperExpr) ||
+    /NEXTYEAR\b/.test(upperExpr) ||
+    /PREVIOUSDAY\b/.test(upperExpr) ||
+    /PREVIOUSMONTH\b/.test(upperExpr) ||
+    /PREVIOUSQUARTER\b/.test(upperExpr) ||
+    /PREVIOUSYEAR\b/.test(upperExpr)
+  ) {
+    categories.push("time");
+  }
+
+  // selected: selection context functions
+  if (
+    /SELECTEDVALUE\b/.test(upperExpr) ||
+    /HASONEVALUE\b/.test(upperExpr) ||
+    /ALLSELECTED\b/.test(upperExpr) ||
+    /ISINSCOPE\b/.test(upperExpr) ||
+    /SELECTEDMEASURE\b/.test(upperExpr) ||
+    /ISSELECTEDMEASURE\b/.test(upperExpr)
+  ) {
+    categories.push("selected");
+  }
+
+  // relationship: relationship and table functions
+  if (
+    /RELATED\b/.test(upperExpr) ||
+    /LOOKUPVALUE\b/.test(upperExpr) ||
+    /PATH\b/.test(upperExpr) ||
+    /VALUES\b/.test(upperExpr) ||
+    /DISTINCT\b/.test(upperExpr) ||
+    /CROSSJOIN\b/.test(upperExpr) ||
+    /CURRENTGROUP\b/.test(upperExpr) ||
+    /GROUPBY\b/.test(upperExpr) ||
+    /NATURALINNERJOIN\b/.test(upperExpr) ||
+    /NATURALLEFTOUTERJOIN\b/.test(upperExpr) ||
+    /INTERSECT\b/.test(upperExpr) ||
+    /UNION\b/.test(upperExpr) ||
+    /EXCEPT\b/.test(upperExpr)
+  ) {
+    categories.push("relationship");
+  }
+
+  // calculate: CALCULATE/CALCULATETABLE
+  if (
+    /CALCULATE\b/.test(upperExpr) ||
+    /CALCULATETABLE\b/.test(upperExpr)
+  ) {
+    categories.push("calculate");
+  }
+
+  // If no categories matched, it's "other"
+  if (categories.length === 0) {
+    categories.push("other");
+  }
+
+  return categories;
+}
+
+/**
+ * Analyzes unconvertible TODO expressions by function category (single category per calc)
+ */
+function analyzeTodosByCategory(result: SmlConverterResult): Record<string, number> {
+  const categories: Record<string, number> = {
+    "x-agg": 0,
+    "filter": 0,
+    "time": 0,
+    "selected": 0,
+    "relationship": 0,
+    "calculate": 0,
+    "other": 0,
+  };
+
+  for (const metric of result.measuresCalculated) {
+    const expr = metric.expression || "";
+    if (expr.includes("TODO")) {
+      const category = categorizeTodoFunction(expr);
+      categories[category]++;
+    }
+  }
+
+  return categories;
+}
+
+/**
+ * Analyzes unconvertible TODO expressions allowing multiple categories per calc
+ */
+function analyzeTodosByAllCategories(result: SmlConverterResult): Record<string, number> {
+  const categories: Record<string, number> = {
+    "x-agg": 0,
+    "filter": 0,
+    "time": 0,
+    "selected": 0,
+    "relationship": 0,
+    "calculate": 0,
+    "other": 0,
+  };
+
+  for (const metric of result.measuresCalculated) {
+    const expr = metric.expression || "";
+    if (expr.includes("TODO")) {
+      const matchedCategories = categorizeTodoFunctionMulti(expr);
+      for (const category of matchedCategories) {
+        categories[category]++;
+      }
+    }
+  }
+
+  return categories;
+}
+
 function analyzeMetricCalcs(
   result: SmlConverterResult,
 ): ConversionSummary["metric_calc_details"] {
@@ -207,6 +482,8 @@ function analyzeMetricCalcs(
     todo_remaining: todoCount,
     conversion_rate: total > 0 ? Math.round((mdxCount / total) * 100) : 0,
     by_category: categories,
+    todo_by_function: analyzeTodosByCategory(result),
+    todo_by_function_multi: analyzeTodosByAllCategories(result),
   };
 }
 
@@ -350,6 +627,81 @@ function printReport(report: TestReport) {
   console.log(`  Success: ${report.successful}`);
   console.log(`  Failed: ${report.failed}`);
 
+  // Aggregate TODO breakdown across all files
+  const aggregateTodoByFunction: Record<string, number> = {
+    "x-agg": 0,
+    filter: 0,
+    time: 0,
+    selected: 0,
+    relationship: 0,
+    calculate: 0,
+    other: 0,
+  };
+
+  const aggregateTodoByFunctionMulti: Record<string, number> = {
+    "x-agg": 0,
+    filter: 0,
+    time: 0,
+    selected: 0,
+    relationship: 0,
+    calculate: 0,
+    other: 0,
+  };
+
+  let totalTodos = 0;
+  let totalCalcs = 0;
+  let totalMdxConverted = 0;
+
+  for (const summary of report.summaries) {
+    if (summary.success && summary.metric_calc_details) {
+      const details = summary.metric_calc_details;
+      totalCalcs += details.total;
+      totalMdxConverted += details.mdx_converted;
+      totalTodos += details.todo_remaining;
+
+      if (details.todo_by_function) {
+        for (const [key, value] of Object.entries(details.todo_by_function)) {
+          aggregateTodoByFunction[key] += value;
+        }
+      }
+
+      if (details.todo_by_function_multi) {
+        for (const [key, value] of Object.entries(details.todo_by_function_multi)) {
+          aggregateTodoByFunctionMulti[key] += value;
+        }
+      }
+    }
+  }
+
+  // Print overall TODO breakdown
+  if (totalTodos > 0) {
+    const conversionRate = totalCalcs > 0 ? Math.round((totalMdxConverted / totalCalcs) * 100) : 0;
+
+    console.log("\n--- Overall Metrics Conversion Summary ---");
+    console.log(`  Total Calculated Metrics: ${totalCalcs}`);
+    console.log(`  MDX Converted: ${totalMdxConverted}`);
+    console.log(`  TODO Remaining: ${totalTodos}`);
+    console.log(`  Overall Conversion Rate: ${conversionRate}%`);
+
+    console.log(`\n  Overall TODO Breakdown by Primary Function:`);
+    console.log(`    X-Agg (SUMX, AVERAGEX, etc.): ${aggregateTodoByFunction["x-agg"]} (${Math.round((aggregateTodoByFunction["x-agg"] / totalTodos) * 100)}%)`);
+    console.log(`    Filter (FILTER, ISFILTERED, etc.): ${aggregateTodoByFunction.filter} (${Math.round((aggregateTodoByFunction.filter / totalTodos) * 100)}%)`);
+    console.log(`    Time Intelligence: ${aggregateTodoByFunction.time} (${Math.round((aggregateTodoByFunction.time / totalTodos) * 100)}%)`);
+    console.log(`    Selection (SELECTEDVALUE, etc.): ${aggregateTodoByFunction.selected} (${Math.round((aggregateTodoByFunction.selected / totalTodos) * 100)}%)`);
+    console.log(`    Relationship (RELATED, VALUES, etc.): ${aggregateTodoByFunction.relationship} (${Math.round((aggregateTodoByFunction.relationship / totalTodos) * 100)}%)`);
+    console.log(`    CALCULATE/CALCULATETABLE: ${aggregateTodoByFunction.calculate} (${Math.round((aggregateTodoByFunction.calculate / totalTodos) * 100)}%)`);
+    console.log(`    Other: ${aggregateTodoByFunction.other} (${Math.round((aggregateTodoByFunction.other / totalTodos) * 100)}%)`);
+
+    console.log(`\n  Overall TODO Breakdown by All Functions (multi-category, totals > 100%):`);
+    console.log(`    X-Agg (SUMX, AVERAGEX, etc.): ${aggregateTodoByFunctionMulti["x-agg"]} (${Math.round((aggregateTodoByFunctionMulti["x-agg"] / totalTodos) * 100)}%)`);
+    console.log(`    Filter (FILTER, ISFILTERED, etc.): ${aggregateTodoByFunctionMulti.filter} (${Math.round((aggregateTodoByFunctionMulti.filter / totalTodos) * 100)}%)`);
+    console.log(`    Time Intelligence: ${aggregateTodoByFunctionMulti.time} (${Math.round((aggregateTodoByFunctionMulti.time / totalTodos) * 100)}%)`);
+    console.log(`    Selection (SELECTEDVALUE, etc.): ${aggregateTodoByFunctionMulti.selected} (${Math.round((aggregateTodoByFunctionMulti.selected / totalTodos) * 100)}%)`);
+    console.log(`    Relationship (RELATED, VALUES, etc.): ${aggregateTodoByFunctionMulti.relationship} (${Math.round((aggregateTodoByFunctionMulti.relationship / totalTodos) * 100)}%)`);
+    console.log(`    CALCULATE/CALCULATETABLE: ${aggregateTodoByFunctionMulti.calculate} (${Math.round((aggregateTodoByFunctionMulti.calculate / totalTodos) * 100)}%)`);
+    console.log(`    Other: ${aggregateTodoByFunctionMulti.other} (${Math.round((aggregateTodoByFunctionMulti.other / totalTodos) * 100)}%)`);
+  }
+
   console.log("\n--- Per-File Summary ---");
   for (const summary of report.summaries) {
     console.log(`\n${summary.file}:`);
@@ -385,6 +737,36 @@ function printReport(report: TestReport) {
         console.log(`    VAR Inlined: ${cat.var_inlined}`);
         console.log(`    AI Conversion: ${cat.ai_conversion}`);
         console.log(`    Unconvertible: ${cat.unconvertible}`);
+      }
+
+      // Print TODO function breakdown if available
+      if (details.todo_by_function && details.todo_remaining > 0) {
+        const funcs = details.todo_by_function;
+        const todoTotal = details.todo_remaining;
+
+        console.log(`  TODO Breakdown by Primary Function (single category per calc):`);
+        console.log(`    X-Agg (SUMX, AVERAGEX, etc.): ${funcs["x-agg"]} (${Math.round((funcs["x-agg"] / todoTotal) * 100)}%)`);
+        console.log(`    Filter (FILTER, ISFILTERED, etc.): ${funcs.filter} (${Math.round((funcs.filter / todoTotal) * 100)}%)`);
+        console.log(`    Time Intelligence: ${funcs.time} (${Math.round((funcs.time / todoTotal) * 100)}%)`);
+        console.log(`    Selection (SELECTEDVALUE, etc.): ${funcs.selected} (${Math.round((funcs.selected / todoTotal) * 100)}%)`);
+        console.log(`    Relationship (RELATED, VALUES, etc.): ${funcs.relationship} (${Math.round((funcs.relationship / todoTotal) * 100)}%)`);
+        console.log(`    CALCULATE/CALCULATETABLE: ${funcs.calculate} (${Math.round((funcs.calculate / todoTotal) * 100)}%)`);
+        console.log(`    Other: ${funcs.other} (${Math.round((funcs.other / todoTotal) * 100)}%)`);
+      }
+
+      // Print multi-category TODO breakdown if available
+      if (details.todo_by_function_multi && details.todo_remaining > 0) {
+        const funcs = details.todo_by_function_multi;
+        const todoTotal = details.todo_remaining;
+
+        console.log(`  TODO Breakdown by All Functions (multi-category, totals > 100%):`);
+        console.log(`    X-Agg (SUMX, AVERAGEX, etc.): ${funcs["x-agg"]} (${Math.round((funcs["x-agg"] / todoTotal) * 100)}%)`);
+        console.log(`    Filter (FILTER, ISFILTERED, etc.): ${funcs.filter} (${Math.round((funcs.filter / todoTotal) * 100)}%)`);
+        console.log(`    Time Intelligence: ${funcs.time} (${Math.round((funcs.time / todoTotal) * 100)}%)`);
+        console.log(`    Selection (SELECTEDVALUE, etc.): ${funcs.selected} (${Math.round((funcs.selected / todoTotal) * 100)}%)`);
+        console.log(`    Relationship (RELATED, VALUES, etc.): ${funcs.relationship} (${Math.round((funcs.relationship / todoTotal) * 100)}%)`);
+        console.log(`    CALCULATE/CALCULATETABLE: ${funcs.calculate} (${Math.round((funcs.calculate / todoTotal) * 100)}%)`);
+        console.log(`    Other: ${funcs.other} (${Math.round((funcs.other / todoTotal) * 100)}%)`);
       }
     }
   }

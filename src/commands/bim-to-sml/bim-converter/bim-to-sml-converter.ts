@@ -547,14 +547,14 @@ export function parseSML(result: SmlConverterResult): string {
   summary += `\t${dsWithTodo}`;
   console.log(`  datasets with "selector" occurrences: ${dsWithSelector}`);
   summary += `\t${dsWithSelector}`;
-  if (dsSamplesWithExpr.length) {
-    console.log("  Example datasets with expressions (up to 10):");
-    dsSamplesWithExpr.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
-  }
-  if (dsSamplesTodo.length) {
-    console.log("  Example datasets with TODO markers (up to 10):");
-    dsSamplesTodo.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
-  }
+  // if (dsSamplesWithExpr.length) {
+  //   console.log("  Example datasets with expressions (up to 10):");
+  //   dsSamplesWithExpr.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+  // }
+  // if (dsSamplesTodo.length) {
+  //   console.log("  Example datasets with TODO markers (up to 10):");
+  //   dsSamplesTodo.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
+  // }
   console.log("");
   return summary;
 }

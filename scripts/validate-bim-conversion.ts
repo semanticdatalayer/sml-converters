@@ -80,6 +80,24 @@ interface ConversionReport {
       ai_conversion: number;
       unconvertible: number;
     };
+    todo_by_function: {
+      "x-agg": number;
+      filter: number;
+      time: number;
+      selected: number;
+      relationship: number;
+      calculate: number;
+      other: number;
+    };
+    todo_by_function_multi: {
+      "x-agg": number;
+      filter: number;
+      time: number;
+      selected: number;
+      relationship: number;
+      calculate: number;
+      other: number;
+    };
   };
 }
 
@@ -111,6 +129,271 @@ function detectCategory(metric: any): string {
   }
 
   return "template_conversion";
+}
+
+/**
+ * Categorizes unconvertible function in TODO expression
+ * Only returns first category match
+ */
+function categorizeTodoFunction(expr: string): string {
+  const upperExpr = expr.toUpperCase();
+
+  // x-agg: iteration functions
+  if (
+    /SUMX\b/.test(upperExpr) ||
+    /AVERAGEX\b/.test(upperExpr) ||
+    /AVGX\b/.test(upperExpr) ||
+    /MINX\b/.test(upperExpr) ||
+    /MAXX\b/.test(upperExpr) ||
+    /COUNTX\b/.test(upperExpr) ||
+    /RANKX\b/.test(upperExpr)
+  ) {
+    return "x-agg";
+  }
+
+  // filter: filter context functions
+  if (
+    /FILTER\b/.test(upperExpr) ||
+    /HASONEFILTER\b/.test(upperExpr) ||
+    /ISFILTERED\b/.test(upperExpr) ||
+    /KEEPFILTERS\b/.test(upperExpr) ||
+    /REMOVEFILTERS\b/.test(upperExpr) ||
+    /CROSSFILTER\b/.test(upperExpr) ||
+    /ISCROSSFILTERED\b/.test(upperExpr)
+  ) {
+    return "filter";
+  }
+
+  // time: time intelligence functions
+  if (
+    /TOTALYTD\b/.test(upperExpr) ||
+    /TOTALQTD\b/.test(upperExpr) ||
+    /TOTALMTD\b/.test(upperExpr) ||
+    /SAMEPERIODLASTYEAR\b/.test(upperExpr) ||
+    /DATEADD\b/.test(upperExpr) ||
+    /DATESBETWEEN\b/.test(upperExpr) ||
+    /DATESINPERIOD\b/.test(upperExpr) ||
+    /DATESYTD\b/.test(upperExpr) ||
+    /DATESQTD\b/.test(upperExpr) ||
+    /DATESMTD\b/.test(upperExpr) ||
+    /PARALLELPERIOD\b/.test(upperExpr) ||
+    /NEXTDAY\b/.test(upperExpr) ||
+    /NEXTMONTH\b/.test(upperExpr) ||
+    /NEXTQUARTER\b/.test(upperExpr) ||
+    /NEXTYEAR\b/.test(upperExpr) ||
+    /PREVIOUSDAY\b/.test(upperExpr) ||
+    /PREVIOUSMONTH\b/.test(upperExpr) ||
+    /PREVIOUSQUARTER\b/.test(upperExpr) ||
+    /PREVIOUSYEAR\b/.test(upperExpr)
+  ) {
+    return "time";
+  }
+
+  // selected: selection context functions
+  if (
+    /SELECTEDVALUE\b/.test(upperExpr) ||
+    /HASONEVALUE\b/.test(upperExpr) ||
+    /ALLSELECTED\b/.test(upperExpr) ||
+    /ISINSCOPE\b/.test(upperExpr) ||
+    /SELECTEDMEASURE\b/.test(upperExpr) ||
+    /ISSELECTEDMEASURE\b/.test(upperExpr)
+  ) {
+    return "selected";
+  }
+
+  // relationship: relationship and table functions
+  if (
+    /RELATED\b/.test(upperExpr) ||
+    /LOOKUPVALUE\b/.test(upperExpr) ||
+    /PATH\b/.test(upperExpr) ||
+    /VALUES\b/.test(upperExpr) ||
+    /DISTINCT\b/.test(upperExpr) ||
+    /CROSSJOIN\b/.test(upperExpr) ||
+    /CURRENTGROUP\b/.test(upperExpr) ||
+    /GROUPBY\b/.test(upperExpr) ||
+    /NATURALINNERJOIN\b/.test(upperExpr) ||
+    /NATURALLEFTOUTERJOIN\b/.test(upperExpr) ||
+    /INTERSECT\b/.test(upperExpr) ||
+    /UNION\b/.test(upperExpr) ||
+    /EXCEPT\b/.test(upperExpr)
+  ) {
+    return "relationship";
+  }
+
+  // calculate: CALCULATE/CALCULATETABLE (check if inside another function via TODO format)
+  if (
+    /CALCULATE\b/.test(upperExpr) ||
+    /CALCULATETABLE\b/.test(upperExpr)
+  ) {
+    return "calculate";
+  }
+
+  return "other";
+}
+
+/**
+ * Categorize TODO expression by ALL matching categories (multi-category)
+ */
+function categorizeTodoFunctionMulti(expr: string): string[] {
+  const upperExpr = expr.toUpperCase();
+  const categories: string[] = [];
+
+  // x-agg: iteration functions
+  if (
+    /SUMX\b/.test(upperExpr) ||
+    /AVERAGEX\b/.test(upperExpr) ||
+    /COUNTX\b/.test(upperExpr) ||
+    /MINX\b/.test(upperExpr) ||
+    /MAXX\b/.test(upperExpr) ||
+    /PRODUCTX\b/.test(upperExpr) ||
+    /CONCATENATEX\b/.test(upperExpr) ||
+    /RANKX\b/.test(upperExpr) ||
+    /COUNTAX\b/.test(upperExpr)
+  ) {
+    categories.push("x-agg");
+  }
+
+  // filter: filter context functions
+  if (
+    /FILTER\b/.test(upperExpr) ||
+    /ISFILTERED\b/.test(upperExpr) ||
+    /ISCROSSFILTERED\b/.test(upperExpr) ||
+    /REMOVEFILTERS\b/.test(upperExpr) ||
+    /ALLEXCEPT\b/.test(upperExpr) ||
+    /KEEPFILTERS\b/.test(upperExpr) ||
+    /USERELATIONSHIP\b/.test(upperExpr)
+  ) {
+    categories.push("filter");
+  }
+
+  // time: time intelligence functions
+  if (
+    /TOTALYTD\b/.test(upperExpr) ||
+    /TOTALQTD\b/.test(upperExpr) ||
+    /TOTALMTD\b/.test(upperExpr) ||
+    /SAMEPERIODLASTYEAR\b/.test(upperExpr) ||
+    /PARALLELPERIOD\b/.test(upperExpr) ||
+    /DATEADD\b/.test(upperExpr) ||
+    /DATESYTD\b/.test(upperExpr) ||
+    /DATESQTD\b/.test(upperExpr) ||
+    /DATESMTD\b/.test(upperExpr) ||
+    /DATESBETWEEN\b/.test(upperExpr) ||
+    /DATESINPERIOD\b/.test(upperExpr) ||
+    /PREVIOUSYEAR\b/.test(upperExpr) ||
+    /PREVIOUSQUARTER\b/.test(upperExpr) ||
+    /PREVIOUSMONTH\b/.test(upperExpr) ||
+    /PREVIOUSDAY\b/.test(upperExpr) ||
+    /NEXTYEAR\b/.test(upperExpr) ||
+    /NEXTQUARTER\b/.test(upperExpr) ||
+    /NEXTMONTH\b/.test(upperExpr) ||
+    /NEXTDAY\b/.test(upperExpr) ||
+    /STARTOFYEAR\b/.test(upperExpr) ||
+    /STARTOFQUARTER\b/.test(upperExpr) ||
+    /STARTOFMONTH\b/.test(upperExpr) ||
+    /ENDOFYEAR\b/.test(upperExpr) ||
+    /ENDOFQUARTER\b/.test(upperExpr) ||
+    /ENDOFMONTH\b/.test(upperExpr)
+  ) {
+    categories.push("time");
+  }
+
+  // selected: selection context functions
+  if (
+    /SELECTEDVALUE\b/.test(upperExpr) ||
+    /HASONEVALUE\b/.test(upperExpr) ||
+    /ALLSELECTED\b/.test(upperExpr) ||
+    /ISINSCOPE\b/.test(upperExpr) ||
+    /SELECTEDMEASURE\b/.test(upperExpr) ||
+    /ISSELECTEDMEASURE\b/.test(upperExpr)
+  ) {
+    categories.push("selected");
+  }
+
+  // relationship: relationship and table functions
+  if (
+    /RELATED\b/.test(upperExpr) ||
+    /LOOKUPVALUE\b/.test(upperExpr) ||
+    /PATH\b/.test(upperExpr) ||
+    /VALUES\b/.test(upperExpr) ||
+    /DISTINCT\b/.test(upperExpr) ||
+    /CROSSJOIN\b/.test(upperExpr) ||
+    /CURRENTGROUP\b/.test(upperExpr) ||
+    /GROUPBY\b/.test(upperExpr) ||
+    /NATURALINNERJOIN\b/.test(upperExpr) ||
+    /NATURALLEFTOUTERJOIN\b/.test(upperExpr) ||
+    /INTERSECT\b/.test(upperExpr) ||
+    /UNION\b/.test(upperExpr) ||
+    /EXCEPT\b/.test(upperExpr)
+  ) {
+    categories.push("relationship");
+  }
+
+  // calculate: CALCULATE/CALCULATETABLE
+  if (
+    /CALCULATE\b/.test(upperExpr) ||
+    /CALCULATETABLE\b/.test(upperExpr)
+  ) {
+    categories.push("calculate");
+  }
+
+  // If no categories matched, it's "other"
+  if (categories.length === 0) {
+    categories.push("other");
+  }
+
+  return categories;
+}
+
+/**
+ * Analyzes unconvertible TODO expressions by function category (single category per calc)
+ */
+function analyzeTodosByCategory(result: SmlConverterResult): Record<string, number> {
+  const categories: Record<string, number> = {
+    "x-agg": 0,
+    "filter": 0,
+    "time": 0,
+    "selected": 0,
+    "relationship": 0,
+    "calculate": 0,
+    "other": 0,
+  };
+
+  for (const metric of result.measuresCalculated) {
+    const expr = metric.expression || "";
+    if (expr.includes("TODO")) {
+      const category = categorizeTodoFunction(expr);
+      categories[category]++;
+    }
+  }
+
+  return categories;
+}
+
+/**
+ * Analyzes unconvertible TODO expressions allowing multiple categories per calc
+ */
+function analyzeTodosByAllCategories(result: SmlConverterResult): Record<string, number> {
+  const categories: Record<string, number> = {
+    "x-agg": 0,
+    "filter": 0,
+    "time": 0,
+    "selected": 0,
+    "relationship": 0,
+    "calculate": 0,
+    "other": 0,
+  };
+
+  for (const metric of result.measuresCalculated) {
+    const expr = metric.expression || "";
+    if (expr.includes("TODO")) {
+      const matchedCategories = categorizeTodoFunctionMulti(expr);
+      for (const category of matchedCategories) {
+        categories[category]++;
+      }
+    }
+  }
+
+  return categories;
 }
 
 function analyzeMetricCalcs(result: SmlConverterResult) {
@@ -148,6 +431,8 @@ function analyzeMetricCalcs(result: SmlConverterResult) {
     todo_remaining: todoCount,
     conversion_rate: total > 0 ? Math.round((mdxCount / total) * 100) : 0,
     by_category: categories,
+    todo_by_function: analyzeTodosByCategory(result),
+    todo_by_function_multi: analyzeTodosByAllCategories(result),
   };
 }
 
@@ -285,6 +570,28 @@ function printReport(report: ConversionReport) {
     console.log(`    VAR Inlined: ${details.by_category.var_inlined}`);
     console.log(`    AI Conversion: ${details.by_category.ai_conversion}`);
     console.log(`    Unconvertible: ${details.by_category.unconvertible}`);
+
+    if (details.todo_remaining > 0) {
+      const todoTotal = details.todo_remaining;
+
+      console.log(`\n  TODO Breakdown by Primary Function (single category per calc):`);
+      console.log(`    X-Agg (SUMX, AVERAGEX, etc): ${details.todo_by_function["x-agg"]} (${Math.round((details.todo_by_function["x-agg"] / todoTotal) * 100)}%)`);
+      console.log(`    Filter (FILTER, ISFILTERED, etc): ${details.todo_by_function.filter} (${Math.round((details.todo_by_function.filter / todoTotal) * 100)}%)`);
+      console.log(`    Time Intelligence: ${details.todo_by_function.time} (${Math.round((details.todo_by_function.time / todoTotal) * 100)}%)`);
+      console.log(`    Selection Context: ${details.todo_by_function.selected} (${Math.round((details.todo_by_function.selected / todoTotal) * 100)}%)`);
+      console.log(`    Relationship (RELATED, VALUES, etc): ${details.todo_by_function.relationship} (${Math.round((details.todo_by_function.relationship / todoTotal) * 100)}%)`);
+      console.log(`    CALCULATE/CALCULATETABLE: ${details.todo_by_function.calculate} (${Math.round((details.todo_by_function.calculate / todoTotal) * 100)}%)`);
+      console.log(`    Other: ${details.todo_by_function.other} (${Math.round((details.todo_by_function.other / todoTotal) * 100)}%)`);
+
+      console.log(`\n  TODO Breakdown by All Functions (multi-category, totals > 100%):`);
+      console.log(`    X-Agg (SUMX, AVERAGEX, etc): ${details.todo_by_function_multi["x-agg"]} (${Math.round((details.todo_by_function_multi["x-agg"] / todoTotal) * 100)}%)`);
+      console.log(`    Filter (FILTER, ISFILTERED, etc): ${details.todo_by_function_multi.filter} (${Math.round((details.todo_by_function_multi.filter / todoTotal) * 100)}%)`);
+      console.log(`    Time Intelligence: ${details.todo_by_function_multi.time} (${Math.round((details.todo_by_function_multi.time / todoTotal) * 100)}%)`);
+      console.log(`    Selection Context: ${details.todo_by_function_multi.selected} (${Math.round((details.todo_by_function_multi.selected / todoTotal) * 100)}%)`);
+      console.log(`    Relationship (RELATED, VALUES, etc): ${details.todo_by_function_multi.relationship} (${Math.round((details.todo_by_function_multi.relationship / todoTotal) * 100)}%)`);
+      console.log(`    CALCULATE/CALCULATETABLE: ${details.todo_by_function_multi.calculate} (${Math.round((details.todo_by_function_multi.calculate / todoTotal) * 100)}%)`);
+      console.log(`    Other: ${details.todo_by_function_multi.other} (${Math.round((details.todo_by_function_multi.other / todoTotal) * 100)}%)`);
+    }
   }
 
   console.log(`\n--- SML Validation Results ---`);
@@ -388,6 +695,15 @@ async function main() {
           var_inlined: 0,
           ai_conversion: 0,
           unconvertible: 0,
+        },
+        todo_by_function: {
+          "x-agg": 0,
+          filter: 0,
+          time: 0,
+          selected: 0,
+          relationship: 0,
+          calculate: 0,
+          other: 0,
         },
       },
     };
