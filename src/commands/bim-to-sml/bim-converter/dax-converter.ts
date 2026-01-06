@@ -93,7 +93,7 @@ export class IdentifierToken extends DaxToken {
     super(TokenType.IDENTIFIER, functionName, position);
   }
 
-  toMdx(): string {
+  toMdx(info?: any): string {
     return this.value; // Return the identifier as is
   }
 
@@ -111,8 +111,8 @@ export class ParenToken extends DaxToken {
     this.args = args;
   }
 
-  toMdx(): string {
-    return `(${this.args.map((arg) => arg.toMdx({})).join("")})`;
+  toMdx(info?: any): string {
+    return `(${this.args.map((arg) => arg.toMdx(info)).join("")})`;
   }
 
   toString(): string {
@@ -133,10 +133,62 @@ export class TableColumnReference extends DaxToken {
     );
   }
 
-  toMdx(): string {
-    // Convert DAX 'table'[column] to MDX [Measures].[column]
-    // columnRef.toMdx() already includes [Measures].[...] wrapping
-    return this.columnRef.toMdx();
+  toMdx(info?: any): string {
+    // Convert DAX 'table'[column] to MDX [Measures].[actual_metric_name]
+    const columnName = this.columnRef.columnName;
+
+    // If columnName is empty, this is a bare table reference (e.g., 'TDA Cost' without column)
+    // Bare table references are not convertible to MDX - they're used in FILTER, CALCULATE, etc.
+    // Return the table name as a placeholder that will be caught in validation
+    if (!columnName || columnName.trim() === "") {
+      return `'${this.tableName}'`;
+    }
+
+    // Need to find or create a base metric for this table+column combination
+    if (info && info.attrMaps && info.bim && info.measureConverter) {
+      // Check if a base metric already exists for this table+column
+      // The key format in metricLookup is: aggFn + lowerNoSpace(tableName + "[" + columnName + "]")
+      // For a column reference without explicit aggregation, we need to search for any metric
+      // that matches this table+column combination
+      for (const [key, metricInfo] of info.attrMaps.metricLookup.entries()) {
+        if (metricInfo.table === this.tableName && metricInfo.colName === columnName) {
+          return `[Measures].[${metricInfo.uniqueName}]`;
+        }
+      }
+
+      // Base metric doesn't exist - need to create it
+      // Find the table and column in BIM model
+      const bimTable = info.bim.model?.tables.find(
+        (t: any) => t.name === this.tableName
+      );
+
+      if (bimTable) {
+        const bimColumn = bimTable.columns?.find(
+          (c: any) => c.name === columnName
+        );
+
+        if (bimColumn) {
+          // Determine aggregation function from column's summarizeBy property, default to sum
+          const aggFn = bimColumn.summarizeBy?.toLowerCase() || 'sum';
+
+          const measureUniqueName = info.measureConverter.createAndAddMeasureFromColumn(
+            bimColumn,
+            this.tableName,
+            aggFn,
+            info.result,
+            info.attrMaps,
+            info.unusedTables,
+          );
+
+          if (measureUniqueName) {
+            return `[Measures].[${measureUniqueName}]`;
+          }
+        }
+      }
+    }
+
+    // Fallback: use column name as-is (may cause validation error)
+    return this.columnRef.toMdx(info);
   }
 
   toString(): string {
@@ -149,8 +201,39 @@ export class ColumnReference extends DaxToken {
     super(TokenType.COLUMN_REFERENCE, columnName, position);
   }
 
-  toMdx(): string {
-    // DAX column/measure reference [Name] → MDX [Measures].[Name]
+  toMdx(info?: any): string {
+    // DAX column/measure reference [Name] → MDX [Measures].[actual_unique_name]
+    // Need to look up the actual SML unique_name that was created for this measure
+    if (info && info.attrMaps && info.bim) {
+      // First, try to find if this is a reference to a BIM measure that was converted to a calc
+      // Search all tables for a measure with this name
+      for (const table of info.bim.model?.tables || []) {
+        const bimMeasure = table.measures?.find(
+          (m: any) => m.name === this.columnName
+        );
+        if (bimMeasure) {
+          // Found the BIM measure - look up the calc that was created for it
+          // The calc unique_name is stored in attrNameMap
+          const calcKey = `calculation.${table.name}.${this.columnName}`.toLowerCase();
+          const lookupResult = info.attrMaps.attrNameMap.get(calcKey);
+          if (lookupResult && lookupResult.length > 0) {
+            // Found the calc unique_name
+            return `[Measures].[${lookupResult[0]}]`;
+          }
+        }
+      }
+
+      // Not a BIM measure - might be a column reference
+      // Check if a base metric was already created for this column
+      // Search metricLookup for any metric with this column name
+      for (const [key, metricInfo] of info.attrMaps.metricLookup.entries()) {
+        if (metricInfo.colName === this.columnName) {
+          return `[Measures].[${metricInfo.uniqueName}]`;
+        }
+      }
+    }
+
+    // Fallback: use column name as-is (will likely cause validation error)
     return `[Measures].[${this.columnName}]`;
   }
 
@@ -167,7 +250,7 @@ export class LiteralToken extends DaxToken {
     super(TokenType.LITERAL, literalValue.toString(), position);
   }
 
-  toMdx(): string {
+  toMdx(info?: any): string {
     return this.value;
   }
 
@@ -181,7 +264,7 @@ export class CommaToken extends DaxToken {
     super(TokenType.COMMA, ",", position);
   }
 
-  toMdx(): string {
+  toMdx(info?: any): string {
     return ",";
   }
 
@@ -195,7 +278,7 @@ export class OperatorToken extends DaxToken {
     super(TokenType.OPERATOR, operator, position);
   }
 
-  toMdx(): string {
+  toMdx(info?: any): string {
     return this.value;
   }
   toString(): string {

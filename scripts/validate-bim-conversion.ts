@@ -203,10 +203,12 @@ async function validateSmlOutput(
     const lines = output.split("\n");
 
     for (const line of lines) {
-      if (line.toLowerCase().includes("error")) {
-        errors.push(line.trim());
-      } else if (line.toLowerCase().includes("warning")) {
-        warnings.push(line.trim());
+      const trimmed = line.trim();
+      // Look for SML CLI error format: [ERROR] ... or "Calculated metric ... error"
+      if (trimmed.match(/^\[ERROR\]|error.*detected|contains.*error/i) && !trimmed.toLowerCase().includes("no errors")) {
+        errors.push(trimmed);
+      } else if (trimmed.match(/^\[WARNING\]/i)) {
+        warnings.push(trimmed);
       }
     }
 
@@ -227,9 +229,9 @@ async function validateSmlOutput(
 
     for (const line of combined.split("\n")) {
       const trimmed = line.trim();
-      if (trimmed && trimmed.toLowerCase().includes("error")) {
+      if (trimmed && trimmed.match(/^\[ERROR\]|error.*detected|contains.*error/i) && !trimmed.toLowerCase().includes("no errors")) {
         errors.push(trimmed);
-      } else if (trimmed && trimmed.toLowerCase().includes("warning")) {
+      } else if (trimmed && trimmed.match(/^\[WARNING\]/i)) {
         warnings.push(trimmed);
       }
     }

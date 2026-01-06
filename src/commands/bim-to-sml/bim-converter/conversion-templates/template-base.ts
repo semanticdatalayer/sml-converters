@@ -112,7 +112,7 @@ export abstract class ConversionTemplate {
     tokens: DaxToken[],
     context: ConversionContext,
   ): boolean {
-    const { DirectFunctionConverter } = require("./converters/direct-function-converter");
+    const { DirectFunctionConverter } = require("../converters/direct-function-converter");
     const converter = DirectFunctionConverter.getInstance(context.logger);
 
     for (const token of tokens) {
