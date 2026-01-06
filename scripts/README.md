@@ -283,16 +283,51 @@ Add to GitHub Actions:
 - Ensure baseline format matches current report structure
 - Regenerate baseline if schema changed
 
+## Workflow: Testing Code Changes
+
+Recommended workflow when modifying conversion logic:
+
+1. **Before changes**: Run validate-conversion on test BIM file
+2. **Make changes**: Update conversion code
+3. **After changes**: Re-run validate-conversion on same file
+4. **Compare results**: Check if conversion rate improved or validation errors reduced
+5. **Run batch test**: Use test-conversion on all test files before committing
+
+Example:
+
+```bash
+# Before changes
+npm run validate-conversion -- --input ./test-files/complex.bim > before.txt
+
+# Make code changes...
+
+# After changes
+npm run validate-conversion -- --input ./test-files/complex.bim > after.txt
+
+# Compare
+diff before.txt after.txt
+
+# If good, run full batch
+npm run test-conversion -- --input ./test-files --baseline baseline.json
+```
+
 ## Limitations
 
-- Does not validate SML output (future enhancement)
+### validate-conversion
+- Requires local SML CLI installation
+- SML CLI must have dependencies installed (run `npm install` in SML repo)
+- Exits with error code 1 if validation fails
+
+### test-conversion
+- Does not validate SML output (use validate-conversion for that)
 - Does not write SML files to disk (analyzes in-memory)
 - Does not track individual measure names (only counts)
 
 ## Future Enhancements
 
-- Integrate SML CLI validator
+- Integrate SML validation into test-conversion (batch validation)
 - Track specific measure/dimension names
 - Generate HTML report
 - Performance benchmarking
 - Parallel file processing
+- Auto-detect SML CLI path
