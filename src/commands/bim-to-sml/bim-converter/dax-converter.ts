@@ -279,7 +279,18 @@ export class OperatorToken extends DaxToken {
   }
 
   toMdx(info?: any): string {
-    return this.value;
+    // Convert DAX operators to AtScale MDX operators
+    // Per CLAUDE.md: Use valid AtScale MDX syntax
+    switch (this.value) {
+      case "&&":
+        return " AND ";
+      case "||":
+        return " OR ";
+      case "!=":
+        return "<>";
+      default:
+        return this.value;
+    }
   }
   toString(): string {
     return this.value; // Return the operator as a string
