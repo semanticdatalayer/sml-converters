@@ -104,22 +104,22 @@ interface TestReport {
     todo_remaining: number;
     overall_conversion_rate: number;
     todo_by_function: {
-      "x-agg": { count: number; percent: number };
-      filter: { count: number; percent: number };
-      time: { count: number; percent: number };
-      selected: { count: number; percent: number };
-      relationship: { count: number; percent: number };
-      calculate: { count: number; percent: number };
-      other: { count: number; percent: number };
+      "x-agg": number;
+      filter: number;
+      time: number;
+      selected: number;
+      relationship: number;
+      calculate: number;
+      other: number;
     };
     todo_by_function_multi: {
-      "x-agg": { count: number; percent: number };
-      filter: { count: number; percent: number };
-      time: { count: number; percent: number };
-      selected: { count: number; percent: number };
-      relationship: { count: number; percent: number };
-      calculate: { count: number; percent: number };
-      other: { count: number; percent: number };
+      "x-agg": number;
+      filter: number;
+      time: number;
+      selected: number;
+      relationship: number;
+      calculate: number;
+      other: number;
     };
   };
   summaries: ConversionSummary[];
@@ -672,6 +672,7 @@ function printReport(report: TestReport) {
   // Print overall TODO breakdown from report
   if (report.overall_summary) {
     const summary = report.overall_summary;
+    const totalTodos = summary.todo_remaining;
 
     console.log("\n--- Overall Metrics Conversion Summary ---");
     console.log(`  Total Calculated Metrics: ${summary.total_calculated_metrics}`);
@@ -680,22 +681,22 @@ function printReport(report: TestReport) {
     console.log(`  Overall Conversion Rate: ${summary.overall_conversion_rate}%`);
 
     console.log(`\n  Overall TODO Breakdown by Primary Function:`);
-    console.log(`    X-Agg (SUMX, AVERAGEX, etc.): ${summary.todo_by_function["x-agg"].count} (${summary.todo_by_function["x-agg"].percent}%)`);
-    console.log(`    Filter (FILTER, ISFILTERED, etc.): ${summary.todo_by_function.filter.count} (${summary.todo_by_function.filter.percent}%)`);
-    console.log(`    Time Intelligence: ${summary.todo_by_function.time.count} (${summary.todo_by_function.time.percent}%)`);
-    console.log(`    Selection (SELECTEDVALUE, etc.): ${summary.todo_by_function.selected.count} (${summary.todo_by_function.selected.percent}%)`);
-    console.log(`    Relationship (RELATED, VALUES, etc.): ${summary.todo_by_function.relationship.count} (${summary.todo_by_function.relationship.percent}%)`);
-    console.log(`    CALCULATE/CALCULATETABLE: ${summary.todo_by_function.calculate.count} (${summary.todo_by_function.calculate.percent}%)`);
-    console.log(`    Other: ${summary.todo_by_function.other.count} (${summary.todo_by_function.other.percent}%)`);
+    console.log(`    X-Agg (SUMX, AVERAGEX, etc.): ${Math.round(totalTodos * summary.todo_by_function["x-agg"] / 100)} (${summary.todo_by_function["x-agg"]}%)`);
+    console.log(`    Filter (FILTER, ISFILTERED, etc.): ${Math.round(totalTodos * summary.todo_by_function.filter / 100)} (${summary.todo_by_function.filter}%)`);
+    console.log(`    Time Intelligence: ${Math.round(totalTodos * summary.todo_by_function.time / 100)} (${summary.todo_by_function.time}%)`);
+    console.log(`    Selection (SELECTEDVALUE, etc.): ${Math.round(totalTodos * summary.todo_by_function.selected / 100)} (${summary.todo_by_function.selected}%)`);
+    console.log(`    Relationship (RELATED, VALUES, etc.): ${Math.round(totalTodos * summary.todo_by_function.relationship / 100)} (${summary.todo_by_function.relationship}%)`);
+    console.log(`    CALCULATE/CALCULATETABLE: ${Math.round(totalTodos * summary.todo_by_function.calculate / 100)} (${summary.todo_by_function.calculate}%)`);
+    console.log(`    Other: ${Math.round(totalTodos * summary.todo_by_function.other / 100)} (${summary.todo_by_function.other}%)`);
 
     console.log(`\n  Overall TODO Breakdown by All Functions (multi-category, totals > 100%):`);
-    console.log(`    X-Agg (SUMX, AVERAGEX, etc.): ${summary.todo_by_function_multi["x-agg"].count} (${summary.todo_by_function_multi["x-agg"].percent}%)`);
-    console.log(`    Filter (FILTER, ISFILTERED, etc.): ${summary.todo_by_function_multi.filter.count} (${summary.todo_by_function_multi.filter.percent}%)`);
-    console.log(`    Time Intelligence: ${summary.todo_by_function_multi.time.count} (${summary.todo_by_function_multi.time.percent}%)`);
-    console.log(`    Selection (SELECTEDVALUE, etc.): ${summary.todo_by_function_multi.selected.count} (${summary.todo_by_function_multi.selected.percent}%)`);
-    console.log(`    Relationship (RELATED, VALUES, etc.): ${summary.todo_by_function_multi.relationship.count} (${summary.todo_by_function_multi.relationship.percent}%)`);
-    console.log(`    CALCULATE/CALCULATETABLE: ${summary.todo_by_function_multi.calculate.count} (${summary.todo_by_function_multi.calculate.percent}%)`);
-    console.log(`    Other: ${summary.todo_by_function_multi.other.count} (${summary.todo_by_function_multi.other.percent}%)`);
+    console.log(`    X-Agg (SUMX, AVERAGEX, etc.): ${Math.round(totalTodos * summary.todo_by_function_multi["x-agg"] / 100)} (${summary.todo_by_function_multi["x-agg"]}%)`);
+    console.log(`    Filter (FILTER, ISFILTERED, etc.): ${Math.round(totalTodos * summary.todo_by_function_multi.filter / 100)} (${summary.todo_by_function_multi.filter}%)`);
+    console.log(`    Time Intelligence: ${Math.round(totalTodos * summary.todo_by_function_multi.time / 100)} (${summary.todo_by_function_multi.time}%)`);
+    console.log(`    Selection (SELECTEDVALUE, etc.): ${Math.round(totalTodos * summary.todo_by_function_multi.selected / 100)} (${summary.todo_by_function_multi.selected}%)`);
+    console.log(`    Relationship (RELATED, VALUES, etc.): ${Math.round(totalTodos * summary.todo_by_function_multi.relationship / 100)} (${summary.todo_by_function_multi.relationship}%)`);
+    console.log(`    CALCULATE/CALCULATETABLE: ${Math.round(totalTodos * summary.todo_by_function_multi.calculate / 100)} (${summary.todo_by_function_multi.calculate}%)`);
+    console.log(`    Other: ${Math.round(totalTodos * summary.todo_by_function_multi.other / 100)} (${summary.todo_by_function_multi.other}%)`);
   }
 
   console.log("\n--- Per-File Summary ---");
@@ -899,25 +900,25 @@ async function main() {
 
   const overallConversionRate = totalCalcs > 0 ? Math.round((totalMdxConverted / totalCalcs) * 100) : 0;
 
-  // Transform todo counts to include percentages
-  const todoByFunctionWithPercent = totalTodos > 0 ? {
-    "x-agg": { count: aggregateTodoByFunction["x-agg"], percent: Math.round((aggregateTodoByFunction["x-agg"] / totalTodos) * 100) },
-    filter: { count: aggregateTodoByFunction.filter, percent: Math.round((aggregateTodoByFunction.filter / totalTodos) * 100) },
-    time: { count: aggregateTodoByFunction.time, percent: Math.round((aggregateTodoByFunction.time / totalTodos) * 100) },
-    selected: { count: aggregateTodoByFunction.selected, percent: Math.round((aggregateTodoByFunction.selected / totalTodos) * 100) },
-    relationship: { count: aggregateTodoByFunction.relationship, percent: Math.round((aggregateTodoByFunction.relationship / totalTodos) * 100) },
-    calculate: { count: aggregateTodoByFunction.calculate, percent: Math.round((aggregateTodoByFunction.calculate / totalTodos) * 100) },
-    other: { count: aggregateTodoByFunction.other, percent: Math.round((aggregateTodoByFunction.other / totalTodos) * 100) },
+  // Calculate percentages for todo functions
+  const todoByFunctionPercent = totalTodos > 0 ? {
+    "x-agg": Math.round((aggregateTodoByFunction["x-agg"] / totalTodos) * 100),
+    filter: Math.round((aggregateTodoByFunction.filter / totalTodos) * 100),
+    time: Math.round((aggregateTodoByFunction.time / totalTodos) * 100),
+    selected: Math.round((aggregateTodoByFunction.selected / totalTodos) * 100),
+    relationship: Math.round((aggregateTodoByFunction.relationship / totalTodos) * 100),
+    calculate: Math.round((aggregateTodoByFunction.calculate / totalTodos) * 100),
+    other: Math.round((aggregateTodoByFunction.other / totalTodos) * 100),
   } : undefined;
 
-  const todoByFunctionMultiWithPercent = totalTodos > 0 ? {
-    "x-agg": { count: aggregateTodoByFunctionMulti["x-agg"], percent: Math.round((aggregateTodoByFunctionMulti["x-agg"] / totalTodos) * 100) },
-    filter: { count: aggregateTodoByFunctionMulti.filter, percent: Math.round((aggregateTodoByFunctionMulti.filter / totalTodos) * 100) },
-    time: { count: aggregateTodoByFunctionMulti.time, percent: Math.round((aggregateTodoByFunctionMulti.time / totalTodos) * 100) },
-    selected: { count: aggregateTodoByFunctionMulti.selected, percent: Math.round((aggregateTodoByFunctionMulti.selected / totalTodos) * 100) },
-    relationship: { count: aggregateTodoByFunctionMulti.relationship, percent: Math.round((aggregateTodoByFunctionMulti.relationship / totalTodos) * 100) },
-    calculate: { count: aggregateTodoByFunctionMulti.calculate, percent: Math.round((aggregateTodoByFunctionMulti.calculate / totalTodos) * 100) },
-    other: { count: aggregateTodoByFunctionMulti.other, percent: Math.round((aggregateTodoByFunctionMulti.other / totalTodos) * 100) },
+  const todoByFunctionMultiPercent = totalTodos > 0 ? {
+    "x-agg": Math.round((aggregateTodoByFunctionMulti["x-agg"] / totalTodos) * 100),
+    filter: Math.round((aggregateTodoByFunctionMulti.filter / totalTodos) * 100),
+    time: Math.round((aggregateTodoByFunctionMulti.time / totalTodos) * 100),
+    selected: Math.round((aggregateTodoByFunctionMulti.selected / totalTodos) * 100),
+    relationship: Math.round((aggregateTodoByFunctionMulti.relationship / totalTodos) * 100),
+    calculate: Math.round((aggregateTodoByFunctionMulti.calculate / totalTodos) * 100),
+    other: Math.round((aggregateTodoByFunctionMulti.other / totalTodos) * 100),
   } : undefined;
 
   const report: TestReport = {
@@ -927,13 +928,13 @@ async function main() {
     successful: summaries.filter((s) => s.success).length,
     failed: summaries.filter((s) => !s.success).length,
     llm_enabled: !!llmName,
-    overall_summary: totalTodos > 0 && todoByFunctionWithPercent && todoByFunctionMultiWithPercent ? {
+    overall_summary: totalTodos > 0 && todoByFunctionPercent && todoByFunctionMultiPercent ? {
       total_calculated_metrics: totalCalcs,
       mdx_converted: totalMdxConverted,
       todo_remaining: totalTodos,
       overall_conversion_rate: overallConversionRate,
-      todo_by_function: todoByFunctionWithPercent,
-      todo_by_function_multi: todoByFunctionMultiWithPercent,
+      todo_by_function: todoByFunctionPercent,
+      todo_by_function_multi: todoByFunctionMultiPercent,
     } : undefined,
     summaries,
   };
