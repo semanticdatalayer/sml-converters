@@ -20,17 +20,17 @@ import { ConversionContext } from "../conversion-context";
  * - CALCULATE(SUM(col), dim > 100) → IIF(dim > 100, SUM(col), NULL)
  * - CALCULATE(SUM(col), dim1 = val1, dim2 = val2) → IIF(dim1 = val1 AND dim2 = val2, SUM(col), NULL)
  * - CALCULATE(SUM(col), Date > X, Date <= Y) → IIF(Date > X AND Date <= Y, SUM(col), NULL)
+ * - CALCULATE(SUM(col), dim IN {val1, val2}) → IIF((dim = val1 OR dim = val2), SUM(col), NULL)
  *
- * Supports simple comparison filters: =, <>, >, <, >=, <=
+ * Supports simple comparison filters: =, <>, >, <, >=, <=, IN
  * Does NOT handle:
  * - FILTER() expressions
  * - REMOVEFILTERS/ALL/ALLEXCEPT
- * - IN operators
  * - TREATAS
  * - Relationship functions (RELATED, VALUES, etc.)
  * - Time intelligence functions
  *
- * Confidence: 0.9 for simple filters, 1.0 for no filters
+ * Confidence: 0.9 for simple filters, 1.0 for no filters, 0.85 for IN operators
  */
 export class CalculateTemplate extends ConversionTemplate {
   readonly name = "CalculateTemplate";
@@ -138,8 +138,20 @@ export class CalculateTemplate extends ConversionTemplate {
       const filterConditions: string[] = [];
 
       for (let i = 1; i < argGroups.length; i++) {
-        const filterMdx = this.convertSubExpression(argGroups[i], context);
-        filterConditions.push(filterMdx);
+        // Check if this filter uses IN operator
+        const hasIn = argGroups[i].some(
+          (t) => t instanceof IdentifierToken && t.value.toUpperCase() === "IN"
+        );
+
+        if (hasIn) {
+          // Handle IN operator specially - convert to OR chain
+          const filterMdx = this.convertInFilter(argGroups[i], context);
+          filterConditions.push(filterMdx);
+        } else {
+          // Standard filter conversion
+          const filterMdx = this.convertSubExpression(argGroups[i], context);
+          filterConditions.push(filterMdx);
+        }
       }
 
       // Combine filters with AND
@@ -168,16 +180,17 @@ export class CalculateTemplate extends ConversionTemplate {
   }
 
   /**
-   * Check if a token group represents a simple comparison filter
-   * Pattern: column OPERATOR value or FUNCTION(column) OPERATOR value
-   * Supported operators: =, <>, >, <, >=, <=
+   * Check if a token group represents a simple comparison filter or IN operator
+   * Pattern: column OPERATOR value or column IN {values} or FUNCTION(column) OPERATOR value
+   * Supported operators: =, <>, >, <, >=, <=, IN
    *
    * Returns object with isSimple flag and reason for rejection
    */
   private isSimpleComparisonFilter(tokens: DaxToken[]): { isSimple: boolean; reason?: string } {
-    // Look for pattern: <something> OPERATOR <something>
-    // We need to find a comparison operator
+    // Look for pattern: <something> OPERATOR <something> or <something> IN {values}
+    // We need to find a comparison operator or IN keyword
     let hasComparisonOperator = false;
+    let hasInOperator = false;
     const validOperators = ["=", "<>", ">", "<", ">=", "<=", "!="];
 
     for (const token of tokens) {
@@ -185,10 +198,14 @@ export class CalculateTemplate extends ConversionTemplate {
         hasComparisonOperator = true;
         break;
       }
+      if (token instanceof IdentifierToken && token.value.toUpperCase() === "IN") {
+        hasInOperator = true;
+        break;
+      }
     }
 
-    if (!hasComparisonOperator) {
-      return { isSimple: false, reason: "No comparison operator (=, <>, >, <, >=, <=) found" };
+    if (!hasComparisonOperator && !hasInOperator) {
+      return { isSimple: false, reason: "No comparison operator (=, <>, >, <, >=, <=) or IN found" };
     }
 
     // Check for unconvertible functions and keywords in the filter
@@ -234,17 +251,60 @@ export class CalculateTemplate extends ConversionTemplate {
         // Allow convertible functions like YEAR, MONTH, DAY, etc.
         // These can be used in filter conditions: YEAR([Date]) = 2024
       }
-
-      // Check for IN keyword (not yet supported)
-      if (token instanceof IdentifierToken || token instanceof FunctionToken) {
-        const tokenValue = token.value.toUpperCase();
-        if (tokenValue === "IN") {
-          return { isSimple: false, reason: "IN operator not yet supported" };
-        }
-      }
     }
 
     return { isSimple: true };
+  }
+
+  /**
+   * Convert IN operator expression to OR chain
+   * Pattern: column IN {val1, val2, val3} → (column = val1 OR column = val2 OR column = val3)
+   */
+  private convertInFilter(tokens: DaxToken[], context: ConversionContext): string {
+    // Find the IN keyword position
+    let inIndex = -1;
+    for (let i = 0; i < tokens.length; i++) {
+      if (tokens[i] instanceof IdentifierToken && tokens[i].value.toUpperCase() === "IN") {
+        inIndex = i;
+        break;
+      }
+    }
+
+    if (inIndex === -1) {
+      throw new Error("IN operator not found in filter");
+    }
+
+    // Left side: expression before IN
+    const leftTokens = tokens.slice(0, inIndex);
+    const leftExpr = this.convertSubExpression(leftTokens, context);
+
+    // Right side: values after IN (in braces)
+    // Convert to MDX first to get the raw string, then parse values
+    const rightTokens = tokens.slice(inIndex + 1);
+    const rightExpr = this.convertSubExpression(rightTokens, context);
+
+    // Parse values from brace expression: { val1, val2, val3 }
+    // The rightExpr might look like "{ val1 , val2 , val3 }" or similar
+    // Remove braces and split by commas
+    const cleaned = rightExpr.replace(/[{}]/g, "").trim();
+
+    // If empty, return a false condition
+    if (!cleaned) {
+      return "1 = 0"; // Always false
+    }
+
+    // Split by commas and trim each value
+    const values = cleaned.split(",").map((v) => v.trim()).filter((v) => v.length > 0);
+
+    if (values.length === 0) {
+      return "1 = 0"; // Always false
+    }
+
+    // Create OR conditions
+    const orConditions = values.map((val) => `${leftExpr} = ${val}`);
+
+    // Return parenthesized OR chain
+    return `(${orConditions.join(" OR ")})`;
   }
 
   getExamples(): ConversionExample[] {
@@ -274,6 +334,16 @@ export class CalculateTemplate extends ConversionTemplate {
         mdx: "IIF([Date] >= DATE(2024,1,1) AND [Date] <= DATE(2024,12,31), [Total Sales], NULL)",
         description: "Date range filter with comparison operators",
       },
+      {
+        dax: 'CALCULATE(SUM([Sales]), [Category] IN {"A", "B", "C"})',
+        mdx: 'IIF(([Category] = "A" OR [Category] = "B" OR [Category] = "C"), SUM([Sales]), NULL)',
+        description: "IN operator with multiple values",
+      },
+      {
+        dax: 'CALCULATE([Revenue], [Status] IN {"Active", "Pending"})',
+        mdx: 'IIF(([Status] = "Active" OR [Status] = "Pending"), [Revenue], NULL)',
+        description: "IN operator filter",
+      },
     ];
   }
 
@@ -281,9 +351,11 @@ export class CalculateTemplate extends ConversionTemplate {
     return (
       "Converts simple DAX CALCULATE expressions to MDX. " +
       "Supports: (1) CALCULATE with no filters → unwraps to inner expression, " +
-      "(2) CALCULATE with simple comparison filters → IIF with conditions. " +
+      "(2) CALCULATE with simple comparison filters → IIF with conditions, " +
+      "(3) CALCULATE with IN operator → IIF with OR chain. " +
       "Supports comparison operators: =, <>, >, <, >=, <=. " +
-      "Does not handle: FILTER(), REMOVEFILTERS, IN operator, TREATAS, time intelligence, or relationship functions. " +
+      "Supports IN operator: column IN {val1, val2} → (column = val1 OR column = val2). " +
+      "Does not handle: FILTER(), REMOVEFILTERS, TREATAS, time intelligence, or relationship functions. " +
       "Requires manual review for context semantics."
     );
   }
