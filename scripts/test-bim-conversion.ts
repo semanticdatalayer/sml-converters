@@ -98,6 +98,30 @@ interface TestReport {
   successful: number;
   failed: number;
   llm_enabled: boolean;
+  overall_summary?: {
+    total_calculated_metrics: number;
+    mdx_converted: number;
+    todo_remaining: number;
+    overall_conversion_rate: number;
+    todo_by_function: {
+      "x-agg": number;
+      filter: number;
+      time: number;
+      selected: number;
+      relationship: number;
+      calculate: number;
+      other: number;
+    };
+    todo_by_function_multi: {
+      "x-agg": number;
+      filter: number;
+      time: number;
+      selected: number;
+      relationship: number;
+      calculate: number;
+      other: number;
+    };
+  };
   summaries: ConversionSummary[];
 }
 
@@ -645,79 +669,34 @@ function printReport(report: TestReport) {
   console.log(`  Success: ${report.successful}`);
   console.log(`  Failed: ${report.failed}`);
 
-  // Aggregate TODO breakdown across all files
-  const aggregateTodoByFunction: Record<string, number> = {
-    "x-agg": 0,
-    filter: 0,
-    time: 0,
-    selected: 0,
-    relationship: 0,
-    calculate: 0,
-    other: 0,
-  };
-
-  const aggregateTodoByFunctionMulti: Record<string, number> = {
-    "x-agg": 0,
-    filter: 0,
-    time: 0,
-    selected: 0,
-    relationship: 0,
-    calculate: 0,
-    other: 0,
-  };
-
-  let totalTodos = 0;
-  let totalCalcs = 0;
-  let totalMdxConverted = 0;
-
-  for (const summary of report.summaries) {
-    if (summary.success && summary.metric_calc_details) {
-      const details = summary.metric_calc_details;
-      totalCalcs += details.total;
-      totalMdxConverted += details.mdx_converted;
-      totalTodos += details.todo_remaining;
-
-      if (details.todo_by_function) {
-        for (const [key, value] of Object.entries(details.todo_by_function)) {
-          aggregateTodoByFunction[key] += value;
-        }
-      }
-
-      if (details.todo_by_function_multi) {
-        for (const [key, value] of Object.entries(details.todo_by_function_multi)) {
-          aggregateTodoByFunctionMulti[key] += value;
-        }
-      }
-    }
-  }
-
-  // Print overall TODO breakdown
-  if (totalTodos > 0) {
-    const conversionRate = totalCalcs > 0 ? Math.round((totalMdxConverted / totalCalcs) * 100) : 0;
+  // Print overall TODO breakdown from report
+  if (report.overall_summary) {
+    const summary = report.overall_summary;
+    const totalTodos = summary.todo_remaining;
 
     console.log("\n--- Overall Metrics Conversion Summary ---");
-    console.log(`  Total Calculated Metrics: ${totalCalcs}`);
-    console.log(`  MDX Converted: ${totalMdxConverted}`);
-    console.log(`  TODO Remaining: ${totalTodos}`);
-    console.log(`  Overall Conversion Rate: ${conversionRate}%`);
+    console.log(`  Total Calculated Metrics: ${summary.total_calculated_metrics}`);
+    console.log(`  MDX Converted: ${summary.mdx_converted}`);
+    console.log(`  TODO Remaining: ${summary.todo_remaining}`);
+    console.log(`  Overall Conversion Rate: ${summary.overall_conversion_rate}%`);
 
     console.log(`\n  Overall TODO Breakdown by Primary Function:`);
-    console.log(`    X-Agg (SUMX, AVERAGEX, etc.): ${aggregateTodoByFunction["x-agg"]} (${Math.round((aggregateTodoByFunction["x-agg"] / totalTodos) * 100)}%)`);
-    console.log(`    Filter (FILTER, ISFILTERED, etc.): ${aggregateTodoByFunction.filter} (${Math.round((aggregateTodoByFunction.filter / totalTodos) * 100)}%)`);
-    console.log(`    Time Intelligence: ${aggregateTodoByFunction.time} (${Math.round((aggregateTodoByFunction.time / totalTodos) * 100)}%)`);
-    console.log(`    Selection (SELECTEDVALUE, etc.): ${aggregateTodoByFunction.selected} (${Math.round((aggregateTodoByFunction.selected / totalTodos) * 100)}%)`);
-    console.log(`    Relationship (RELATED, VALUES, etc.): ${aggregateTodoByFunction.relationship} (${Math.round((aggregateTodoByFunction.relationship / totalTodos) * 100)}%)`);
-    console.log(`    CALCULATE/CALCULATETABLE: ${aggregateTodoByFunction.calculate} (${Math.round((aggregateTodoByFunction.calculate / totalTodos) * 100)}%)`);
-    console.log(`    Other: ${aggregateTodoByFunction.other} (${Math.round((aggregateTodoByFunction.other / totalTodos) * 100)}%)`);
+    console.log(`    X-Agg (SUMX, AVERAGEX, etc.): ${summary.todo_by_function["x-agg"]} (${Math.round((summary.todo_by_function["x-agg"] / totalTodos) * 100)}%)`);
+    console.log(`    Filter (FILTER, ISFILTERED, etc.): ${summary.todo_by_function.filter} (${Math.round((summary.todo_by_function.filter / totalTodos) * 100)}%)`);
+    console.log(`    Time Intelligence: ${summary.todo_by_function.time} (${Math.round((summary.todo_by_function.time / totalTodos) * 100)}%)`);
+    console.log(`    Selection (SELECTEDVALUE, etc.): ${summary.todo_by_function.selected} (${Math.round((summary.todo_by_function.selected / totalTodos) * 100)}%)`);
+    console.log(`    Relationship (RELATED, VALUES, etc.): ${summary.todo_by_function.relationship} (${Math.round((summary.todo_by_function.relationship / totalTodos) * 100)}%)`);
+    console.log(`    CALCULATE/CALCULATETABLE: ${summary.todo_by_function.calculate} (${Math.round((summary.todo_by_function.calculate / totalTodos) * 100)}%)`);
+    console.log(`    Other: ${summary.todo_by_function.other} (${Math.round((summary.todo_by_function.other / totalTodos) * 100)}%)`);
 
     console.log(`\n  Overall TODO Breakdown by All Functions (multi-category, totals > 100%):`);
-    console.log(`    X-Agg (SUMX, AVERAGEX, etc.): ${aggregateTodoByFunctionMulti["x-agg"]} (${Math.round((aggregateTodoByFunctionMulti["x-agg"] / totalTodos) * 100)}%)`);
-    console.log(`    Filter (FILTER, ISFILTERED, etc.): ${aggregateTodoByFunctionMulti.filter} (${Math.round((aggregateTodoByFunctionMulti.filter / totalTodos) * 100)}%)`);
-    console.log(`    Time Intelligence: ${aggregateTodoByFunctionMulti.time} (${Math.round((aggregateTodoByFunctionMulti.time / totalTodos) * 100)}%)`);
-    console.log(`    Selection (SELECTEDVALUE, etc.): ${aggregateTodoByFunctionMulti.selected} (${Math.round((aggregateTodoByFunctionMulti.selected / totalTodos) * 100)}%)`);
-    console.log(`    Relationship (RELATED, VALUES, etc.): ${aggregateTodoByFunctionMulti.relationship} (${Math.round((aggregateTodoByFunctionMulti.relationship / totalTodos) * 100)}%)`);
-    console.log(`    CALCULATE/CALCULATETABLE: ${aggregateTodoByFunctionMulti.calculate} (${Math.round((aggregateTodoByFunctionMulti.calculate / totalTodos) * 100)}%)`);
-    console.log(`    Other: ${aggregateTodoByFunctionMulti.other} (${Math.round((aggregateTodoByFunctionMulti.other / totalTodos) * 100)}%)`);
+    console.log(`    X-Agg (SUMX, AVERAGEX, etc.): ${summary.todo_by_function_multi["x-agg"]} (${Math.round((summary.todo_by_function_multi["x-agg"] / totalTodos) * 100)}%)`);
+    console.log(`    Filter (FILTER, ISFILTERED, etc.): ${summary.todo_by_function_multi.filter} (${Math.round((summary.todo_by_function_multi.filter / totalTodos) * 100)}%)`);
+    console.log(`    Time Intelligence: ${summary.todo_by_function_multi.time} (${Math.round((summary.todo_by_function_multi.time / totalTodos) * 100)}%)`);
+    console.log(`    Selection (SELECTEDVALUE, etc.): ${summary.todo_by_function_multi.selected} (${Math.round((summary.todo_by_function_multi.selected / totalTodos) * 100)}%)`);
+    console.log(`    Relationship (RELATED, VALUES, etc.): ${summary.todo_by_function_multi.relationship} (${Math.round((summary.todo_by_function_multi.relationship / totalTodos) * 100)}%)`);
+    console.log(`    CALCULATE/CALCULATETABLE: ${summary.todo_by_function_multi.calculate} (${Math.round((summary.todo_by_function_multi.calculate / totalTodos) * 100)}%)`);
+    console.log(`    Other: ${summary.todo_by_function_multi.other} (${Math.round((summary.todo_by_function_multi.other / totalTodos) * 100)}%)`);
   }
 
   console.log("\n--- Per-File Summary ---");
@@ -873,6 +852,54 @@ async function main() {
     }
   }
 
+  // Calculate overall summary
+  const aggregateTodoByFunction: Record<string, number> = {
+    "x-agg": 0,
+    filter: 0,
+    time: 0,
+    selected: 0,
+    relationship: 0,
+    calculate: 0,
+    other: 0,
+  };
+
+  const aggregateTodoByFunctionMulti: Record<string, number> = {
+    "x-agg": 0,
+    filter: 0,
+    time: 0,
+    selected: 0,
+    relationship: 0,
+    calculate: 0,
+    other: 0,
+  };
+
+  let totalTodos = 0;
+  let totalCalcs = 0;
+  let totalMdxConverted = 0;
+
+  for (const summary of summaries) {
+    if (summary.success && summary.metric_calc_details) {
+      const details = summary.metric_calc_details;
+      totalCalcs += details.total;
+      totalMdxConverted += details.mdx_converted;
+      totalTodos += details.todo_remaining;
+
+      if (details.todo_by_function) {
+        for (const [key, value] of Object.entries(details.todo_by_function)) {
+          aggregateTodoByFunction[key] += value;
+        }
+      }
+
+      if (details.todo_by_function_multi) {
+        for (const [key, value] of Object.entries(details.todo_by_function_multi)) {
+          aggregateTodoByFunctionMulti[key] += value;
+        }
+      }
+    }
+  }
+
+  const overallConversionRate = totalCalcs > 0 ? Math.round((totalMdxConverted / totalCalcs) * 100) : 0;
+
   const report: TestReport = {
     timestamp: new Date().toISOString(),
     input_directory: inputDir,
@@ -880,6 +907,14 @@ async function main() {
     successful: summaries.filter((s) => s.success).length,
     failed: summaries.filter((s) => !s.success).length,
     llm_enabled: !!llmName,
+    overall_summary: totalTodos > 0 ? {
+      total_calculated_metrics: totalCalcs,
+      mdx_converted: totalMdxConverted,
+      todo_remaining: totalTodos,
+      overall_conversion_rate: overallConversionRate,
+      todo_by_function: aggregateTodoByFunction,
+      todo_by_function_multi: aggregateTodoByFunctionMulti,
+    } : undefined,
     summaries,
   };
 
