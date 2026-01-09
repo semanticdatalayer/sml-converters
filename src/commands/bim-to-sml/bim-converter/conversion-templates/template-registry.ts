@@ -6,6 +6,7 @@ import { IfErrorTemplate } from "./templates/iferror-template";
 import { SwitchTemplate } from "./templates/switch-template";
 import { CalculateTemplate } from "./templates/calculate-template";
 import { LogicalTemplate } from "./templates/logical-template";
+import { IteratorAggregateTemplate } from "./templates/iterator-aggregate-template";
 import { DaxToken, DaxTokenizer } from "../dax-converter";
 import {
   ConversionResult,
@@ -62,10 +63,10 @@ export class TemplateRegistry {
     this.registerTemplate(new SwitchTemplate());
     this.registerTemplate(new CalculateTemplate());
     this.registerTemplate(new LogicalTemplate());
+    this.registerTemplate(new IteratorAggregateTemplate());
 
     // Future templates can be added here:
     // this.registerTemplate(new TimeIntelligenceTemplate());
-    // this.registerTemplate(new AggregationTemplate());
   }
 
   /**
