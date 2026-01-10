@@ -1,6 +1,14 @@
-import { DaxToken, FunctionToken } from "../dax-converter";
+import { DaxToken, FunctionToken, getMeasureName, TableColumnReference, IdentifierToken } from "../dax-converter";
 import { ConversionResult } from "../conversion-result";
 import { ConversionContext } from "./conversion-context";
+import { lowerNoSpace } from "../tools";
+import { Constants } from "../../bim-models/constants";
+
+/** Aggregation functions that create base measures */
+const AGGREGATION_FUNCTIONS = new Set([
+  "SUM", "COUNT", "COUNTROWS", "MIN", "MAX", "AVERAGE", "AVG",
+  "DISTINCTCOUNT", "DISTINCTCOUNTNOBLANK"
+]);
 
 /**
  * Example of a DAX to MDX conversion
@@ -153,6 +161,42 @@ export abstract class ConversionTemplate {
       return templateResult.expression;
     }
 
+    // Check for aggregation functions that need measure creation (SUM, COUNTROWS, etc.)
+    // These need special handling to create/lookup base measures
+    if (tokens.length === 1 && tokens[0] instanceof FunctionToken) {
+      const funcToken = tokens[0] as FunctionToken;
+      const funcName = funcToken.functionAgg.toUpperCase();
+
+      if (AGGREGATION_FUNCTIONS.has(funcName)) {
+        // Special handling for COUNTROWS - needs to create row count measure
+        if (funcName === "COUNTROWS") {
+          const measureRef = this.handleCountRows(funcToken, context);
+          if (measureRef) {
+            return measureRef;
+          }
+        } else {
+          // Other aggregation functions (SUM, AVG, etc.)
+          const measureResult = getMeasureName(
+            context.bim,
+            funcToken,
+            context.tableName,
+            context.result,
+            context.attrMaps,
+            context.unusedTables,
+            context.measureConverter,
+          );
+
+          if (measureResult && measureResult.measName) {
+            this.log(
+              `Aggregation function ${funcName} converted to measure: ${measureResult.measName}`,
+              context,
+            );
+            return measureResult.measName;
+          }
+        }
+      }
+    }
+
     // Fallback to direct token.toMdx() conversion
     const info = {
       bim: context.bim,
@@ -165,5 +209,58 @@ export abstract class ConversionTemplate {
     };
 
     return tokens.map((token) => token.toMdx(info)).join("");
+  }
+
+  /**
+   * Handle COUNTROWS function - creates row count measure if needed
+   * COUNTROWS(Table) → [Measures].[Table_RowCount]
+   */
+  private handleCountRows(
+    funcToken: FunctionToken,
+    context: ConversionContext,
+  ): string | undefined {
+    // Get table name from COUNTROWS argument
+    const args = funcToken.args;
+    if (args.length === 0) {
+      return undefined;
+    }
+
+    let tableName: string | undefined;
+
+    // COUNTROWS can have: COUNTROWS(TableName) or COUNTROWS('Table Name')
+    const firstArg = args[0];
+    if (firstArg instanceof TableColumnReference) {
+      tableName = firstArg.tableName;
+    } else if (firstArg instanceof IdentifierToken) {
+      tableName = firstArg.value;
+    }
+
+    if (!tableName) {
+      return undefined;
+    }
+
+    // Check if row count measure already exists
+    const lookupKey = "countrows" + lowerNoSpace(tableName + "[" + Constants.ROW_COUNT_COLUMN_NAME + "]");
+    const existing = context.attrMaps.metricLookup.get(lookupKey);
+    if (existing) {
+      this.log(`Found existing COUNTROWS measure: ${existing.uniqueName}`, context);
+      return `[Measures].[${existing.uniqueName}]`;
+    }
+
+    // Create new row count measure
+    const measureUniqueName = context.measureConverter.createAndAddCountRowsMeasure(
+      tableName,
+      context.result,
+      context.attrMaps,
+      context.unusedTables,
+      true, // isHidden
+    );
+
+    if (measureUniqueName) {
+      this.log(`Created COUNTROWS measure: ${measureUniqueName}`, context);
+      return `[Measures].[${measureUniqueName}]`;
+    }
+
+    return undefined;
   }
 }

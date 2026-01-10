@@ -2,7 +2,7 @@ import {
   ConversionTemplate,
   ConversionExample,
 } from "../template-base";
-import { DaxToken, FunctionToken, CommaToken, OperatorToken, IdentifierToken } from "../../dax-converter";
+import { DaxToken, FunctionToken, CommaToken, OperatorToken, IdentifierToken, TableColumnReference } from "../../dax-converter";
 import {
   ConversionResult,
   ConversionCategory,
@@ -21,16 +21,19 @@ import { ConversionContext } from "../conversion-context";
  * - CALCULATE(SUM(col), dim1 = val1, dim2 = val2) → IIF(dim1 = val1 AND dim2 = val2, SUM(col), NULL)
  * - CALCULATE(SUM(col), Date > X, Date <= Y) → IIF(Date > X AND Date <= Y, SUM(col), NULL)
  * - CALCULATE(SUM(col), dim IN {val1, val2}) → IIF((dim = val1 OR dim = val2), SUM(col), NULL)
+ * - CALCULATE(expr, ALL('Dim1'), ALL('Dim2')) → ([Dim1].[Dim1].[All], [Dim2].[Dim2].[All], expr)
+ * - CALCULATE(expr, ALL('Dim'), col = val) → IIF(col = val, ([Dim].[Dim].[All], expr), NULL)
  *
  * Supports simple comparison filters: =, <>, >, <, >=, <=, IN
+ * Supports ALL() filters for removing dimension filters
  * Does NOT handle:
  * - FILTER() expressions
- * - REMOVEFILTERS/ALL/ALLEXCEPT
+ * - REMOVEFILTERS/ALLEXCEPT
  * - TREATAS
  * - Relationship functions (RELATED, VALUES, etc.)
  * - Time intelligence functions
  *
- * Confidence: 0.9 for simple filters, 1.0 for no filters, 0.85 for IN operators
+ * Confidence: 0.9 for simple filters, 1.0 for no filters, 0.85 for IN/ALL operators
  */
 export class CalculateTemplate extends ConversionTemplate {
   readonly name = "CalculateTemplate";
@@ -78,9 +81,14 @@ export class CalculateTemplate extends ConversionTemplate {
       return true;
     }
 
-    // If 2+ arguments, check that all filter arguments are simple comparisons
+    // If 2+ arguments, check that all filter arguments are simple comparisons or ALL()
     // Skip first argument (the aggregation)
     for (let i = 1; i < argGroups.length; i++) {
+      // Check if it's an ALL() filter first - these are supported
+      if (this.isAllFilter(argGroups[i])) {
+        continue;
+      }
+
       const filterCheckResult = this.isSimpleComparisonFilter(argGroups[i]);
       if (!filterCheckResult.isSimple) {
         this.log(`Rejected: ${filterCheckResult.reason}`, context);
@@ -89,6 +97,61 @@ export class CalculateTemplate extends ConversionTemplate {
     }
 
     return true;
+  }
+
+  /**
+   * Check if a token group is an ALL() filter
+   * Pattern: ALL('Table') or ALL('Table'[Column]) or ALL(Table)
+   */
+  private isAllFilter(tokens: DaxToken[]): boolean {
+    if (tokens.length !== 1) {
+      return false;
+    }
+
+    const token = tokens[0];
+    if (!(token instanceof FunctionToken)) {
+      return false;
+    }
+
+    return token.functionAgg.toUpperCase() === "ALL";
+  }
+
+  /**
+   * Convert ALL() filter to MDX [All] member reference
+   * ALL('Table') → [Table].[Table].[All]
+   * ALL('Table'[Column]) → [Table].[Column].[All]
+   */
+  private convertAllFilter(tokens: DaxToken[], context: ConversionContext): string {
+    const funcToken = tokens[0] as FunctionToken;
+    const args = funcToken.args;
+
+    if (args.length === 0) {
+      throw new Error("ALL() requires at least one argument");
+    }
+
+    // Get the first argument (table or table[column] reference)
+    const firstArg = args[0];
+
+    if (firstArg instanceof TableColumnReference) {
+      const tableName = firstArg.tableName;
+      const columnName = firstArg.columnRef?.columnName;
+
+      if (columnName && columnName.trim() !== "") {
+        // ALL('Table'[Column]) → [Table].[Column].[All]
+        return `[${tableName}].[${columnName}].[All]`;
+      } else {
+        // ALL('Table') → [Table].[Table].[All]
+        return `[${tableName}].[${tableName}].[All]`;
+      }
+    } else if (firstArg instanceof IdentifierToken) {
+      // ALL(Table) without quotes → [Table].[Table].[All]
+      const tableName = firstArg.value;
+      return `[${tableName}].[${tableName}].[All]`;
+    }
+
+    // Fallback: try to extract name from converted expression
+    const argMdx = this.convertSubExpression(args, context);
+    return `${argMdx}.[All]`;
   }
 
   convert(tokens: DaxToken[], context: ConversionContext): ConversionResult {
@@ -107,8 +170,9 @@ export class CalculateTemplate extends ConversionTemplate {
 
     // CRITICAL: Check that converted output won't contain unconvertible functions
     // This prevents outputting invalid MDX like "IIF(CALCULATE(...), ...)"
+    // Note: ALL is handled specially, so we skip it in this check
     for (let i = 0; i < argGroups.length; i++) {
-      if (this.containsUnconvertibleFunctions(argGroups[i], context)) {
+      if (!this.isAllFilter(argGroups[i]) && this.containsUnconvertibleFunctions(argGroups[i], context)) {
         return failedConversion(
           `CALCULATE argument ${i} contains unconvertible functions - cannot convert to valid MDX`,
           token.functionAgg,
@@ -134,41 +198,76 @@ export class CalculateTemplate extends ConversionTemplate {
         );
       }
 
-      // Remaining arguments are filters - convert to AND conditions - may recursively invoke templates
-      const filterConditions: string[] = [];
+      // Separate filters into ALL() filters and comparison filters
+      const allFilters: DaxToken[][] = [];
+      const comparisonFilters: DaxToken[][] = [];
 
       for (let i = 1; i < argGroups.length; i++) {
-        // Check if this filter uses IN operator
-        const hasIn = argGroups[i].some(
+        if (this.isAllFilter(argGroups[i])) {
+          allFilters.push(argGroups[i]);
+        } else {
+          comparisonFilters.push(argGroups[i]);
+        }
+      }
+
+      // Convert ALL() filters to MDX [All] member references
+      const allMemberRefs: string[] = allFilters.map((f) => this.convertAllFilter(f, context));
+
+      // Convert comparison filters
+      const filterConditions: string[] = [];
+      for (const filterGroup of comparisonFilters) {
+        const hasIn = filterGroup.some(
           (t) => t instanceof IdentifierToken && t.value.toUpperCase() === "IN"
         );
 
         if (hasIn) {
-          // Handle IN operator specially - convert to OR chain
-          const filterMdx = this.convertInFilter(argGroups[i], context);
-          filterConditions.push(filterMdx);
+          filterConditions.push(this.convertInFilter(filterGroup, context));
         } else {
-          // Standard filter conversion
-          const filterMdx = this.convertSubExpression(argGroups[i], context);
-          filterConditions.push(filterMdx);
+          filterConditions.push(this.convertSubExpression(filterGroup, context));
         }
       }
 
-      // Combine filters with AND
-      const combinedFilter = filterConditions.join(" AND ");
+      // Build the MDX expression based on filter types
+      let mdxExpression: string;
+      let method: string;
+      let note: string;
 
-      // CALCULATE(agg, filter1, filter2) → IIF(filter1 AND filter2, agg, NULL)
-      const mdxExpression = `IIF(${combinedFilter}, ${aggregationMdx}, NULL)`;
+      if (allFilters.length > 0 && comparisonFilters.length === 0) {
+        // Only ALL() filters: use tuple syntax
+        // CALCULATE(expr, ALL('Dim1'), ALL('Dim2')) → ([Dim1].[Dim1].[All], [Dim2].[Dim2].[All], expr)
+        const tupleMembers = [...allMemberRefs, aggregationMdx];
+        mdxExpression = `(${tupleMembers.join(", ")})`;
+        method = "calculate_template_all";
+        note = "CALCULATE with ALL filters - converted to tuple with [All] members";
+      } else if (allFilters.length > 0 && comparisonFilters.length > 0) {
+        // Mixed: ALL() + comparison filters
+        // CALCULATE(expr, ALL('Dim'), col = val) → IIF(col = val, ([Dim].[Dim].[All], expr), NULL)
+        const tupleMembers = [...allMemberRefs, aggregationMdx];
+        const tupleExpr = `(${tupleMembers.join(", ")})`;
+        const combinedFilter = filterConditions.join(" AND ");
+        mdxExpression = `IIF(${combinedFilter}, ${tupleExpr}, NULL)`;
+        method = "calculate_template_mixed";
+        note = "CALCULATE with ALL and comparison filters - IIF with tuple";
+      } else {
+        // Only comparison filters (original behavior)
+        // CALCULATE(agg, filter1, filter2) → IIF(filter1 AND filter2, agg, NULL)
+        const combinedFilter = filterConditions.join(" AND ");
+        mdxExpression = `IIF(${combinedFilter}, ${aggregationMdx}, NULL)`;
+        method = "calculate_template";
+        note = "Simple CALCULATE with comparison filters - review context semantics";
+      }
 
       return successfulConversion(
         mdxExpression,
-        this.confidence,
+        allFilters.length > 0 ? 0.85 : this.confidence, // Slightly lower confidence for ALL
         ConversionCategory.TEMPLATE_CONVERSION,
         {
-          originalDax: `CALCULATE(${argGroups.map((g) => this.convertSubExpression(g, context)).join(", ")})`,
-          method: "calculate_template",
-          filterCount: filterConditions.length,
-          note: "Simple CALCULATE with comparison filters - review context semantics",
+          originalDax: `CALCULATE(...)`,
+          method,
+          filterCount: argGroups.length - 1,
+          allFilterCount: allFilters.length,
+          comparisonFilterCount: comparisonFilters.length,
+          note,
         },
       );
     } catch (error) {
@@ -344,6 +443,21 @@ export class CalculateTemplate extends ConversionTemplate {
         mdx: 'IIF(([Status] = "Active" OR [Status] = "Pending"), [Revenue], NULL)',
         description: "IN operator filter",
       },
+      {
+        dax: "CALCULATE([Measure], ALL('Dimension'))",
+        mdx: "([Dimension].[Dimension].[All], [Measure])",
+        description: "ALL filter - removes dimension filter using tuple",
+      },
+      {
+        dax: "CALCULATE([Measure], ALL('Dim1'), ALL('Dim2'))",
+        mdx: "([Dim1].[Dim1].[All], [Dim2].[Dim2].[All], [Measure])",
+        description: "Multiple ALL filters - tuple with multiple [All] members",
+      },
+      {
+        dax: 'CALCULATE([Measure], ALL(\'Dimension\'), [Status] = "Active")',
+        mdx: 'IIF([Status] = "Active", ([Dimension].[Dimension].[All], [Measure]), NULL)',
+        description: "Mixed ALL and comparison filters",
+      },
     ];
   }
 
@@ -352,10 +466,12 @@ export class CalculateTemplate extends ConversionTemplate {
       "Converts simple DAX CALCULATE expressions to MDX. " +
       "Supports: (1) CALCULATE with no filters → unwraps to inner expression, " +
       "(2) CALCULATE with simple comparison filters → IIF with conditions, " +
-      "(3) CALCULATE with IN operator → IIF with OR chain. " +
+      "(3) CALCULATE with IN operator → IIF with OR chain, " +
+      "(4) CALCULATE with ALL() → tuple with [All] members. " +
       "Supports comparison operators: =, <>, >, <, >=, <=. " +
       "Supports IN operator: column IN {val1, val2} → (column = val1 OR column = val2). " +
-      "Does not handle: FILTER(), REMOVEFILTERS, TREATAS, time intelligence, or relationship functions. " +
+      "Supports ALL(): ALL('Table') → tuple with [Table].[Table].[All] member. " +
+      "Does not handle: FILTER(), ALLEXCEPT, TREATAS, time intelligence, or relationship functions. " +
       "Requires manual review for context semantics."
     );
   }
