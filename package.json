@@ -60,6 +60,7 @@
     "test": "echo \"No tests found\"",
     "test-conversion": "tsx scripts/test-bim-conversion.ts",
     "validate-conversion": "tsx scripts/validate-bim-conversion.ts",
+    "test-custom-calcs": "tsx scripts/test-custom-calcs.ts",
     "postpack": "shx rm -f oclif.manifest.json",
     "prepack": "oclif manifest && oclif readme",
     "version": "oclif readme && git add README.md"
