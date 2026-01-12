@@ -2,7 +2,7 @@ import {
   ConversionTemplate,
   ConversionExample,
 } from "../template-base";
-import { DaxToken, FunctionToken, CommaToken, OperatorToken, IdentifierToken, TableColumnReference, BraceToken, LiteralToken } from "../../dax-converter";
+import { DaxToken, FunctionToken, CommaToken, OperatorToken, IdentifierToken, TableColumnReference } from "../../dax-converter";
 import {
   ConversionResult,
   ConversionCategory,
@@ -198,76 +198,49 @@ export class CalculateTemplate extends ConversionTemplate {
         );
       }
 
-      // Separate filters into ALL() filters, IN filters, and other comparison filters
+      // Separate filters into ALL() filters and comparison filters
       const allFilters: DaxToken[][] = [];
-      const inFilters: DaxToken[][] = [];
       const comparisonFilters: DaxToken[][] = [];
 
       for (let i = 1; i < argGroups.length; i++) {
         if (this.isAllFilter(argGroups[i])) {
           allFilters.push(argGroups[i]);
         } else {
-          const hasIn = argGroups[i].some(
-            (t) => t instanceof IdentifierToken && t.value.toUpperCase() === "IN"
-          );
-          if (hasIn) {
-            inFilters.push(argGroups[i]);
-          } else {
-            comparisonFilters.push(argGroups[i]);
-          }
+          comparisonFilters.push(argGroups[i]);
         }
       }
 
       // Convert ALL() filters to MDX [All] member references
       const allMemberRefs: string[] = allFilters.map((f) => this.convertAllFilter(f, context));
 
+      // Convert comparison filters
+      const filterConditions: string[] = [];
+      for (const filterGroup of comparisonFilters) {
+        const hasIn = filterGroup.some(
+          (t) => t instanceof IdentifierToken && t.value.toUpperCase() === "IN"
+        );
+
+        if (hasIn) {
+          filterConditions.push(this.convertInFilter(filterGroup, context));
+        } else {
+          filterConditions.push(this.convertSubExpression(filterGroup, context));
+        }
+      }
+
       // Build the MDX expression based on filter types
       let mdxExpression: string;
       let method: string;
       let note: string;
 
-      // Special case: single IN filter with no other filters → use Aggregate
-      // CALCULATE([Measure], Table[Col] IN {val1, val2}) → Aggregate({set}, measure)
-      if (inFilters.length === 1 && allFilters.length === 0 && comparisonFilters.length === 0) {
-        const aggregateResult = this.convertInFilterToAggregate(inFilters[0], aggregationMdx, context);
-        if (aggregateResult) {
-          return successfulConversion(
-            aggregateResult,
-            0.9,
-            ConversionCategory.TEMPLATE_CONVERSION,
-            {
-              originalDax: `CALCULATE(...)`,
-              method: "calculate_template_in_aggregate",
-              filterCount: 1,
-              note: "CALCULATE with IN filter - converted to Aggregate over member set",
-            },
-          );
-        }
-        // Fall through to OR chain if Aggregate conversion fails
-      }
-
-      // Convert remaining filters for IIF approach
-      const filterConditions: string[] = [];
-
-      // Convert IN filters to OR chains
-      for (const filterGroup of inFilters) {
-        filterConditions.push(this.convertInFilter(filterGroup, context));
-      }
-
-      // Convert other comparison filters
-      for (const filterGroup of comparisonFilters) {
-        filterConditions.push(this.convertSubExpression(filterGroup, context));
-      }
-
-      if (allFilters.length > 0 && filterConditions.length === 0) {
+      if (allFilters.length > 0 && comparisonFilters.length === 0) {
         // Only ALL() filters: use tuple syntax
         // CALCULATE(expr, ALL('Dim1'), ALL('Dim2')) → ([Dim1].[Dim1].[All], [Dim2].[Dim2].[All], expr)
         const tupleMembers = [...allMemberRefs, aggregationMdx];
         mdxExpression = `(${tupleMembers.join(", ")})`;
         method = "calculate_template_all";
         note = "CALCULATE with ALL filters - converted to tuple with [All] members";
-      } else if (allFilters.length > 0 && filterConditions.length > 0) {
-        // Mixed: ALL() + comparison/IN filters
+      } else if (allFilters.length > 0 && comparisonFilters.length > 0) {
+        // Mixed: ALL() + comparison filters
         // CALCULATE(expr, ALL('Dim'), col = val) → IIF(col = val, ([Dim].[Dim].[All], expr), NULL)
         const tupleMembers = [...allMemberRefs, aggregationMdx];
         const tupleExpr = `(${tupleMembers.join(", ")})`;
@@ -276,7 +249,7 @@ export class CalculateTemplate extends ConversionTemplate {
         method = "calculate_template_mixed";
         note = "CALCULATE with ALL and comparison filters - IIF with tuple";
       } else {
-        // Only comparison/IN filters (original behavior)
+        // Only comparison filters (original behavior)
         // CALCULATE(agg, filter1, filter2) → IIF(filter1 AND filter2, agg, NULL)
         const combinedFilter = filterConditions.join(" AND ");
         mdxExpression = `IIF(${combinedFilter}, ${aggregationMdx}, NULL)`;
@@ -383,116 +356,7 @@ export class CalculateTemplate extends ConversionTemplate {
   }
 
   /**
-   * Parse IN filter and extract dimension/column reference and values
-   * Returns { dimension, column, values } or null if cannot parse
-   */
-  private parseInFilter(tokens: DaxToken[], context: ConversionContext): {
-    dimensionName: string;
-    columnName: string;
-    values: string[]
-  } | null {
-    // Find the IN keyword position
-    let inIndex = -1;
-    for (let i = 0; i < tokens.length; i++) {
-      if (tokens[i] instanceof IdentifierToken && tokens[i].value.toUpperCase() === "IN") {
-        inIndex = i;
-        break;
-      }
-    }
-
-    if (inIndex === -1) {
-      return null;
-    }
-
-    // Left side: should be a table/column reference like DATE_DIM[D_QOY]
-    const leftTokens = tokens.slice(0, inIndex);
-    let dimensionName: string | null = null;
-    let columnName: string | null = null;
-
-    // Try to extract table[column] reference
-    for (const token of leftTokens) {
-      if (token instanceof TableColumnReference) {
-        dimensionName = token.tableName;
-        columnName = token.columnRef?.columnName || token.tableName;
-        break;
-      }
-    }
-
-    if (!dimensionName || !columnName) {
-      return null;
-    }
-
-    // Right side: should be a BraceToken containing values
-    const rightTokens = tokens.slice(inIndex + 1);
-    const values: string[] = [];
-
-    // Find the BraceToken in right side
-    for (const token of rightTokens) {
-      if (token instanceof BraceToken) {
-        // Extract values from brace token args (filtering out commas)
-        for (const arg of token.args) {
-          if (arg instanceof LiteralToken) {
-            values.push(arg.value);
-          } else if (arg instanceof IdentifierToken) {
-            // String values might be identifiers
-            values.push(arg.value);
-          } else if (!(arg instanceof CommaToken)) {
-            // For other token types, convert to string
-            values.push(arg.toString());
-          }
-        }
-        break;
-      }
-    }
-
-    if (values.length === 0) {
-      // Fallback: try converting to string and parsing (for backwards compatibility)
-      const rightExpr = this.convertSubExpression(rightTokens, context);
-      const cleaned = rightExpr.replace(/[{}]/g, "").trim();
-      if (cleaned) {
-        const parsedValues = cleaned.split(",").map((v) => v.trim()).filter((v) => v.length > 0);
-        if (parsedValues.length > 0) {
-          return { dimensionName, columnName, values: parsedValues };
-        }
-      }
-      return null;
-    }
-
-    return { dimensionName, columnName, values };
-  }
-
-  /**
-   * Convert IN filter to Aggregate over set of members
-   * Pattern: CALCULATE([Measure], Table[Column] IN {val1, val2})
-   *       → Aggregate({[Table].[Column].&[val1], [Table].[Column].&[val2]}, [Measures].[Measure])
-   */
-  private convertInFilterToAggregate(
-    tokens: DaxToken[],
-    aggregationMdx: string,
-    context: ConversionContext
-  ): string | null {
-    const parsed = this.parseInFilter(tokens, context);
-    if (!parsed) {
-      return null;
-    }
-
-    const { dimensionName, columnName, values } = parsed;
-
-    // Build set of member references: {[Dim].[Col].&[val1], [Dim].[Col].&[val2]}
-    const memberRefs = values.map((val) => {
-      // Remove quotes from string values for member key
-      const cleanVal = val.replace(/^["']|["']$/g, "");
-      return `[${dimensionName}].[${columnName}].&[${cleanVal}]`;
-    });
-
-    const setExpr = `{${memberRefs.join(", ")}}`;
-
-    // Return Aggregate(set, measure)
-    return `Aggregate(${setExpr}, ${aggregationMdx})`;
-  }
-
-  /**
-   * Convert IN operator expression to OR chain (fallback for mixed filters)
+   * Convert IN operator expression to OR chain
    * Pattern: column IN {val1, val2, val3} → (column = val1 OR column = val2 OR column = val3)
    */
   private convertInFilter(tokens: DaxToken[], context: ConversionContext): string {
@@ -513,35 +377,23 @@ export class CalculateTemplate extends ConversionTemplate {
     const leftTokens = tokens.slice(0, inIndex);
     const leftExpr = this.convertSubExpression(leftTokens, context);
 
-    // Right side: should contain a BraceToken with values
+    // Right side: values after IN (in braces)
+    // Convert to MDX first to get the raw string, then parse values
     const rightTokens = tokens.slice(inIndex + 1);
-    const values: string[] = [];
+    const rightExpr = this.convertSubExpression(rightTokens, context);
 
-    // Find BraceToken and extract values
-    for (const token of rightTokens) {
-      if (token instanceof BraceToken) {
-        for (const arg of token.args) {
-          if (arg instanceof LiteralToken) {
-            values.push(arg.value);
-          } else if (arg instanceof IdentifierToken) {
-            values.push(arg.value);
-          } else if (!(arg instanceof CommaToken)) {
-            values.push(arg.toString());
-          }
-        }
-        break;
-      }
+    // Parse values from brace expression: { val1, val2, val3 }
+    // The rightExpr might look like "{ val1 , val2 , val3 }" or similar
+    // Remove braces and split by commas
+    const cleaned = rightExpr.replace(/[{}]/g, "").trim();
+
+    // If empty, return a false condition
+    if (!cleaned) {
+      return "1 = 0"; // Always false
     }
 
-    // Fallback: try string parsing
-    if (values.length === 0) {
-      const rightExpr = this.convertSubExpression(rightTokens, context);
-      const cleaned = rightExpr.replace(/[{}]/g, "").trim();
-      if (cleaned) {
-        const parsedValues = cleaned.split(",").map((v) => v.trim()).filter((v) => v.length > 0);
-        values.push(...parsedValues);
-      }
-    }
+    // Split by commas and trim each value
+    const values = cleaned.split(",").map((v) => v.trim()).filter((v) => v.length > 0);
 
     if (values.length === 0) {
       return "1 = 0"; // Always false
@@ -582,14 +434,14 @@ export class CalculateTemplate extends ConversionTemplate {
         description: "Date range filter with comparison operators",
       },
       {
-        dax: "CALCULATE([Total Sales], DATE_DIM[D_QOY] IN {1, 2})",
-        mdx: "Aggregate({[DATE_DIM].[D_QOY].&[1], [DATE_DIM].[D_QOY].&[2]}, [Measures].[Total Sales])",
-        description: "IN operator - Aggregate over member set",
+        dax: 'CALCULATE(SUM([Sales]), [Category] IN {"A", "B", "C"})',
+        mdx: 'IIF(([Category] = "A" OR [Category] = "B" OR [Category] = "C"), SUM([Sales]), NULL)',
+        description: "IN operator with multiple values",
       },
       {
-        dax: 'CALCULATE([Revenue], Product[Category] IN {"Electronics", "Clothing"})',
-        mdx: 'Aggregate({[Product].[Category].&[Electronics], [Product].[Category].&[Clothing]}, [Measures].[Revenue])',
-        description: "IN operator with string values - Aggregate over member set",
+        dax: 'CALCULATE([Revenue], [Status] IN {"Active", "Pending"})',
+        mdx: 'IIF(([Status] = "Active" OR [Status] = "Pending"), [Revenue], NULL)',
+        description: "IN operator filter",
       },
       {
         dax: "CALCULATE([Measure], ALL('Dimension'))",
@@ -614,10 +466,10 @@ export class CalculateTemplate extends ConversionTemplate {
       "Converts simple DAX CALCULATE expressions to MDX. " +
       "Supports: (1) CALCULATE with no filters → unwraps to inner expression, " +
       "(2) CALCULATE with simple comparison filters → IIF with conditions, " +
-      "(3) CALCULATE with IN operator → Aggregate over member set, " +
+      "(3) CALCULATE with IN operator → IIF with OR chain, " +
       "(4) CALCULATE with ALL() → tuple with [All] members. " +
       "Supports comparison operators: =, <>, >, <, >=, <=. " +
-      "Supports IN operator: Table[Column] IN {val1, val2} → Aggregate({[Table].[Column].&[val1], ...}, measure). " +
+      "Supports IN operator: column IN {val1, val2} → (column = val1 OR column = val2). " +
       "Supports ALL(): ALL('Table') → tuple with [Table].[Table].[All] member. " +
       "Does not handle: FILTER(), ALLEXCEPT, TREATAS, time intelligence, or relationship functions. " +
       "Requires manual review for context semantics."
