@@ -2,7 +2,7 @@ import {
   ConversionTemplate,
   ConversionExample,
 } from "../template-base";
-import { DaxToken, FunctionToken, CommaToken, OperatorToken, IdentifierToken, TableColumnReference } from "../../dax-converter";
+import { DaxToken, FunctionToken, CommaToken, OperatorToken, IdentifierToken, TableColumnReference, BraceToken, LiteralToken } from "../../dax-converter";
 import {
   ConversionResult,
   ConversionCategory,
@@ -377,23 +377,36 @@ export class CalculateTemplate extends ConversionTemplate {
     const leftTokens = tokens.slice(0, inIndex);
     const leftExpr = this.convertSubExpression(leftTokens, context);
 
-    // Right side: values after IN (in braces)
-    // Convert to MDX first to get the raw string, then parse values
+    // Right side: should contain a BraceToken with values
     const rightTokens = tokens.slice(inIndex + 1);
-    const rightExpr = this.convertSubExpression(rightTokens, context);
+    const values: string[] = [];
 
-    // Parse values from brace expression: { val1, val2, val3 }
-    // The rightExpr might look like "{ val1 , val2 , val3 }" or similar
-    // Remove braces and split by commas
-    const cleaned = rightExpr.replace(/[{}]/g, "").trim();
-
-    // If empty, return a false condition
-    if (!cleaned) {
-      return "1 = 0"; // Always false
+    // Try to extract values from BraceToken first
+    for (const token of rightTokens) {
+      if (token instanceof BraceToken) {
+        for (const arg of token.args) {
+          if (arg instanceof LiteralToken) {
+            values.push(arg.value);
+          } else if (arg instanceof IdentifierToken) {
+            values.push(arg.value);
+          } else if (!(arg instanceof CommaToken)) {
+            // For other token types, convert to string
+            values.push(arg.toString());
+          }
+        }
+        break;
+      }
     }
 
-    // Split by commas and trim each value
-    const values = cleaned.split(",").map((v) => v.trim()).filter((v) => v.length > 0);
+    // Fallback: convert to MDX string and parse
+    if (values.length === 0) {
+      const rightExpr = this.convertSubExpression(rightTokens, context);
+      const cleaned = rightExpr.replace(/[{}]/g, "").trim();
+      if (cleaned) {
+        const parsedValues = cleaned.split(",").map((v) => v.trim()).filter((v) => v.length > 0);
+        values.push(...parsedValues);
+      }
+    }
 
     if (values.length === 0) {
       return "1 = 0"; // Always false

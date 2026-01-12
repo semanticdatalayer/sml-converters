@@ -120,6 +120,24 @@ export class ParenToken extends DaxToken {
   }
 }
 
+/**
+ * Represents a DAX brace expression { val1, val2, ... }
+ * Used for IN operator: column IN {val1, val2}
+ */
+export class BraceToken extends DaxToken {
+  constructor(public args: DaxToken[], position: number) {
+    super(TokenType.BRACKET, "{", position);
+  }
+
+  toMdx(info?: any): string {
+    return `{ ${this.args.map((arg) => arg.toMdx(info)).join("")} }`;
+  }
+
+  toString(): string {
+    return `{ ${this.args.map((arg) => arg.toString()).join("")} }`;
+  }
+}
+
 export class TableColumnReference extends DaxToken {
   constructor(
     public tableName: string,
@@ -388,6 +406,8 @@ export class DaxTokenizer {
         this.parseColumnReferenceSingular(daxExpression);
       } else if (char === "(") {
         this.parseFunction(daxExpression);
+      } else if (char === "{") {
+        this.parseBraceExpression(daxExpression);
       } else if (char === ",") {
         this.tokens.push(new CommaToken(this.position));
         this.position++;
@@ -636,6 +656,36 @@ export class DaxTokenizer {
     this.tokens.push(token);
   }
 
+  /**
+   * Parse brace expression { val1, val2, ... }
+   * Used for IN operator sets
+   */
+  private parseBraceExpression(expression: string): void {
+    const start = this.position;
+    const endBrace = this.findMatchingCloseBrace(expression, start);
+    const innerExpression = expression.slice(start + 1, endBrace);
+    const tokenizer = new DaxTokenizer();
+    const innerTokens = tokenizer.tokenize(innerExpression);
+    this.position = endBrace + 1; // Move past closing brace
+    this.tokens.push(new BraceToken(innerTokens, start));
+  }
+
+  /**
+   * Find matching closing brace for an opening brace
+   */
+  private findMatchingCloseBrace(expression: string, openPos: number): number {
+    let count = 1;
+    let pos = openPos + 1;
+
+    while (pos < expression.length && count > 0) {
+      if (expression[pos] === "{") count++;
+      else if (expression[pos] === "}") count--;
+      pos++;
+    }
+
+    return pos - 1;
+  }
+
   private parseFunctionArguments(
     expression: string,
     startPos: number,
@@ -745,6 +795,9 @@ export class DaxTokenizer {
       if (token instanceof ParenToken || token instanceof FunctionToken) {
         functionTokens.push(...this.getAllFunctions(token.args));
       }
+      if (token instanceof BraceToken) {
+        functionTokens.push(...this.getAllFunctions(token.args));
+      }
       if (token instanceof FunctionToken) {
         functionTokens.push(token);
       }
@@ -762,6 +815,10 @@ export class DaxTokenizer {
     }
     tokens.forEach((token) => {
       if (token instanceof ParenToken || token instanceof FunctionToken) {
+        typeTokens.push(...this.getAllInstanceOf(type, token.args));
+      }
+      // Search inside brace expressions { val1, val2 }
+      if (token instanceof BraceToken) {
         typeTokens.push(...this.getAllInstanceOf(type, token.args));
       }
       // Search inside VAR expressions to detect unconvertible functions
