@@ -174,6 +174,14 @@ export class TableColumnReference extends DaxToken {
         }
       }
 
+      // Check if this is a dimension table - if so, return dimension attribute syntax
+      // instead of trying to create a metric
+      if (info.measureConverter.isDimensionOnlyTable &&
+          info.measureConverter.isDimensionOnlyTable(this.tableName)) {
+        // Return dimension attribute reference syntax: [Table].[Column].CurrentMember.MemberValue
+        return `[${this.tableName}].[${columnName}].CurrentMember.MemberValue`;
+      }
+
       // Base metric doesn't exist - need to create it
       // Find the table and column in BIM model
       const bimTable = info.bim.model?.tables.find(

@@ -90,7 +90,12 @@ export class BimToYamlConverter {
     const tableConverter = new TableConverter(this.logger);
     tableConverter.listUnusedBimTables(bim, tableLists, this.logger);
 
+    // Classify tables as fact vs dimension BEFORE DAX conversion
+    // so metrics are only created on fact tables
+    tableConverter.populateTableLists(bim, tableLists);
+
     const measureConverter = new MeasureConverter(this.logger, llmName);
+    measureConverter.setTableLists(tableLists);
     measureConverter.measuresFromSimpleMeasures(
       bim,
       result,
@@ -108,8 +113,6 @@ export class BimToYamlConverter {
       tableLists,
       attrMaps,
     );
-
-    tableConverter.populateTableLists(bim, tableLists);
 
     const dimensionConverter = new DimensionConverter(this.logger);
     dimensionConverter.createDimensions(tableLists, bim, attrMaps, result);
@@ -129,6 +132,7 @@ export class BimToYamlConverter {
       model,
       attrMaps,
       tableLists.unusedTables,
+      tableLists,
     );
 
     relationshipConverter.addMissingRelationships(result, model);

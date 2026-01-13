@@ -58,10 +58,31 @@ export class MeasureConverter {
   private logger: Logger;
   private llmName?: string;
   private usedColumnsInDax: Set<string> = new Set();
+  private tableLists?: TableLists;
 
   constructor(logger: Logger, llmName?: string) {
     this.logger = logger;
     this.llmName = llmName;
+  }
+
+  setTableLists(tableLists: TableLists) {
+    this.tableLists = tableLists;
+  }
+
+  private isDimensionTable(tableName: string): boolean {
+    return this.isDimensionOnlyTable(tableName);
+  }
+
+  /**
+   * Check if a table is dimension-only (in dimTables but not in factTables).
+   * Public method for use by dax-converter.
+   */
+  isDimensionOnlyTable(tableName: string): boolean {
+    if (!this.tableLists) return false;
+    const isDim = this.tableLists.dimTables.some((t) => t.name === tableName);
+    const isFact = this.tableLists.factTables.some((t) => t.name === tableName);
+    // A table is dimension-only if it's in dimTables but NOT in factTables
+    return isDim && !isFact;
   }
 
   // If a calc uses an agg function and that's the only thing in the expression,
@@ -240,7 +261,7 @@ export class MeasureConverter {
 
   /**
    * Create a measure from a column only if the column isn't used elsewhere, is visible, has summarizeBy
-   * and isn't a known naming pattern
+   * and isn't a known naming pattern. Only creates measures on fact tables, not dimension tables.
    */
   measuresFromColumns(
     bim: BimRoot,
@@ -248,10 +269,12 @@ export class MeasureConverter {
     model: SMLModel,
     attrMaps: AttributeMaps,
     unusedTables: Set<string>,
+    tableLists: TableLists,
   ) {
-    // Get list of fact tables from measures defined
+    // Only create measures on fact tables, not dimension tables
+    const factTableNames = new Set(tableLists.factTables.map((t) => t.name));
     if (bim.model.tables)
-      bim.model.tables.forEach((tbl) => {
+      bim.model.tables.filter((tbl) => factTableNames.has(tbl.name)).forEach((tbl) => {
         const usedCols: Set<string> = colsUsedByTbl(bim, result, tbl.name);
         tbl.columns?.forEach((col) => {
           if (
@@ -291,6 +314,14 @@ export class MeasureConverter {
     const model = result.models[0];
 
     if (unusedTables.has(tableName)) return "";
+
+    // Don't create metrics on dimension-only tables
+    if (this.isDimensionTable(tableName)) {
+      this.logger.debug?.(
+        `Skipping metric creation for column '${c.name}' on dimension table '${tableName}'`,
+      );
+      return "";
+    }
 
     const datasetUniqueName = makeUniqueName(`dataset.${tableName}`);
     const default_meas_name =
