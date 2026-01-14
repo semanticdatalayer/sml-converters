@@ -1,0 +1,169 @@
+{
+  "timestamp": "2026-01-13T17:04:03.570Z",
+  "input_directory": "/Users/dianne/Downloads/bim/quickfiles",
+  "total_files": 3,
+  "successful": 3,
+  "failed": 0,
+  "llm_enabled": false,
+  "overall_summary": {
+    "total_calculated_metrics": 631,
+    "mdx_converted": 273,
+    "todo_remaining": 358,
+    "overall_conversion_rate": 43,
+    "todo_by_function": {
+      "x-agg": 18,
+      "filter": 34,
+      "time": 11,
+      "selected": 3,
+      "relationship": 4,
+      "calculate": 26,
+      "other": 4
+    },
+    "todo_by_function_multi": {
+      "x-agg": 18,
+      "filter": 44,
+      "time": 16,
+      "selected": 5,
+      "relationship": 20,
+      "calculate": 82,
+      "other": 4
+    }
+  },
+  "summaries": [
+    {
+      "file": "DataMgt_bim.json",
+      "success": true,
+      "duration_ms": 69,
+      "counts": {
+        "models": 1,
+        "datasets": 33,
+        "dimensions": 25,
+        "metrics": 24,
+        "metrics_calculated": 155,
+        "relationships": 41,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 155,
+        "mdx_converted": 49,
+        "todo_remaining": 106,
+        "conversion_rate": 32,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 49,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 106
+        },
+        "todo_by_function": {
+          "x-agg": 40,
+          "filter": 19,
+          "time": 11,
+          "selected": 9,
+          "relationship": 14,
+          "calculate": 13,
+          "other": 0
+        },
+        "todo_by_function_multi": {
+          "x-agg": 40,
+          "filter": 43,
+          "time": 23,
+          "selected": 17,
+          "relationship": 62,
+          "calculate": 82,
+          "other": 0
+        }
+      }
+    },
+    {
+      "file": "PFM_from_Daniel_bim.json",
+      "success": true,
+      "duration_ms": 62,
+      "counts": {
+        "models": 1,
+        "datasets": 27,
+        "dimensions": 8,
+        "metrics": 130,
+        "metrics_calculated": 450,
+        "relationships": 39,
+        "connections": 3
+      },
+      "metric_calc_details": {
+        "total": 450,
+        "mdx_converted": 210,
+        "todo_remaining": 240,
+        "conversion_rate": 47,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 210,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 240
+        },
+        "todo_by_function": {
+          "x-agg": 17,
+          "filter": 101,
+          "time": 25,
+          "selected": 2,
+          "relationship": 0,
+          "calculate": 81,
+          "other": 14
+        },
+        "todo_by_function_multi": {
+          "x-agg": 17,
+          "filter": 113,
+          "time": 25,
+          "selected": 2,
+          "relationship": 11,
+          "calculate": 208,
+          "other": 14
+        }
+      }
+    },
+    {
+      "file": "finance_bim.json",
+      "success": true,
+      "duration_ms": 5,
+      "counts": {
+        "models": 1,
+        "datasets": 9,
+        "dimensions": 7,
+        "metrics": 4,
+        "metrics_calculated": 26,
+        "relationships": 9,
+        "connections": 1
+      },
+      "metric_calc_details": {
+        "total": 26,
+        "mdx_converted": 14,
+        "todo_remaining": 12,
+        "conversion_rate": 54,
+        "by_category": {
+          "direct_conversion": 0,
+          "template_conversion": 14,
+          "var_inlined": 0,
+          "ai_conversion": 0,
+          "unconvertible": 12
+        },
+        "todo_by_function": {
+          "x-agg": 7,
+          "filter": 0,
+          "time": 4,
+          "selected": 0,
+          "relationship": 0,
+          "calculate": 0,
+          "other": 1
+        },
+        "todo_by_function_multi": {
+          "x-agg": 7,
+          "filter": 0,
+          "time": 8,
+          "selected": 0,
+          "relationship": 0,
+          "calculate": 5,
+          "other": 1
+        }
+      }
+    }
+  ]
+}

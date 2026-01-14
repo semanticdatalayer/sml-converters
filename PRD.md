@@ -54,11 +54,11 @@ Enhance BIM-to-SML conversion to properly handle calculation groups and the DAX 
 **Description:** As a converter, I need to track which measures reference other measures so I can find transitive calc group dependencies.
 
 **Acceptance Criteria:**
-- [ ] Create `MeasureDependencyTracker` class in new file `measure-dependency-tracker.ts`
-- [ ] Parse measure expressions to extract `[MeasureName]` references
-- [ ] Build Map of measure name → Set of referenced measure names
-- [ ] Provide `getDependencies(measureName)` method
-- [ ] Typecheck passes
+- [x] Create `MeasureDependencyTracker` class in new file `measure-dependency-tracker.ts`
+- [x] Parse measure expressions to extract `[MeasureName]` references
+- [x] Build Map of measure name → Set of referenced measure names
+- [x] Provide `getDependencies(measureName)` method
+- [x] Typecheck passes
 
 ### US-005: Mark transitive calc group dependencies as TODO
 

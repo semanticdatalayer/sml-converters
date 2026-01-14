@@ -1,0 +1,69 @@
+Measure Name	DAX Expression	Converted MDX	Concerns	Conversion Method
+Total Sales	SUM(STORE_SALES[SS_NET_PAID])	Sum([Measures].[SS_NET_PAID])	None - direct mapping	Direct function conversion
+Total Profit	SUM(STORE_SALES[SS_NET_PROFIT])	Sum([Measures].[SS_NET_PROFIT])	None - direct mapping	Direct function conversion
+Sales Count	COUNT(STORE_SALES[SS_TICKET_NUMBER])	Count([Measures].[SS_TICKET_NUMBER])	None - direct mapping	Direct function conversion
+Sales Row Count	COUNTROWS(STORE_SALES)	[Measures].[countrows1]	None - direct mapping	Direct function conversion
+Average Sale Price	AVERAGE(STORE_SALES[SS_SALES_PRICE])	AVERAGE([Measures].[SS_SALES_PRICE])	None - direct mapping	Direct function conversion
+Min Sale Price	MIN(STORE_SALES[SS_SALES_PRICE])	Min([Measures].[SS_SALES_PRICE])	None - direct mapping	Direct function conversion
+Max Sale Price	MAX(STORE_SALES[SS_SALES_PRICE])	Max([Measures].[SS_SALES_PRICE])	None - direct mapping	Direct function conversion
+Distinct Customers	DISTINCTCOUNT(STORE_SALES[SS_CUSTOMER_SK])	DistinctCount([Measures].[SS_CUSTOMER_SK])	None - direct mapping	Direct function conversion
+Weekend Sales	CALCULATE([Total Sales], DATE_DIM[D_WEEKEND]="Y")	IIF([Measures].[D_WEEKEND]=Y, [Measures].[Total Sales], NULL)	Semantic equivalence depends on filter context	CALCULATE with filter -> IIF
+Q1 Sales	CALCULATE([Total Sales], DATE_DIM[D_QOY]=1)	IIF([Measures].[D_QOY]=1, [Measures].[Total Sales], NULL)	Semantic equivalence depends on filter context	CALCULATE with filter -> IIF
+Sales All Dates	CALCULATE([Total Sales], ALL(DATE_DIM))	([DATE_DIM].[DATE_DIM].[All], [Measures].[Total Sales])	ALL behavior may differ in edge cases	CALCULATE with ALL -> tuple with [All] member
+Sales All Years	CALCULATE([Total Sales], ALL(DATE_DIM[D_YEAR]))	([DATE_DIM].[D_YEAR].[All], [Measures].[Total Sales])	ALL behavior may differ in edge cases	CALCULATE with ALL -> tuple with [All] member
+Profit All Dates All Stores	CALCULATE([Total Profit], ALL(DATE_DIM), ALL(STORE))	([DATE_DIM].[DATE_DIM].[All], [STORE].[STORE].[All], [Measures].[Total Profit])	ALL behavior may differ in edge cases	CALCULATE with ALL -> tuple with [All] member
+Row Count All Stores	CALCULATE(COUNTROWS(STORE_SALES), ALL(STORE))	([STORE].[STORE].[All], [Measures].[countrows1])	ALL behavior may differ in edge cases	CALCULATE with ALL -> tuple with [All] member
+First Half Year Sales	CALCULATE([Total Sales], DATE_DIM[D_QOY] IN {1, 2})	IIF(([Measures].[D_QOY] = 1 OR [Measures].[D_QOY] = 2), [Measures].[Total Sales], NULL)	Semantic equivalence depends on filter context	CALCULATE with IN -> IIF OR chain
+Non-Holiday Sales	CALCULATE([Total Sales], NOT(DATE_DIM[D_HOLIDAY]="Y"))	0 /* TODO: CALCULATE([Total Sales], NOT(DATE_DIM[D_HOLIDAY]="Y")) */	NOT operator in filter not supported	Not converted (TODO)
+High Value Sales	CALCULATE([Total Sales], FILTER(STORE_SALES, STORE_SALES[SS_NET_PAID] > 100))	0 /* TODO: CALCULATE([Total Sales], FILTER(STORE_SALES, STORE_SALES[SS_NET_PAID] > 100)) */	FILTER not supported	Not converted (TODO)
+YTD Sales Via Filter	CALCULATE([Total Sales], FILTER(ALL(DATE_DIM[D_DATE]), DATE_DIM[D_DATE] <= MAX(DATE_DIM[D_DATE])))	0 /* TODO: CALCULATE([Total Sales], FILTER(ALL(DATE_DIM[D_DATE]), DATE_DIM[D_DATE] <= MAX(DATE_DIM[D_DATE]))) */	FILTER not supported	Not converted (TODO)
+Sales Per Year	CALCULATE([Total Sales], ALLEXCEPT(DATE_DIM, DATE_DIM[D_YEAR]))	0 /* TODO: CALCULATE([Total Sales], ALLEXCEPT(DATE_DIM, DATE_DIM[D_YEAR])) */	ALLEXCEPT not supported	Not converted (TODO)
+YTD Sales	TOTALYTD([Total Sales], DATE_DIM[D_DATE])	0 /* TODO: TOTALYTD([Total Sales], DATE_DIM[D_DATE]) */	Time intelligence not supported	Not converted (TODO)
+MTD Sales	TOTALMTD([Total Sales], DATE_DIM[D_DATE])	0 /* TODO: TOTALMTD([Total Sales], DATE_DIM[D_DATE]) */	Time intelligence not supported	Not converted (TODO)
+QTD Sales	TOTALQTD([Total Sales], DATE_DIM[D_DATE])	0 /* TODO: TOTALQTD([Total Sales], DATE_DIM[D_DATE]) */	Time intelligence not supported	Not converted (TODO)
+Sales Same Period Last Year	CALCULATE([Total Sales], SAMEPERIODLASTYEAR(DATE_DIM[D_DATE]))	0 /* TODO: CALCULATE([Total Sales], SAMEPERIODLASTYEAR(DATE_DIM[D_DATE])) */	Time intelligence not supported	Not converted (TODO)
+Sales Previous Month	CALCULATE([Total Sales], PREVIOUSMONTH(DATE_DIM[D_DATE]))	0 /* TODO: CALCULATE([Total Sales], PREVIOUSMONTH(DATE_DIM[D_DATE])) */	Time intelligence not supported	Not converted (TODO)
+Sales Parallel Period LY	CALCULATE([Total Sales], PARALLELPERIOD(DATE_DIM[D_DATE], -1, YEAR))	0 /* TODO: CALCULATE([Total Sales], PARALLELPERIOD(DATE_DIM[D_DATE], -1, YEAR)) */	Time intelligence not supported	Not converted (TODO)
+Closing Balance Month Sales	CLOSINGBALANCEMONTH(SUM(STORE_SALES[SS_NET_PAID]), DATE_DIM[D_DATE])	0 /* TODO: CLOSINGBALANCEMONTH(SUM(STORE_SALES[SS_NET_PAID]), DATE_DIM[D_DATE]) */	Complex pattern not supported	Not converted (TODO)
+Sales Date Range	CALCULATE([Total Sales], DATESBETWEEN(DATE_DIM[D_DATE], BLANK(), LASTDATE(DATE_DIM[D_DATE])))	0 /* TODO: CALCULATE([Total Sales], DATESBETWEEN(DATE_DIM[D_DATE], BLANK(), LASTDATE(DATE_DIM[D_DATE]))) */	Complex pattern not supported	Not converted (TODO)
+Average Sale Amount	DIVIDE([Total Sales], [Sales Count])	([Measures].[Total Sales]) / ([Measures].[Sales Count])	None - direct mapping	Arithmetic expression
+Profit Margin	DIVIDE([Total Profit], [Total Sales])	([Measures].[Total Profit]) / ([Measures].[Total Sales])	None - direct mapping	Arithmetic expression
+YoY Sales Growth	DIVIDE([Total Sales] - [Sales Same Period Last Year], [Sales Same Period Last Year])	([Measures].[Total Sales]-[Measures].[Sales Same Period Last Year]) / ([Measures].[Sales Same Period Last Year])	None - direct mapping	Arithmetic expression
+Sales Status	IF([Total Sales] > 1000000, "High", "Low")	IIF([Measures].[Total Sales]>1000000, High, Low)	Semantic equivalence depends on filter context	CALCULATE with filter -> IIF
+Safe Division	IFERROR([Profit Margin], 0)	IIF(IsError([Measures].[Profit Margin]), 0, [Measures].[Profit Margin])	Semantic equivalence depends on filter context	CALCULATE with filter -> IIF
+Quarter Name	SWITCH(MAX(DATE_DIM[D_QOY]), 1, "Q1", 2, "Q2", 3, "Q3", 4, "Q4", "Unknown")	IIF([Measures].[D_QOY_DATE_DIM] = 1, Q1, IIF([Measures].[D_QOY_DATE_DIM] = 2, Q2, IIF([Measures].[D_QOY_DATE_DIM] = 3, Q3, IIF([Measures].[D_QOY_DATE_DIM] = 4, Q4, Unknown))))	Semantic equivalence depends on filter context	CALCULATE with filter -> IIF
+Complex Condition	IF(AND([Total Sales] > 1000, [Profit Margin] > 0.05), "Good", "Review")	IIF(([Measures].[Total Sales]>1000) AND ([Measures].[Profit Margin]>0.05), Good, Review)	Semantic equivalence depends on filter context	CALCULATE with filter -> IIF
+Weighted Avg Price	SUMX(STORE_SALES, STORE_SALES[SS_QUANTITY] * STORE_SALES[SS_SALES_PRICE])	0 /* TODO: SUMX(STORE_SALES, STORE_SALES[SS_QUANTITY] * STORE_SALES[SS_SALES_PRICE]) */	Iterator functions not supported	Not converted (TODO)
+Max Year Sales	MAXX(VALUES(DATE_DIM[D_YEAR]), [Total Sales])	0 /* TODO: MAXX(VALUES(DATE_DIM[D_YEAR]), [Total Sales]) */	Relationship functions not supported	Not converted (TODO)
+Sales Per Store Iteration	SUMX(VALUES(STORE[S_STORE_SK]), [Total Sales])	0 /* TODO: SUMX(VALUES(STORE[S_STORE_SK]), [Total Sales]) */	Iterator functions not supported	Not converted (TODO)
+Avg Sales Per Year	AVERAGEX(VALUES(DATE_DIM[D_YEAR]), [Total Sales])	0 /* TODO: AVERAGEX(VALUES(DATE_DIM[D_YEAR]), [Total Sales]) */	Iterator functions not supported	Not converted (TODO)
+Is Date Filtered	ISFILTERED(DATE_DIM[D_DATE])	0 /* TODO: ISFILTERED(DATE_DIM[D_DATE]) */	FILTER not supported	Not converted (TODO)
+Is Store Crossfiltered	ISCROSSFILTERED(STORE)	0 /* TODO: ISCROSSFILTERED(STORE) */	FILTER not supported	Not converted (TODO)
+Has One Year	HASONEVALUE(DATE_DIM[D_YEAR])	0 /* TODO: HASONEVALUE(DATE_DIM[D_YEAR]) */	Filter detection not supported	Not converted (TODO)
+Conditional Sales Display	IF(ISFILTERED(DATE_DIM), [Total Sales], BLANK())	0 /* TODO: IF(ISFILTERED(DATE_DIM), [Total Sales], BLANK()) */	FILTER not supported	Not converted (TODO)
+Selected Year	IF(HASONEVALUE(DATE_DIM[D_YEAR]), VALUES(DATE_DIM[D_YEAR]), BLANK())	0 /* TODO: IF(HASONEVALUE(DATE_DIM[D_YEAR]), VALUES(DATE_DIM[D_YEAR]), BLANK()) */	Filter detection not supported	Not converted (TODO)
+Max Date	MAX(DATE_DIM[D_DATE])	Max([Measures].[D_DATE])	None - direct mapping	Direct function conversion
+Days Since Last Sale	DATEDIFF(MAX(DATE_DIM[D_DATE]), TODAY(), DAY)	DATEDIFF(MAX([Measures].[D_DATE]),TODAY(),DAY)	None - direct mapping	Direct function conversion
+End of Month Date	EOMONTH(MAX(DATE_DIM[D_DATE]), 0)	EOMONTH(MAX([Measures].[D_DATE]),0)	None - direct mapping	Direct function conversion
+Absolute Profit	ABS([Total Profit])	Abs([Measures].[Total Profit])	None - direct mapping	Direct function conversion
+Rounded Sales	ROUND([Total Sales], -3)	Round([Measures].[Total Sales], ,, -, 3)	None - direct mapping	Arithmetic expression
+Nested IF Calculate	IF([Is Date Filtered], DIVIDE(TOTALYTD([Total Sales], DATE_DIM[D_DATE]), [Sales Row Count]) * [Sales Row Count], CALCULATE(TOTALYTD([Total Sales], DATE_DIM[D_DATE]), DATE_DIM[D_CURRENT_YEAR]="Y"))	0 /* TODO: IF([Is Date Filtered], DIVIDE(TOTALYTD([Total Sales], DATE_DIM[D_DATE]), [Sales Row Count]) * [Sales Row Count], CALCULATE(TOTALYTD([Total Sales], DATE_DIM[D_DATE]), DATE_DIM[D_CURRENT_YEAR]="Y")) */	Time intelligence not supported	Not converted (TODO)
+Combined Variance	[Total Sales] - [Sales Same Period Last Year]	[Measures].[Total Sales]-[Measures].[Sales Same Period Last Year]	None - direct mapping	Arithmetic expression
+Web Sales Total	SUM(WEB_SALES[WS_NET_PAID])	Sum([Measures].[WS_NET_PAID])	None - direct mapping	Direct function conversion
+Catalog Sales Total	SUM(CATALOG_SALES[CS_NET_PAID])	Sum([Measures].[CS_NET_PAID])	None - direct mapping	Direct function conversion
+Combined Sales	[Total Sales] + [Web Sales Total] + [Catalog Sales Total]	[Measures].[Total Sales]+[Measures].[Web Sales Total]+[Measures].[Catalog Sales Total]	None - direct mapping	Arithmetic expression
+Total Returns	SUM(STORE_RETURNS[SR_RETURN_AMT])	Sum([Measures].[SR_RETURN_AMT])	None - direct mapping	Direct function conversion
+Store Sales Amount	SUM(STORE_SALES[SS_NET_PAID])	Sum([Measures].[SS_NET_PAID])	None - direct mapping	Direct function conversion
+Store Sales Qty	SUM(STORE_SALES[SS_QUANTITY])	Sum([Measures].[SS_QUANTITY])	None - direct mapping	Direct function conversion
+Store Profit	SUM(STORE_SALES[SS_NET_PROFIT])	Sum([Measures].[SS_NET_PROFIT])	None - direct mapping	Direct function conversion
+Catalog Sales Amount	SUM ( CATALOG_SALES[cs_net_paid] )	Sum([Measures].[cs_net_paid])	None - direct mapping	Direct function conversion
+Catalog Sales Qty	SUM ( CATALOG_SALES[cs_quantity] )	Sum([Measures].[cs_quantity])	None - direct mapping	Direct function conversion
+Catalog Profit	SUM ( CATALOG_SALES[cs_net_profit] )	Sum([Measures].[cs_net_profit])	None - direct mapping	Direct function conversion
+On Hand Qty	SUM ( INVENTORY[inv_quantity_on_hand] )	Sum([Measures].[inv_quantity_on_hand])	None - direct mapping	Direct function conversion
+On Hand Qty (Latest Date)	VAR MaxDate = MAX ( DATE_DIM[d_date_sk] ) RETURN CALCULATE ( [On Hand Qty], DATE_DIM[d_date_sk] = MaxDate )	0 /* TODO: VAR MaxDate = MAX ( DATE_DIM[d_date_sk] ) RETURN CALCULATE ( [On Hand Qty], DATE_DIM[d_date_sk] = MaxDate ) */	VAR/RETURN not fully supported	Not converted (TODO)
+Store Return Amount	SUM ( STORE_RETURNS[sr_return_amt] )	Sum([Measures].[sr_return_amt])	None - direct mapping	Direct function conversion
+Web Sales Amount	SUM ( WEB_SALES[ws_net_paid] )	Sum([Measures].[ws_net_paid])	None - direct mapping	Direct function conversion
+Web Sales Qty	SUM ( WEB_SALES[ws_quantity] )	Sum([Measures].[ws_quantity])	None - direct mapping	Direct function conversion
+Web Profit	SUM ( WEB_SALES[ws_net_profit] )	Sum([Measures].[ws_net_profit])	None - direct mapping	Direct function conversion
+Total Sales Amount	[Store Sales Amount] + [Web Sales Amount] + [Catalog Sales Amount]	[Measures].[Store Sales Amount]+[Measures].[Web Sales Amount]+[Measures].[Catalog Sales Amount]	None - direct mapping	Arithmetic expression
+Total Sales Qty	[Store Sales Qty] + [Web Sales Qty] + [Catalog Sales Qty]	[Measures].[Store Sales Qty]+[Measures].[Web Sales Qty]+[Measures].[Catalog Sales Qty]	None - direct mapping	Arithmetic expression
