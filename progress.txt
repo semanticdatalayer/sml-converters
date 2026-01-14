@@ -154,3 +154,45 @@
   - InOperatorTemplate handles standalone IN/NOT IN patterns
   - CalculateTemplate handles IN/NOT IN within CALCULATE filter context
 ---
+
+## Iteration 11 - US-011: Add calculationgroup category to test script
+- Added `calculationgroup` to `TodoBreakdown` interface
+- Updated `categorizeTodoFunctionMulti()` to detect `TODO uses calculationgroup` prefix early and return exclusive
+- Added `calculationgroup: 0` to initial categories object in `analyzeTodosByAllCategories()`
+- Added "Calculation Group" line to summary output (printed first in breakdown list)
+- Files changed:
+  - scripts/test-custom-calcs.ts (+11 lines modified in 4 locations)
+- Learnings:
+  - calculationgroup is treated as exclusive category (returns early, no multi-category)
+  - MOL file has 1187/1737 (68%) calc group TODOs
+  - dw_test_model.bim has 0 calc group TODOs (no calculation groups in that file)
+---
+
+## Iteration 12 - US-012: Run test-custom-calcs on MOL file and capture errors
+- Ran `npm run test-custom-calcs -- --input test-files/MOL_bim_from_xmla.json`
+- Found 27 validation errors in total
+- Categorized into 2 types:
+  - Type 1 (13 errors): Invalid metric expression - truncated TODO comments that break MDX syntax
+  - Type 2 (14 errors): Non-existing metric reference - converted metrics reference metrics that weren't converted
+- Files changed:
+  - PRD.md (documented errors in US-012 section)
+- Learnings:
+  - Truncated TODO comments cause "Invalid metric expression" errors
+  - Reference errors occur when a metric references another measure that wasn't successfully converted
+  - 622/2359 metrics converted (26%), 1737 TODOs, 1187 calc group TODOs (68%)
+---
+
+## Iteration 13 - US-013: Run test-custom-calcs on dw_test_model and capture errors
+- Ran `npm run test-custom-calcs -- --input test-files/dw_test_model.bim`
+- Found **0 validation errors** - validation PASSED
+- Results:
+  - Total Calculated Metrics: 68
+  - MDX Converted: 45 (66%)
+  - TODO Remaining: 23 (unsupported patterns like TOTALYTD, FILTER, SAMEPERIODLASTYEAR)
+- Files changed:
+  - PRD.md (documented no errors in US-013 section)
+- Learnings:
+  - dw_test_model.bim is a clean test file with no validation issues
+  - TODOs in this file use valid syntax (don't cause validation errors)
+  - US-015 is effectively a no-op since there are no errors to fix
+---
