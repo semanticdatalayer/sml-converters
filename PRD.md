@@ -105,11 +105,11 @@ Enhance BIM-to-SML conversion to properly handle calculation groups and the DAX 
 **Description:** As a converter, I want IN operators inside CALCULATE to convert to filter expressions.
 
 **Acceptance Criteria:**
-- [ ] Detect IN operator as CALCULATE filter argument
-- [ ] Convert `CALCULATE([Measure], col IN {a, b})` appropriately
-- [ ] Output uses OR chain in filter context
-- [ ] Works with existing CalculateTemplate
-- [ ] Typecheck passes
+- [x] Detect IN operator as CALCULATE filter argument
+- [x] Convert `CALCULATE([Measure], col IN {a, b})` appropriately
+- [x] Output uses OR chain in filter context
+- [x] Works with existing CalculateTemplate
+- [x] Typecheck passes
 
 ### US-009: Handle NOT IN operator conversion
 
