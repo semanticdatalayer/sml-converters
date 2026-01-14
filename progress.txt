@@ -142,3 +142,15 @@
   - NOT IN in CALCULATE produces `(col <> a AND col <> b)` without IIF wrapper (filter context)
   - Standalone NOT IN produces `IIF(col <> a AND col <> b, 1, 0)`
 ---
+
+## Iteration 10 - US-010: Register IN operator template
+- Added import for InOperatorTemplate in template-registry.ts
+- Registered InOperatorTemplate in `registerDefaultTemplates()` method
+- Template sorted by confidence (0.95) with other templates
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/template-registry.ts (+2 lines)
+- Learnings:
+  - Templates sorted by confidence automatically after registration
+  - InOperatorTemplate handles standalone IN/NOT IN patterns
+  - CalculateTemplate handles IN/NOT IN within CALCULATE filter context
+---

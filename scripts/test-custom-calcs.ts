@@ -60,6 +60,7 @@ interface TodoBreakdown {
   selected: number;
   relationship: number;
   calculate: number;
+  calculationgroup: number;
   other: number;
 }
 
@@ -69,6 +70,12 @@ interface TodoBreakdown {
 function categorizeTodoFunctionMulti(expr: string): string[] {
   const upperExpr = expr.toUpperCase();
   const categories: string[] = [];
+
+  // calculationgroup: measures that use calculation groups (check first - exclusive category)
+  if (expr.includes("TODO uses calculationgroup")) {
+    categories.push("calculationgroup");
+    return categories; // calc group TODOs don't need other categorization
+  }
 
   // x-agg: iteration functions
   if (
@@ -189,6 +196,7 @@ function analyzeTodosByAllCategories(result: SmlConverterResult): TodoBreakdown 
     selected: 0,
     relationship: 0,
     calculate: 0,
+    calculationgroup: 0,
     other: 0,
   };
 
@@ -339,6 +347,7 @@ function printSummary(
     const funcs = details.todo_by_function_multi;
 
     console.log(`\n--- Overall TODO Breakdown by All Functions (multi-category, totals > 100%): ---`);
+    console.log(`  Calculation Group: ${funcs.calculationgroup} (${Math.round((funcs.calculationgroup / todoTotal) * 100)}%)`);
     console.log(`  X-Agg (SUMX, AVERAGEX, etc): ${funcs["x-agg"]} (${Math.round((funcs["x-agg"] / todoTotal) * 100)}%)`);
     console.log(`  Filter (FILTER, ISFILTERED, etc): ${funcs.filter} (${Math.round((funcs.filter / todoTotal) * 100)}%)`);
     console.log(`  Time Intelligence: ${funcs.time} (${Math.round((funcs.time / todoTotal) * 100)}%)`);

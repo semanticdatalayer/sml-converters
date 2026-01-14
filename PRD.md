@@ -136,11 +136,11 @@ Enhance BIM-to-SML conversion to properly handle calculation groups and the DAX 
 **Description:** As a developer, I want the test script to report calculation group TODOs as a separate category so I can track calc-group-dependent measures distinctly.
 
 **Acceptance Criteria:**
-- [ ] Add `calculationgroup` to `TodoBreakdown` interface in `scripts/test-custom-calcs.ts`
-- [ ] Update `categorizeTodoFunctionMulti()` to detect `TODO uses calculationgroup:` prefix
-- [ ] Category triggers on expressions containing "TODO uses calculationgroup"
-- [ ] Add calculationgroup line to summary output in `printSummary()`
-- [ ] Typecheck passes
+- [x] Add `calculationgroup` to `TodoBreakdown` interface in `scripts/test-custom-calcs.ts`
+- [x] Update `categorizeTodoFunctionMulti()` to detect `TODO uses calculationgroup:` prefix
+- [x] Category triggers on expressions containing "TODO uses calculationgroup"
+- [x] Add calculationgroup line to summary output in `printSummary()`
+- [x] Typecheck passes
 
 ### US-012: Run test-custom-calcs on MOL file and capture errors
 
