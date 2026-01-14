@@ -90,15 +90,15 @@ Enhance BIM-to-SML conversion to properly handle calculation groups and the DAX 
 **Description:** As a converter, I want to convert DAX IN operator to MDX IIF/OR chains.
 
 **Acceptance Criteria:**
-- [ ] Create `InOperatorTemplate` class in `conversion-templates/templates/in-operator-template.ts`
-- [ ] Match pattern: `column IN { val1, val2, ... }`
-- [ ] Single-value `col IN {"a"}` simplifies to `col = "a"`
-- [ ] Multi-value converts to: `IIF(col = "val1" OR col = "val2" OR ..., 1, 0)` when standalone
-- [ ] Empty sets `col IN {}` → leave as TODO
-- [ ] Non-literal values in set (e.g., `[OtherCol]`) → leave as TODO
-- [ ] Handle string and numeric literal values
-- [ ] Confidence level: 0.95
-- [ ] Typecheck passes
+- [x] Create `InOperatorTemplate` class in `conversion-templates/templates/in-operator-template.ts`
+- [x] Match pattern: `column IN { val1, val2, ... }`
+- [x] Single-value `col IN {"a"}` simplifies to `col = "a"`
+- [x] Multi-value converts to: `IIF(col = "val1" OR col = "val2" OR ..., 1, 0)` when standalone
+- [x] Empty sets `col IN {}` → leave as TODO
+- [x] Non-literal values in set (e.g., `[OtherCol]`) → leave as TODO
+- [x] Handle string and numeric literal values
+- [x] Confidence level: 0.95
+- [x] Typecheck passes
 
 ### US-008: Handle IN operator in CALCULATE context
 

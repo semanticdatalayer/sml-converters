@@ -95,3 +95,21 @@
   - Transitive check uses tracker's `usesCalculationGroup()` which has caching and cycle detection
   - Import for MeasureDependencyTracker needed in both files
 ---
+
+## Iteration 7 - US-007: Create IN operator template
+- Created `InOperatorTemplate` class in `conversion-templates/templates/in-operator-template.ts`
+- Handles standalone `column IN { val1, val2, ... }` patterns
+- Single-value sets simplified to direct equality: `col = "a"`
+- Multi-value sets convert to: `IIF(col = "val1" OR col = "val2" OR ..., 1, 0)`
+- Empty sets and non-literal values return TODO failures (edge cases)
+- Uses `extractValues()` helper to parse BraceToken contents
+- Handles LiteralToken for strings/numbers, IdentifierToken for TRUE/FALSE
+- Confidence: 0.95
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/in-operator-template.ts (new file, ~210 lines)
+- Learnings:
+  - IN can be parsed as OperatorToken or IdentifierToken, check both
+  - BraceToken.args contains CommaToken between values - skip them during extraction
+  - CalculateTemplate already has IN handling for filter context (US-008 may be done)
+  - Template not yet registered in TemplateRegistry (US-010)
+---
