@@ -65,3 +65,33 @@
   - Regex must avoid matching table[column] refs - use negative lookbehind for ' and \w
   - Class must first collect all measure names before parsing dependencies
 ---
+
+## Iteration 5 - US-005: Mark transitive calc group dependencies as TODO
+- Added `usesCalculationGroup(measureName)` method to MeasureDependencyTracker
+- Method recursively checks if measure depends on calc group measures (directly or transitively)
+- Uses visited Set to prevent infinite loops on circular references
+- Logs warning via logger?.warn() if circular reference detected
+- Added caching via `calcGroupCache` Map to avoid recomputation
+- Added `markAsCalcGroupDependent()` to let MeasureConverter register direct calc group measures
+- Returns tuple `[boolean, string | undefined]` with reason like `references [B] which uses calculationgroup`
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/measure-dependency-tracker.ts (+~85 lines)
+- Learnings:
+  - Optional chaining on logger?.warn?.() needed since logger is optional
+  - Cache must be cleared when new calc group measures are marked
+  - US-006 will integrate this into measure conversion flow
+---
+
+## Iteration 6 - US-006: Integrate dependency tracking into measure conversion
+- Initialized `MeasureDependencyTracker` in `BimToYamlConverter.convert()` after tableConverter setup
+- First pass: loop through all measures to mark direct calc group dependent measures via `detectCalculationGroupUsage()`
+- Created `setDependencyTracker()` method in MeasureConverter
+- Added transitive dependency check in `metricFromCalc()` before attempting DAX conversion
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/bim-to-sml-converter.ts (added ~18 lines)
+  - src/commands/bim-to-sml/bim-converter/measure-converter.ts (added ~35 lines)
+- Learnings:
+  - Two-pass approach: first pass marks direct deps in tracker, second pass checks transitive
+  - Transitive check uses tracker's `usesCalculationGroup()` which has caching and cycle detection
+  - Import for MeasureDependencyTracker needed in both files
+---

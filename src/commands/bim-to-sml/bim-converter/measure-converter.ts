@@ -52,6 +52,7 @@ import {
   makeUniqueName,
   removeComments,
 } from "./tools";
+import { MeasureDependencyTracker } from "./measure-dependency-tracker";
 // import { Tools } from "../../../shared/tools";
 
 export class MeasureConverter {
@@ -59,6 +60,7 @@ export class MeasureConverter {
   private llmName?: string;
   private usedColumnsInDax: Set<string> = new Set();
   private tableLists?: TableLists;
+  private dependencyTracker?: MeasureDependencyTracker;
 
   constructor(logger: Logger, llmName?: string) {
     this.logger = logger;
@@ -67,6 +69,10 @@ export class MeasureConverter {
 
   setTableLists(tableLists: TableLists) {
     this.tableLists = tableLists;
+  }
+
+  setDependencyTracker(tracker: MeasureDependencyTracker) {
+    this.dependencyTracker = tracker;
   }
 
   /**
@@ -550,7 +556,7 @@ export class MeasureConverter {
       expressionAsString(bimMeasure.expression),
     );
 
-    // Check for calculation group usage before attempting conversion
+    // Check for direct calculation group usage before attempting conversion
     const calcGroupReason = this.detectCalculationGroupUsage(daxExpression);
     if (calcGroupReason) {
       // Create unique name for calculated metric
@@ -581,6 +587,41 @@ export class MeasureConverter {
       rawCalcs.add(bimMeasure.name);
       tableLists.measTables.add(bimTable.name);
       return smlMetric;
+    }
+
+    // Check for transitive calculation group dependencies via tracker
+    if (this.dependencyTracker) {
+      const [usesCalcGroup, transitiveReason] = this.dependencyTracker.usesCalculationGroup(bimMeasure.name);
+      if (usesCalcGroup && transitiveReason) {
+        // Create unique name for calculated metric
+        const calc_unique_name = createUniqueAttrName(
+          attrMaps.attrNameMap,
+          bimMeasure.name,
+          makeUniqueName(`calculation.${bimTable.name}.`) + bimMeasure.name,
+          "calculation from BIM measure",
+          bimTable.name,
+          "",
+          this.logger,
+        );
+
+        this.logger.info(`Measure '${bimMeasure.name}' ${transitiveReason} - marking as TODO`);
+
+        // Return early with TODO marker
+        const smlMetric: SMLMetricCalculated = {
+          object_type: SMLObjectType.MetricCalc,
+          unique_name: calc_unique_name,
+          description: descriptionAsString(bimMeasure.description),
+          label: bimMeasure.name,
+          folder: bimMeasure.displayFolder,
+          is_hidden: bimMeasure.isHidden,
+          format: this.smlFormatFromBim(bimMeasure.formatString),
+          expression: `0 /* TODO uses calculationgroup: ${transitiveReason} */`,
+        };
+
+        rawCalcs.add(bimMeasure.name);
+        tableLists.measTables.add(bimTable.name);
+        return smlMetric;
+      }
     }
 
     // Create pipeline first (needed for templateRegistry in context)

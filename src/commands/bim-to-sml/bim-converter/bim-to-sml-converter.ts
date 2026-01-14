@@ -14,6 +14,7 @@ import { checkForTimeDim } from "./converter-utils";
 import { DatasetConverter } from "./dataset-converter";
 import { DimensionConverter } from "./dimension-converter";
 import { MeasureConverter } from "./measure-converter";
+import { MeasureDependencyTracker } from "./measure-dependency-tracker";
 import { PerspectiveConverter } from "./perspective-converter";
 import { RelationshipConverter } from "./relationship-converter";
 import { TableConverter } from "./table-converter";
@@ -99,6 +100,25 @@ export class BimToYamlConverter {
 
     const measureConverter = new MeasureConverter(this.logger, llmName);
     measureConverter.setTableLists(tableLists);
+
+    // Initialize dependency tracker and build dependency graph
+    const dependencyTracker = new MeasureDependencyTracker(this.logger);
+    dependencyTracker.buildFromBim(bim);
+
+    // First pass: mark direct calc group measures in the tracker
+    for (const table of bim.model?.tables || []) {
+      for (const measure of table.measures || []) {
+        const expr = expressionAsString(measure.expression);
+        const reason = measureConverter.detectCalculationGroupUsage(expr);
+        if (reason) {
+          dependencyTracker.markAsCalcGroupDependent(measure.name, reason);
+        }
+      }
+    }
+
+    // Pass tracker to MeasureConverter
+    measureConverter.setDependencyTracker(dependencyTracker);
+
     measureConverter.measuresFromSimpleMeasures(
       bim,
       result,

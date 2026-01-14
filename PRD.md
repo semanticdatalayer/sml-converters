@@ -78,12 +78,12 @@ Enhance BIM-to-SML conversion to properly handle calculation groups and the DAX 
 **Description:** As a converter, I want the dependency tracker integrated into the conversion flow.
 
 **Acceptance Criteria:**
-- [ ] Initialize `MeasureDependencyTracker` in `BimToYamlConverter.convert()`
-- [ ] First pass: scan all measures to build dependency graph
-- [ ] Second pass: mark calc-group-dependent measures before conversion
-- [ ] Pass tracker to `MeasureConverter`
-- [ ] Check tracker before attempting DAX conversion
-- [ ] Typecheck passes
+- [x] Initialize `MeasureDependencyTracker` in `BimToYamlConverter.convert()`
+- [x] First pass: scan all measures to build dependency graph
+- [x] Second pass: mark calc-group-dependent measures before conversion
+- [x] Pass tracker to `MeasureConverter`
+- [x] Check tracker before attempting DAX conversion
+- [x] Typecheck passes
 
 ### US-007: Create IN operator template
 
