@@ -3,10 +3,40 @@ import { BimRoot, BimTable } from "../bim-models/bim-model";
 import { TableLists } from "../bim-models/types-and-interfaces";
 import { arrayToStringAlphabetical, setToStringAlphabetical } from "./tools";
 
+/**
+ * Check if a BIM table is a calculation group table.
+ * Calculation group tables have a `calculationGroup` property.
+ */
+export function isCalculationGroupTable(table: BimTable): boolean {
+  return table.calculationGroup !== undefined;
+}
+
 export class TableConverter {
   private logger: Logger;
   constructor(logger: Logger) {
     this.logger = logger;
+  }
+
+  /**
+   * Identify and collect calculation group tables.
+   * These tables should be skipped during dimension/dataset conversion.
+   */
+  collectCalculationGroupTables(bim: BimRoot, tableLists: TableLists): void {
+    bim.model.tables.forEach((table) => {
+      if (isCalculationGroupTable(table)) {
+        tableLists.calcGroupTables.add(table.name);
+        tableLists.unusedTables.add(table.name);
+        this.logger.info(
+          `Skipping calculation group table: ${table.name}`,
+        );
+      }
+    });
+
+    if (tableLists.calcGroupTables.size > 0) {
+      this.logger.info(
+        `Found ${tableLists.calcGroupTables.size} calculation group table(s): ${setToStringAlphabetical(tableLists.calcGroupTables, ", ")}`,
+      );
+    }
   }
 
   listUnusedBimTables(

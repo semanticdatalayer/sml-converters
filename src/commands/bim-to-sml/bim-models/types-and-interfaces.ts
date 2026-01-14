@@ -9,6 +9,7 @@ export interface TableLists {
   factTables: Array<BimTable>;
   dimTables: Array<BimTable>;
   degenDims: Set<string>;
+  calcGroupTables: Set<string>;
 }
 
 // Used for generating/tracking unique names

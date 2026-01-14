@@ -85,9 +85,12 @@ export class BimToYamlConverter {
       factTables: new Array<BimTable>(),
       dimTables: new Array<BimTable>(),
       degenDims: new Set<string>(),
+      calcGroupTables: new Set<string>(),
     };
 
     const tableConverter = new TableConverter(this.logger);
+    // Identify and exclude calculation group tables first
+    tableConverter.collectCalculationGroupTables(bim, tableLists);
     tableConverter.listUnusedBimTables(bim, tableLists, this.logger);
 
     // Classify tables as fact vs dimension BEFORE DAX conversion

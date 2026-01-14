@@ -90,6 +90,14 @@ export interface BimConnectionDetails {
   query?: string;
 }
 
+export interface BimCalculationGroup {
+  precedence: number;
+  calculationItems: Array<{
+    name: string;
+    expression: string | string[];
+  }>;
+}
+
 export interface BimTable {
   name: string;
   description?: string | string[];
@@ -103,6 +111,7 @@ export interface BimTable {
   hierarchies: Array<BimTableHierarchy>;
   annotations: Array<BimAnnotation>;
   measures?: Array<BimMeasure>;
+  calculationGroup?: BimCalculationGroup;
 }
 
 export interface BimMeasure {
