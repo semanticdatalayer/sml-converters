@@ -51,3 +51,17 @@
   - Detection must check both quoted ('TableName'[) and unquoted (TableName[) patterns
   - Case-insensitive matching needed for table name comparisons
 ---
+
+## Iteration 4 - US-004: Build measure dependency graph
+- Created `MeasureDependencyTracker` class in `measure-dependency-tracker.ts`
+- Parses measure expressions to extract `[MeasureName]` references
+- Uses regex `(?<!')(?<!\w)\[([^\]]+)\]` to match measure refs (not column refs with table prefix)
+- Filters to only include references to known measure names
+- Provides `buildFromBim()`, `getDependencies()`, `hasMeasure()`, `getAllMeasureNames()` methods
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/measure-dependency-tracker.ts (new file, ~85 lines)
+- Learnings:
+  - Measure expressions can be string | string[] | undefined, need helper to normalize
+  - Regex must avoid matching table[column] refs - use negative lookbehind for ' and \w
+  - Class must first collect all measure names before parsing dependencies
+---

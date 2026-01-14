@@ -65,13 +65,13 @@ Enhance BIM-to-SML conversion to properly handle calculation groups and the DAX 
 **Description:** As a converter, I want measures that indirectly reference calc-group-dependent measures to also be marked as TODO.
 
 **Acceptance Criteria:**
-- [ ] `MeasureDependencyTracker` has `usesCalculationGroup(measureName)` method
-- [ ] Method recursively checks if any dependency uses calc groups
-- [ ] Use visited Set to prevent infinite loops on circular references
-- [ ] Log warning if circular reference detected
-- [ ] Cache results to avoid recomputation
-- [ ] Mark with `TODO uses calculationgroup: references [DependentMeasure] which uses calculationgroup` (immediate ref only)
-- [ ] Typecheck passes
+- [x] `MeasureDependencyTracker` has `usesCalculationGroup(measureName)` method
+- [x] Method recursively checks if any dependency uses calc groups
+- [x] Use visited Set to prevent infinite loops on circular references
+- [x] Log warning if circular reference detected
+- [x] Cache results to avoid recomputation
+- [x] Mark with `TODO uses calculationgroup: references [DependentMeasure] which uses calculationgroup` (immediate ref only)
+- [x] Typecheck passes
 
 ### US-006: Integrate dependency tracking into measure conversion
 
