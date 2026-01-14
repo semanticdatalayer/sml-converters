@@ -2,7 +2,7 @@ import {
   ConversionTemplate,
   ConversionExample,
 } from "../template-base";
-import { DaxToken, FunctionToken, CommaToken, OperatorToken, IdentifierToken, TableColumnReference, BraceToken, LiteralToken } from "../../dax-converter";
+import { DaxToken, FunctionToken, CommaToken, OperatorToken, IdentifierToken, TableColumnReference, BraceToken, LiteralToken, ParenToken } from "../../dax-converter";
 import {
   ConversionResult,
   ConversionCategory,
@@ -216,14 +216,20 @@ export class CalculateTemplate extends ConversionTemplate {
       // Convert comparison filters
       const filterConditions: string[] = [];
       for (const filterGroup of comparisonFilters) {
-        const hasIn = filterGroup.some(
-          (t) => t instanceof IdentifierToken && t.value.toUpperCase() === "IN"
-        );
-
-        if (hasIn) {
-          filterConditions.push(this.convertInFilter(filterGroup, context));
+        // Check for NOT IN pattern first
+        const notInPattern = this.detectNotInPattern(filterGroup);
+        if (notInPattern) {
+          filterConditions.push(this.convertNotInFilter(notInPattern.innerTokens, context));
         } else {
-          filterConditions.push(this.convertSubExpression(filterGroup, context));
+          const hasIn = filterGroup.some(
+            (t) => t instanceof IdentifierToken && t.value.toUpperCase() === "IN"
+          );
+
+          if (hasIn) {
+            filterConditions.push(this.convertInFilter(filterGroup, context));
+          } else {
+            filterConditions.push(this.convertSubExpression(filterGroup, context));
+          }
         }
       }
 
@@ -279,13 +285,44 @@ export class CalculateTemplate extends ConversionTemplate {
   }
 
   /**
-   * Check if a token group represents a simple comparison filter or IN operator
-   * Pattern: column OPERATOR value or column IN {values} or FUNCTION(column) OPERATOR value
-   * Supported operators: =, <>, >, <, >=, <=, IN
+   * Detect NOT IN pattern: NOT ( col IN {...} )
+   * Returns inner tokens if matches, null otherwise
+   */
+  private detectNotInPattern(tokens: DaxToken[]): { innerTokens: DaxToken[] } | null {
+    if (tokens.length < 2) {
+      return null;
+    }
+    const firstToken = tokens[0];
+    if (!(firstToken instanceof IdentifierToken) || firstToken.value.toUpperCase() !== "NOT") {
+      return null;
+    }
+    const secondToken = tokens[1];
+    if (!(secondToken instanceof ParenToken)) {
+      return null;
+    }
+    // Check that ParenToken contains IN operator
+    const innerTokens = secondToken.args;
+    const hasIn = innerTokens.some(t => t instanceof IdentifierToken && t.value.toUpperCase() === "IN");
+    if (!hasIn) {
+      return null;
+    }
+    return { innerTokens };
+  }
+
+  /**
+   * Check if a token group represents a simple comparison filter or IN/NOT IN operator
+   * Pattern: column OPERATOR value or column IN {values} or NOT (col IN {values}) or FUNCTION(column) OPERATOR value
+   * Supported operators: =, <>, >, <, >=, <=, IN, NOT IN
    *
    * Returns object with isSimple flag and reason for rejection
    */
   private isSimpleComparisonFilter(tokens: DaxToken[]): { isSimple: boolean; reason?: string } {
+    // Check for NOT IN pattern first
+    const notInPattern = this.detectNotInPattern(tokens);
+    if (notInPattern) {
+      return { isSimple: true }; // NOT IN is supported
+    }
+
     // Look for pattern: <something> OPERATOR <something> or <something> IN {values}
     // We need to find a comparison operator or IN keyword
     let hasComparisonOperator = false;
@@ -304,7 +341,7 @@ export class CalculateTemplate extends ConversionTemplate {
     }
 
     if (!hasComparisonOperator && !hasInOperator) {
-      return { isSimple: false, reason: "No comparison operator (=, <>, >, <, >=, <=) or IN found" };
+      return { isSimple: false, reason: "No comparison operator (=, <>, >, <, >=, <=) or IN/NOT IN found" };
     }
 
     // Check for unconvertible functions and keywords in the filter
@@ -419,6 +456,70 @@ export class CalculateTemplate extends ConversionTemplate {
     return `(${orConditions.join(" OR ")})`;
   }
 
+  /**
+   * Convert NOT IN operator expression to AND chain with not-equals
+   * Pattern: NOT ( column IN {val1, val2} ) → (column <> val1 AND column <> val2)
+   * @param innerTokens - The tokens inside the parentheses (col IN {values})
+   */
+  private convertNotInFilter(innerTokens: DaxToken[], context: ConversionContext): string {
+    // Find the IN keyword position
+    let inIndex = -1;
+    for (let i = 0; i < innerTokens.length; i++) {
+      if (innerTokens[i] instanceof IdentifierToken && innerTokens[i].value.toUpperCase() === "IN") {
+        inIndex = i;
+        break;
+      }
+    }
+
+    if (inIndex === -1) {
+      throw new Error("IN operator not found in NOT IN filter");
+    }
+
+    // Left side: expression before IN
+    const leftTokens = innerTokens.slice(0, inIndex);
+    const leftExpr = this.convertSubExpression(leftTokens, context);
+
+    // Right side: should contain a BraceToken with values
+    const rightTokens = innerTokens.slice(inIndex + 1);
+    const values: string[] = [];
+
+    // Try to extract values from BraceToken first
+    for (const token of rightTokens) {
+      if (token instanceof BraceToken) {
+        for (const arg of token.args) {
+          if (arg instanceof LiteralToken) {
+            values.push(arg.value);
+          } else if (arg instanceof IdentifierToken) {
+            values.push(arg.value);
+          } else if (!(arg instanceof CommaToken)) {
+            values.push(arg.toString());
+          }
+        }
+        break;
+      }
+    }
+
+    // Fallback: convert to MDX string and parse
+    if (values.length === 0) {
+      const rightExpr = this.convertSubExpression(rightTokens, context);
+      const cleaned = rightExpr.replace(/[{}]/g, "").trim();
+      if (cleaned) {
+        const parsedValues = cleaned.split(",").map((v) => v.trim()).filter((v) => v.length > 0);
+        values.push(...parsedValues);
+      }
+    }
+
+    if (values.length === 0) {
+      return "1 = 1"; // Always true for empty NOT IN
+    }
+
+    // Create AND conditions with not-equals
+    const andConditions = values.map((val) => `${leftExpr} <> ${val}`);
+
+    // Return parenthesized AND chain
+    return `(${andConditions.join(" AND ")})`;
+  }
+
   getExamples(): ConversionExample[] {
     return [
       {
@@ -471,6 +572,11 @@ export class CalculateTemplate extends ConversionTemplate {
         mdx: 'IIF([Status] = "Active", ([Dimension].[Dimension].[All], [Measure]), NULL)',
         description: "Mixed ALL and comparison filters",
       },
+      {
+        dax: 'CALCULATE(SUM([Sales]), NOT ( [Category] IN {"X", "Y"} ))',
+        mdx: 'IIF(([Category] <> "X" AND [Category] <> "Y"), SUM([Sales]), NULL)',
+        description: "NOT IN operator with multiple values",
+      },
     ];
   }
 
@@ -480,9 +586,11 @@ export class CalculateTemplate extends ConversionTemplate {
       "Supports: (1) CALCULATE with no filters → unwraps to inner expression, " +
       "(2) CALCULATE with simple comparison filters → IIF with conditions, " +
       "(3) CALCULATE with IN operator → IIF with OR chain, " +
-      "(4) CALCULATE with ALL() → tuple with [All] members. " +
+      "(4) CALCULATE with NOT IN operator → IIF with AND chain of <>, " +
+      "(5) CALCULATE with ALL() → tuple with [All] members. " +
       "Supports comparison operators: =, <>, >, <, >=, <=. " +
       "Supports IN operator: column IN {val1, val2} → (column = val1 OR column = val2). " +
+      "Supports NOT IN: NOT (column IN {val1, val2}) → (column <> val1 AND column <> val2). " +
       "Supports ALL(): ALL('Table') → tuple with [Table].[Table].[All] member. " +
       "Does not handle: FILTER(), ALLEXCEPT, TREATAS, time intelligence, or relationship functions. " +
       "Requires manual review for context semantics."

@@ -113,3 +113,32 @@
   - CalculateTemplate already has IN handling for filter context (US-008 may be done)
   - Template not yet registered in TemplateRegistry (US-010)
 ---
+
+## Iteration 8 - US-008: Handle IN operator in CALCULATE context
+- Already implemented in CalculateTemplate!
+- `isSimpleComparisonFilter()` (line 300) detects IN keyword in filter arguments
+- `convertInFilter()` (lines 362-420) converts `col IN {a, b}` to `(col = a OR col = b)`
+- Main `convert()` method (lines 218-228) routes IN filters to `convertInFilter()`
+- Test confirmed: "First Half Year Sales" measure with IN converts successfully
+- Files changed: None (already implemented)
+- Learnings:
+  - CalculateTemplate already had IN support before InOperatorTemplate was created
+  - IN in CALCULATE produces `(col = a OR col = b)` without IIF wrapper (filter context)
+  - Standalone IN (InOperatorTemplate) produces `IIF(col = a OR col = b, 1, 0)`
+---
+
+## Iteration 9 - US-009: Handle NOT IN operator conversion
+- Added NOT IN support to both InOperatorTemplate and CalculateTemplate
+- Pattern: `NOT ( col IN { val1, val2 } )` → `IIF(col <> val1 AND col <> val2, 1, 0)`
+- InOperatorTemplate: added `detectNotInPattern()` method and refactored `convert()` to handle negation
+- CalculateTemplate: added `detectNotInPattern()` and `convertNotInFilter()` methods
+- Single-value NOT IN simplified to `col <> val`
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/in-operator-template.ts (+~60 lines)
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/calculate-template.ts (+~90 lines)
+- Learnings:
+  - NOT is parsed as IdentifierToken, parentheses as ParenToken
+  - ParenToken.args contains the inner IN expression tokens
+  - NOT IN in CALCULATE produces `(col <> a AND col <> b)` without IIF wrapper (filter context)
+  - Standalone NOT IN produces `IIF(col <> a AND col <> b, 1, 0)`
+---

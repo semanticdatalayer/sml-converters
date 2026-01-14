@@ -11,6 +11,7 @@ import {
   IdentifierToken,
   TableColumnReference,
   ColumnReference,
+  ParenToken,
 } from "../../dax-converter";
 import {
   ConversionResult,
@@ -21,11 +22,13 @@ import {
 import { ConversionContext } from "../conversion-context";
 
 /**
- * InOperatorTemplate converts DAX IN operator patterns to MDX IIF/OR chains.
+ * InOperatorTemplate converts DAX IN and NOT IN operator patterns to MDX IIF chains.
  *
  * Handles patterns like:
  * - `column IN { "a", "b", "c" }` → `IIF(column = "a" OR column = "b" OR column = "c", 1, 0)`
+ * - `NOT ( column IN { "a", "b" } )` → `IIF(column <> "a" AND column <> "b", 1, 0)`
  * - Single value: `col IN { "a" }` → `col = "a"` (simplified)
+ * - Single NOT value: `NOT ( col IN { "a" } )` → `col <> "a"` (simplified)
  *
  * Edge cases handled as TODO:
  * - Empty sets: `col IN {}` → TODO
@@ -38,6 +41,27 @@ export class InOperatorTemplate extends ConversionTemplate {
   readonly confidence = 0.95;
 
   canConvert(tokens: DaxToken[], context: ConversionContext): boolean {
+    // Check for NOT IN pattern first: NOT ( col IN {...} )
+    const notInPattern = this.detectNotInPattern(tokens);
+    if (notInPattern) {
+      // Validate the inner IN expression
+      const innerTokens = notInPattern.innerTokens;
+      const inIndex = this.findInOperatorIndex(innerTokens);
+      if (inIndex === -1 || inIndex === 0 || inIndex === innerTokens.length - 1) {
+        return false;
+      }
+      const rightTokens = innerTokens.slice(inIndex + 1);
+      if (!rightTokens.some(t => t instanceof BraceToken)) {
+        return false;
+      }
+      const leftTokens = innerTokens.slice(0, inIndex);
+      if (this.containsUnconvertibleFunctions(leftTokens, context)) {
+        this.warn("NOT IN left side contains unconvertible functions - rejecting", context);
+        return false;
+      }
+      return true;
+    }
+
     // Find an IN operator (case-insensitive)
     const inIndex = this.findInOperatorIndex(tokens);
     if (inIndex === -1) {
@@ -70,6 +94,28 @@ export class InOperatorTemplate extends ConversionTemplate {
   }
 
   convert(tokens: DaxToken[], context: ConversionContext): ConversionResult {
+    // Check for NOT IN pattern first
+    const notInPattern = this.detectNotInPattern(tokens);
+    if (notInPattern) {
+      return this.convertNotIn(notInPattern.innerTokens, context);
+    }
+
+    // Regular IN conversion
+    return this.convertIn(tokens, context, false);
+  }
+
+  /**
+   * Convert NOT IN pattern to MDX with AND/<> chain
+   */
+  private convertNotIn(innerTokens: DaxToken[], context: ConversionContext): ConversionResult {
+    return this.convertIn(innerTokens, context, true);
+  }
+
+  /**
+   * Core conversion logic for IN/NOT IN patterns
+   * @param isNegated - true for NOT IN, false for IN
+   */
+  private convertIn(tokens: DaxToken[], context: ConversionContext, isNegated: boolean): ConversionResult {
     const inIndex = this.findInOperatorIndex(tokens);
     if (inIndex === -1) {
       return failedConversion("IN operator not found", context.daxExpression);
@@ -105,24 +151,29 @@ export class InOperatorTemplate extends ConversionTemplate {
       );
     }
 
-    // Single value: simplify to equality
+    // Determine operator and connector based on negation
+    const operator = isNegated ? "<>" : "=";
+    const connector = isNegated ? " AND " : " OR ";
+    const methodSuffix = isNegated ? "not_in" : "in";
+
+    // Single value: simplify to direct comparison
     if (extractionResult.values.length === 1) {
-      const mdxExpression = `${leftExpr} = ${extractionResult.values[0]}`;
+      const mdxExpression = `${leftExpr} ${operator} ${extractionResult.values[0]}`;
       return successfulConversion(
         mdxExpression,
         this.confidence,
         ConversionCategory.TEMPLATE_CONVERSION,
         {
           originalDax: context.daxExpression,
-          method: "in_operator_single_value",
+          method: `${methodSuffix}_operator_single_value`,
         },
       );
     }
 
-    // Multi-value: create IIF with OR chain
-    const orConditions = extractionResult.values.map(val => `${leftExpr} = ${val}`);
-    const orChain = orConditions.join(" OR ");
-    const mdxExpression = `IIF(${orChain}, 1, 0)`;
+    // Multi-value: create IIF with appropriate chain
+    const conditions = extractionResult.values.map(val => `${leftExpr} ${operator} ${val}`);
+    const chain = conditions.join(connector);
+    const mdxExpression = `IIF(${chain}, 1, 0)`;
 
     return successfulConversion(
       mdxExpression,
@@ -130,7 +181,7 @@ export class InOperatorTemplate extends ConversionTemplate {
       ConversionCategory.TEMPLATE_CONVERSION,
       {
         originalDax: context.daxExpression,
-        method: "in_operator_template",
+        method: `${methodSuffix}_operator_template`,
         valueCount: extractionResult.values.length,
       },
     );
@@ -153,13 +204,24 @@ export class InOperatorTemplate extends ConversionTemplate {
         mdx: "IIF([Year] = 2023 OR [Year] = 2024, 1, 0)",
         description: "IN operator with numeric values",
       },
+      {
+        dax: 'NOT ( [Category] IN { "A", "B" } )',
+        mdx: 'IIF([Category] <> "A" AND [Category] <> "B", 1, 0)',
+        description: "NOT IN operator with multiple values",
+      },
+      {
+        dax: 'NOT ( [Status] IN { "Inactive" } )',
+        mdx: '[Status] <> "Inactive"',
+        description: "Single value NOT IN simplified to inequality",
+      },
     ];
   }
 
   getDescription(): string {
     return (
-      "Converts DAX IN operator to MDX IIF/OR chains. " +
-      "Single-value sets are simplified to direct equality. " +
+      "Converts DAX IN and NOT IN operators to MDX IIF chains. " +
+      "IN uses OR chains with =, NOT IN uses AND chains with <>. " +
+      "Single-value sets are simplified to direct comparisons. " +
       "Empty sets and non-literal values result in TODO markers."
     );
   }
@@ -218,5 +280,36 @@ export class InOperatorTemplate extends ConversionTemplate {
     }
 
     return { values, hasNonLiteral };
+  }
+
+  /**
+   * Detect NOT IN pattern: NOT ( col IN {...} )
+   * Returns the inner tokens (col IN {...}) if pattern matches, null otherwise
+   */
+  private detectNotInPattern(tokens: DaxToken[]): { innerTokens: DaxToken[] } | null {
+    // Pattern: NOT followed by ParenToken containing IN expression
+    // tokens[0] = IdentifierToken("NOT"), tokens[1] = ParenToken containing IN expression
+    if (tokens.length < 2) {
+      return null;
+    }
+
+    const firstToken = tokens[0];
+    if (!(firstToken instanceof IdentifierToken) || firstToken.value.toUpperCase() !== "NOT") {
+      return null;
+    }
+
+    const secondToken = tokens[1];
+    if (!(secondToken instanceof ParenToken)) {
+      return null;
+    }
+
+    // Check that the ParenToken contains an IN operator
+    const innerTokens = secondToken.args;
+    const hasIn = this.findInOperatorIndex(innerTokens) !== -1;
+    if (!hasIn) {
+      return null;
+    }
+
+    return { innerTokens };
   }
 }

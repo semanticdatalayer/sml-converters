@@ -116,10 +116,10 @@ Enhance BIM-to-SML conversion to properly handle calculation groups and the DAX 
 **Description:** As a converter, I want NOT IN patterns to convert to AND chains with not-equals.
 
 **Acceptance Criteria:**
-- [ ] Detect `NOT ( col IN { ... } )` pattern
-- [ ] Convert to `IIF(col <> "val1" AND col <> "val2" AND ..., 1, 0)`
-- [ ] Handle in both standalone and CALCULATE contexts
-- [ ] Typecheck passes
+- [x] Detect `NOT ( col IN { ... } )` pattern
+- [x] Convert to `IIF(col <> "val1" AND col <> "val2" AND ..., 1, 0)`
+- [x] Handle in both standalone and CALCULATE contexts
+- [x] Typecheck passes
 
 ### US-010: Register IN operator template
 
