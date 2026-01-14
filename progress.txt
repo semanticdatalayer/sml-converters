@@ -36,3 +36,18 @@
   - This is intentional - calc groups added to both sets for backward compatibility
   - Logger.info() messages may not show in test output depending on verbosity
 ---
+
+## Iteration 3 - US-003: Mark direct calc group references as TODO
+- Added `detectCalculationGroupUsage()` method to MeasureConverter
+- Detects SELECTEDMEASURE() function usage in any measure
+- Detects references to calc group table names via patterns like 'TableName'[ or TableName[
+- Added early exit in `metricFromCalc()` to return TODO marker when calc group detected
+- Format: `0 /* TODO uses calculationgroup: {reason} */`
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/measure-converter.ts (added ~50 lines)
+- Learnings:
+  - MeasureConverter has access to tableLists via setTableLists() method
+  - calcGroupTables Set is available in tableLists
+  - Detection must check both quoted ('TableName'[) and unquoted (TableName[) patterns
+  - Case-insensitive matching needed for table name comparisons
+---

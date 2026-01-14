@@ -69,6 +69,39 @@ export class MeasureConverter {
     this.tableLists = tableLists;
   }
 
+  /**
+   * Check if a DAX expression uses calculation groups.
+   * Returns a reason string if calc group usage detected, undefined otherwise.
+   */
+  detectCalculationGroupUsage(daxExpression: string): string | undefined {
+    const exprLower = daxExpression.toLowerCase();
+
+    // Check for SELECTEDMEASURE() function - always indicates calc group usage
+    if (exprLower.includes("selectedmeasure(") || exprLower.includes("selectedmeasure (")) {
+      return "uses SELECTEDMEASURE()";
+    }
+
+    // Check for references to calculation group tables
+    if (this.tableLists?.calcGroupTables) {
+      for (const cgTable of this.tableLists.calcGroupTables) {
+        // Check for table[column] pattern: 'TableName'[col] or TableName[col]
+        const patterns = [
+          `'${cgTable}'[`,      // 'CG - Time Intelligence'[
+          `${cgTable}[`,        // TableName[ (without quotes)
+          `'${cgTable.toLowerCase()}'[`,
+          `${cgTable.toLowerCase()}[`,
+        ];
+        for (const pattern of patterns) {
+          if (exprLower.includes(pattern.toLowerCase())) {
+            return `references '${cgTable}'`;
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
   private isDimensionTable(tableName: string): boolean {
     return this.isDimensionOnlyTable(tableName);
   }
@@ -516,6 +549,39 @@ export class MeasureConverter {
     const daxExpression = removeComments(
       expressionAsString(bimMeasure.expression),
     );
+
+    // Check for calculation group usage before attempting conversion
+    const calcGroupReason = this.detectCalculationGroupUsage(daxExpression);
+    if (calcGroupReason) {
+      // Create unique name for calculated metric
+      const calc_unique_name = createUniqueAttrName(
+        attrMaps.attrNameMap,
+        bimMeasure.name,
+        makeUniqueName(`calculation.${bimTable.name}.`) + bimMeasure.name,
+        "calculation from BIM measure",
+        bimTable.name,
+        "",
+        this.logger,
+      );
+
+      this.logger.info(`Measure '${bimMeasure.name}' ${calcGroupReason} - marking as TODO`);
+
+      // Return early with TODO marker
+      const smlMetric: SMLMetricCalculated = {
+        object_type: SMLObjectType.MetricCalc,
+        unique_name: calc_unique_name,
+        description: descriptionAsString(bimMeasure.description),
+        label: bimMeasure.name,
+        folder: bimMeasure.displayFolder,
+        is_hidden: bimMeasure.isHidden,
+        format: this.smlFormatFromBim(bimMeasure.formatString),
+        expression: `0 /* TODO uses calculationgroup: ${calcGroupReason} */`,
+      };
+
+      rawCalcs.add(bimMeasure.name);
+      tableLists.measTables.add(bimTable.name);
+      return smlMetric;
+    }
 
     // Create pipeline first (needed for templateRegistry in context)
     const pipeline = new ConversionPipeline(this.logger, {

@@ -43,11 +43,11 @@ Enhance BIM-to-SML conversion to properly handle calculation groups and the DAX 
 **Description:** As a converter, I want measures that directly reference calculation groups to be marked with a specific TODO comment.
 
 **Acceptance Criteria:**
-- [ ] Detect calc group table names (from `calculationGroup` property) in DAX expressions
-- [ ] Detect `SELECTEDMEASURE()` function usage in any measure (not just calc groups)
-- [ ] Return early from conversion with `TODO uses calculationgroup: {reason}` comment
-- [ ] Format: `0 /* TODO uses calculationgroup: references 'CG - Time Intelligence' */`
-- [ ] Typecheck passes
+- [x] Detect calc group table names (from `calculationGroup` property) in DAX expressions
+- [x] Detect `SELECTEDMEASURE()` function usage in any measure (not just calc groups)
+- [x] Return early from conversion with `TODO uses calculationgroup: {reason}` comment
+- [x] Format: `0 /* TODO uses calculationgroup: references 'CG - Time Intelligence' */`
+- [x] Typecheck passes
 
 ### US-004: Build measure dependency graph
 
