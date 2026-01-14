@@ -11,6 +11,7 @@ import { TemplateRegistry } from "./conversion-templates/template-registry";
 import { ConversionContext } from "./conversion-templates/conversion-context";
 import { VarInliner } from "./var-analysis/var-inliner";
 import { Logger } from "../../../shared/logger";
+import { escapeForComment } from "./tools";
 
 /**
  * Configuration for conversion pipeline
@@ -484,7 +485,7 @@ export class ConversionPipeline {
   private createFallback(daxExpression: string): PipelineResult {
     return {
       success: true,
-      expression: `0 /* TODO: ${daxExpression} */`,
+      expression: `0 /* TODO: ${escapeForComment(daxExpression)} */`,
       confidence: 0.0,
       category: ConversionCategory.UNCONVERTIBLE,
       stage: 6,

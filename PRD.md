@@ -198,31 +198,38 @@ The 23 TODOs are expected (unsupported DAX patterns like TOTALYTD, FILTER, SAMEP
 **Description:** As a developer, I want to fix all validation errors found in MOL file conversion.
 
 **Acceptance Criteria:**
-- [ ] Fix each documented error from US-012
-- [ ] Re-run validation to confirm fixes
-- [ ] No validation errors remain
-- [ ] Typecheck passes
+- [x] Fix each documented error from US-012
+- [x] Re-run validation to confirm fixes
+- [x] No validation errors remain
+- [x] Typecheck passes
+
+**Fix Summary:**
+- Type 1 (truncated TODO comments): Move // and -- comment removal to `expressionAsString()` before whitespace collapse
+- Type 2 (non-existing metric refs): Throw errors in `TableReference.toMdx()` and `ColumnReference.toMdx()` when measure/metric not found, triggering proper TODO fallback
+- Result: 0 validation errors, 334 metrics converted (14%), 2025 TODOs remaining
 
 ### US-015: Fix validation errors in dw_test_model conversion
 
 **Description:** As a developer, I want to fix all validation errors found in dw_test_model conversion.
 
 **Acceptance Criteria:**
-- [ ] Fix each documented error from US-013
-- [ ] Re-run validation to confirm fixes
-- [ ] No validation errors remain
-- [ ] Typecheck passes
+- [x] Fix each documented error from US-013
+- [x] Re-run validation to confirm fixes
+- [x] No validation errors remain
+- [x] Typecheck passes
+
+**Note:** No errors to fix - dw_test_model.bim had 0 validation errors from US-013.
 
 ### US-016: Final validation of both test files
 
 **Description:** As a developer, I want to confirm both test files convert and validate successfully.
 
 **Acceptance Criteria:**
-- [ ] `npm run test-custom-calcs -- --input test-files/MOL_bim_from_xmla.json` passes
-- [ ] `npm run test-custom-calcs -- --input test-files/dw_test_model.bim` passes
-- [ ] Calc group measures show `TODO uses calculationgroup:` prefix
-- [ ] IN operator patterns convert to IIF/OR chains
-- [ ] Typecheck passes
+- [x] `npm run test-custom-calcs -- --input test-files/MOL_bim_from_xmla.json` passes
+- [x] `npm run test-custom-calcs -- --input test-files/dw_test_model.bim` passes
+- [x] Calc group measures show `TODO uses calculationgroup:` prefix
+- [x] IN operator patterns convert to IIF/OR chains
+- [x] Typecheck passes
 
 ## Non-Goals
 

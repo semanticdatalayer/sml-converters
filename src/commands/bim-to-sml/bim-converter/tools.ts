@@ -67,6 +67,10 @@ export function expressionAsString(
     let result = (
       Array.isArray(expression) ? expression.join("\n").toString() : expression
     ).replace("let\n", "let ");
+    // Remove single-line comments BEFORE collapsing whitespace
+    // (otherwise comments in multi-line arrays would remove everything after them)
+    result = result.replace(/\/\/.*$/gm, ""); // Remove // comments
+    result = result.replace(/--.*$/gm, ""); // Remove -- comments (SQL style)
     // Replace multiple spaces with a single space
     result = result.replace(/\s+/g, " ");
     return result;
@@ -198,12 +202,10 @@ export const errorUtil = {
 
 export function removeComments(input: string): string {
   // Remove text between comments like /* ... */
-  let retVal = input
-    .replace(/\/\*[\s\S]*?\*\/|(?<=[^:])\/\/.*|^\/\/.*/g, "")
+  // Note: // and -- comments are handled by expressionAsString before whitespace collapse
+  return input
+    .replace(/\/\*[\s\S]*?\*\//g, "")
     .trim();
-  // Remove single-line comments that use --
-  retVal = retVal.replace(/--.*$/gm, "");
-  return retVal;
 }
 
 export function createUniqueAttrName(
@@ -429,4 +431,12 @@ export function firstChars(expression: string, arg1: number) {
     return fmtExpr.slice(0, arg1) + "...";
   }
   return fmtExpr;
+}
+
+/**
+ * Escapes comment-closing sequences in a string for safe use in TODO comments.
+ * Replaces `* /` with `* /` (with space) to prevent premature comment termination.
+ */
+export function escapeForComment(str: string): string {
+  return str.replace(/\*\//g, "* /");
 }

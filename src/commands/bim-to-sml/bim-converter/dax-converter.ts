@@ -209,12 +209,15 @@ export class TableColumnReference extends DaxToken {
           if (measureUniqueName) {
             return `[Measures].[${measureUniqueName}]`;
           }
+          // If measure creation returned empty, table is unused or dimension-only
+          // Throw to signal conversion failure (will become TODO)
+          throw new Error(`Cannot create metric for column '${columnName}' on table '${this.tableName}' (table is unused or dimension-only)`);
         }
       }
     }
 
-    // Fallback: use column name as-is (may cause validation error)
-    return this.columnRef.toMdx(info);
+    // Fallback: throw error to signal conversion failure (will become TODO)
+    throw new Error(`Cannot convert reference to '${this.tableName}'[${columnName}]`);
   }
 
   toString(): string {
@@ -259,8 +262,9 @@ export class ColumnReference extends DaxToken {
       }
     }
 
-    // Fallback: use column name as-is (will likely cause validation error)
-    return `[Measures].[${this.columnName}]`;
+    // Fallback: throw error to signal conversion failure (will become TODO)
+    // This happens when [Name] references a measure/column that wasn't converted
+    throw new Error(`Cannot find measure or metric for reference [${this.columnName}]`);
   }
 
   toString(): string {

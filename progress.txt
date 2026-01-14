@@ -196,3 +196,24 @@
   - TODOs in this file use valid syntax (don't cause validation errors)
   - US-015 is effectively a no-op since there are no errors to fix
 ---
+
+## Iteration 14 - US-014: Fix validation errors in MOL conversion
+- Fixed 27 validation errors (Type 1: 13 invalid expression, Type 2: 14 non-existing metric)
+- **Type 1 Fix**: Move single-line comment removal (// and --) to `expressionAsString()` BEFORE whitespace collapse
+  - Problem: `expressionAsString()` joins array with \n then replaces all \s+ with space
+  - `removeComments()` then saw single-line expressions and removed everything after // or --
+  - Solution: Remove // and -- comments while newlines are intact in `expressionAsString()`
+- **Type 2 Fix**: Throw errors instead of returning invalid [Measures].[name] references
+  - `TableReference.toMdx()`: Throw if measure creation fails (table unused/dimension-only)
+  - `ColumnReference.toMdx()`: Throw if measure/metric not found
+  - These errors get caught by pipeline and create proper TODO fallbacks
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/tools.ts (expressionAsString, removeComments)
+  - src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts (escapeForComment import)
+  - src/commands/bim-to-sml/bim-converter/dax-converter.ts (TableReference, ColumnReference toMdx)
+- Learnings:
+  - DAX expressions in BIM are often arrays where each line is an element
+  - Comments with // or -- need removal BEFORE joining with spaces
+  - Tables without relationships are in unusedTables and can't have metrics created
+  - When conversion can't produce valid MDX, throw error to trigger TODO fallback
+---
