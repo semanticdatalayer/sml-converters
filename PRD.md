@@ -147,10 +147,31 @@ Enhance BIM-to-SML conversion to properly handle calculation groups and the DAX 
 **Description:** As a developer, I need to identify all validation errors in the MOL test file.
 
 **Acceptance Criteria:**
-- [ ] Run `npm run test-custom-calcs -- --input test-files/MOL_bim_from_xmla.json`
-- [ ] Document all validation errors found
-- [ ] Categorize errors by type (schema, reference, syntax)
-- [ ] Typecheck passes
+- [x] Run `npm run test-custom-calcs -- --input test-files/MOL_bim_from_xmla.json`
+- [x] Document all validation errors found
+- [x] Categorize errors by type (schema, reference, syntax)
+- [x] Typecheck passes
+
+**Documented Errors (27 total):**
+
+Type 1 - Invalid metric expression (13 errors): Truncated TODO comments that break MDX syntax
+- These are `0 /* TODO: <truncated DAX> */` expressions where the comment is incomplete
+- Measures: CAPEX-related IF, CL VAR expressions (3x), Loyalty active customers, Plan net sales, Education participation (3x), Carsharing measures (3x)
+
+Type 2 - Non-existing metric reference (14 errors): Converted metrics reference metrics that weren't converted
+- "Comparison period num" → "ID"
+- "Measure_type_num" → "SORT"
+- "Dimension num" → "Dimension ID"
+- "Selector_num" → "Sort"
+- "Period type selector" → "Period type ID"
+- "Selected period length" → "Number"
+- "Measure_type_num_for_mo_dashboard" → "Sort for Monthly operational"
+- "Selector_num_diagram" → "Sort"
+- "ratio of customers acquired..." → "Number of referred customers..."
+- "number of coffee cups sold..." → "Number of coffee cups sold...plan"
+- "Number of fresh sandwiches sold - change..." → "Number of fresh sandwiches sold - actual"
+- "number of fresh sandwiches sold per fresh corner..." → (2 refs: actual and plan)
+- "Number of fresh sandwiches sold per SES - actual" → "Number of fresh sandwiches sold - actual"
 
 ### US-013: Run test-custom-calcs on dw_test_model and capture errors
 
