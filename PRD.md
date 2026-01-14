@@ -126,10 +126,10 @@ Enhance BIM-to-SML conversion to properly handle calculation groups and the DAX 
 **Description:** As a converter, I want the IN operator template registered in the pipeline.
 
 **Acceptance Criteria:**
-- [ ] Register `InOperatorTemplate` in `TemplateRegistry`
-- [ ] Template is tried during Stage 3 (template conversion)
-- [ ] Order correctly relative to other templates
-- [ ] Typecheck passes
+- [x] Register `InOperatorTemplate` in `TemplateRegistry`
+- [x] Template is tried during Stage 3 (template conversion)
+- [x] Order correctly relative to other templates
+- [x] Typecheck passes
 
 ### US-011: Add calculationgroup category to test script
 

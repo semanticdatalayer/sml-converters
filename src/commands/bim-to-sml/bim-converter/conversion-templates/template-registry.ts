@@ -7,6 +7,7 @@ import { SwitchTemplate } from "./templates/switch-template";
 import { CalculateTemplate } from "./templates/calculate-template";
 import { LogicalTemplate } from "./templates/logical-template";
 import { IteratorAggregateTemplate } from "./templates/iterator-aggregate-template";
+import { InOperatorTemplate } from "./templates/in-operator-template";
 import { DaxToken, DaxTokenizer } from "../dax-converter";
 import {
   ConversionResult,
@@ -64,6 +65,7 @@ export class TemplateRegistry {
     this.registerTemplate(new CalculateTemplate());
     this.registerTemplate(new LogicalTemplate());
     this.registerTemplate(new IteratorAggregateTemplate());
+    this.registerTemplate(new InOperatorTemplate());
 
     // Future templates can be added here:
     // this.registerTemplate(new TimeIntelligenceTemplate());
