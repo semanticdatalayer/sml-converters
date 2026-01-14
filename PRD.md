@@ -32,11 +32,11 @@ Enhance BIM-to-SML conversion to properly handle calculation groups and the DAX 
 **Description:** As a converter, I want to skip creating dimensions/datasets for calculation group tables since they have no SML equivalent.
 
 **Acceptance Criteria:**
-- [ ] `DimensionConverter` skips tables in calc group Set
-- [ ] `DatasetConverter` skips tables in calc group Set
-- [ ] No SML output generated for calc group tables
-- [ ] Log info message when skipping calc group table
-- [ ] Typecheck passes
+- [x] `DimensionConverter` skips tables in calc group Set
+- [x] `DatasetConverter` skips tables in calc group Set
+- [x] No SML output generated for calc group tables
+- [x] Log info message when skipping calc group table
+- [x] Typecheck passes
 
 ### US-003: Mark direct calc group references as TODO
 

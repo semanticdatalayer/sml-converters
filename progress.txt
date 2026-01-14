@@ -1,0 +1,38 @@
+# Progress Log
+
+## Learnings
+
+(Patterns discovered during implementation)
+- BIM tables with `calculationGroup` property are calculation group tables
+- TableLists struct is initialized in bim-to-sml-converter.ts convert()
+- Logger info/warn only visible in verbose mode via TestLogger
+
+---
+
+## Iteration 1 - US-001: Detect calculation group tables in BIM
+- Added `BimCalculationGroup` interface and `calculationGroup` property to BimTable
+- Added `calcGroupTables: Set<string>` to TableLists interface
+- Created `isCalculationGroupTable()` utility function
+- Created `collectCalculationGroupTables()` method that adds calc group tables to both calcGroupTables and unusedTables
+- Files changed:
+  - src/commands/bim-to-sml/bim-models/bim-model.ts
+  - src/commands/bim-to-sml/bim-models/types-and-interfaces.ts
+  - src/commands/bim-to-sml/bim-converter/table-converter.ts
+  - src/commands/bim-to-sml/bim-converter/bim-to-sml-converter.ts
+- Learnings:
+  - Calc group tables are already added to unusedTables, so US-002 may already be mostly done
+  - Test found 6 calc group tables in MOL_bim_from_xmla.json
+---
+
+## Iteration 2 - US-002: Skip calculation group table conversion
+- Already complete from US-001!
+- Implementation approach: calc group tables added to `unusedTables` Set
+- `DimensionConverter.createDimensions()` at line 51 skips tables in unusedTables
+- `DatasetConverter.convertToDatasetAndMetrics()` at line 114 skips tables in unusedTables
+- Log message exists in `TableConverter.collectCalculationGroupTables()` at line 29
+- Files changed: None (already implemented)
+- Learnings:
+  - Both DimensionConverter and DatasetConverter check `unusedTables` not `calcGroupTables` directly
+  - This is intentional - calc groups added to both sets for backward compatibility
+  - Logger.info() messages may not show in test output depending on verbosity
+---
