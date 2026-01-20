@@ -75,6 +75,79 @@ export class MeasureConverter {
     this.dependencyTracker = tracker;
   }
 
+  // Map of measure label (original name) -> table name
+  // Used for lookup when measures reference each other
+  private measureTableMap: Map<string, string> = new Map();
+
+  /**
+   * Build a lookup of measure names to their tables.
+   * This is used for reference resolution when measures reference other measures
+   * that haven't been converted yet.
+   */
+  buildMeasureTableMap(bim: BimRoot): void {
+    this.measureTableMap.clear();
+    for (const table of bim.model?.tables || []) {
+      for (const measure of table.measures || []) {
+        // Store mapping: measureName -> tableName
+        this.measureTableMap.set(measure.name, table.name);
+      }
+    }
+    this.logger.debug?.(`Built measure lookup with ${this.measureTableMap.size} measures`);
+  }
+
+  /**
+   * Get the table name for a measure by its label/name.
+   * Used for resolving cross-measure references.
+   */
+  getMeasureTable(measureName: string): string | undefined {
+    return this.measureTableMap.get(measureName);
+  }
+
+  /**
+   * Post-process all calculated metrics to resolve __UNRESOLVED__ markers.
+   * Called after all measures have been converted.
+   */
+  resolveUnresolvedReferences(
+    result: SmlConverterResult,
+    attrMaps: AttributeMaps,
+  ): void {
+    const unresolvedPattern = /\[Measures\]\.\[__UNRESOLVED__(.+?)__\]/g;
+    let resolvedCount = 0;
+    let unresolvedCount = 0;
+
+    for (const calc of result.measuresCalculated) {
+      if (!calc.expression) continue;
+
+      const newExpression = calc.expression.replace(unresolvedPattern, (match, measureName) => {
+        // Find the table for this measure
+        const tableName = this.measureTableMap.get(measureName);
+        if (!tableName) {
+          unresolvedCount++;
+          this.logger.warn(`Could not resolve reference to measure '${measureName}' in calc '${calc.unique_name}'`);
+          return `[Measures].[${measureName}]`; // Use original name as fallback
+        }
+
+        // Look up the unique_name in attrNameMap
+        const calcKey = (makeUniqueName(`calculation.${tableName}.`) + measureName).toLowerCase();
+        const lookupResult = attrMaps.attrNameMap.get(calcKey);
+        if (lookupResult && lookupResult.length > 0) {
+          resolvedCount++;
+          return `[Measures].[${lookupResult[0]}]`;
+        }
+
+        unresolvedCount++;
+        this.logger.warn(`Could not find unique_name for measure '${measureName}' in calc '${calc.unique_name}'`);
+        return `[Measures].[${measureName}]`; // Use original name as fallback
+      });
+
+      calc.expression = newExpression;
+    }
+
+    if (resolvedCount > 0 || unresolvedCount > 0) {
+      this.logger.info(`Resolved ${resolvedCount} measure references, ${unresolvedCount} could not be resolved`);
+    }
+  }
+
   /**
    * Check if a DAX expression uses calculation groups.
    * Returns a reason string if calc group usage detected, undefined otherwise.

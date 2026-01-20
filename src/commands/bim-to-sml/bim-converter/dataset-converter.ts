@@ -50,6 +50,9 @@ export class DatasetConverter {
     tableLists: TableLists,
     attrMaps: AttributeMaps,
   ) {
+    // Build lookup of measure names to tables for cross-reference resolution
+    this.measureConverter.buildMeasureTableMap(bim);
+
     const promises: Promise<void>[] = [];
     const messagesMap: MessagesMap = {
       customMsgs: new Set<string>(),
@@ -72,6 +75,10 @@ export class DatasetConverter {
       );
     }
     await Promise.all(promises);
+
+    // Post-process to resolve any __UNRESOLVED__ measure references
+    // This handles cases where measure A references measure B but B was converted after A
+    this.measureConverter.resolveUnresolvedReferences(result, attrMaps);
 
     if (messagesMap.customMsgs.size > 0)
       this.logger.info(

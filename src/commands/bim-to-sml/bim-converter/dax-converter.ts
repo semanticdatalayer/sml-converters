@@ -1,6 +1,6 @@
 import { Constants } from "../bim-models/constants";
 import { isSimpleCountRowsFunction } from "./expression-parser";
-import { lowerNoSpace, noQuotes } from "./tools";
+import { lowerNoSpace, noQuotes, makeUniqueName } from "./tools";
 import { SmlConverterResult } from "../../../shared/sml-convert-result";
 import { BimRoot } from "../bim-models/bim-model";
 import {
@@ -213,6 +213,13 @@ export class TableColumnReference extends DaxToken {
       }
     }
 
+    // Check if this table is unused (selector table, etc.) - if so, throw to trigger TODO fallback
+    if (info && info.unusedTables && info.unusedTables.has(this.tableName)) {
+      throw new Error(
+        `Cannot convert reference to unused/selector table '${this.tableName}'[${columnName}]`
+      );
+    }
+
     // Fallback: use column name as-is (may cause validation error)
     return this.columnRef.toMdx(info);
   }
@@ -240,12 +247,17 @@ export class ColumnReference extends DaxToken {
         if (bimMeasure) {
           // Found the BIM measure - look up the calc that was created for it
           // The calc unique_name is stored in attrNameMap
-          const calcKey = `calculation.${table.name}.${this.columnName}`.toLowerCase();
+          // Key format must match how it was stored: makeUniqueName(`calculation.${table.name}.`) + measureName
+          const calcKey = (makeUniqueName(`calculation.${table.name}.`) + this.columnName).toLowerCase();
           const lookupResult = info.attrMaps.attrNameMap.get(calcKey);
           if (lookupResult && lookupResult.length > 0) {
             // Found the calc unique_name
             return `[Measures].[${lookupResult[0]}]`;
           }
+
+          // Measure exists but hasn't been converted yet - use original name with marker
+          // Post-processing will resolve this to the actual unique_name
+          return `[Measures].[__UNRESOLVED__${this.columnName}__]`;
         }
       }
 

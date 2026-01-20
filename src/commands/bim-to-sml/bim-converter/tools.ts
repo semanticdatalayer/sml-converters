@@ -71,11 +71,52 @@ export function expressionAsString(
     // (otherwise comments in multi-line arrays would remove everything after them)
     result = result.replace(/\/\/.*$/gm, ""); // Remove // comments
     result = result.replace(/--.*$/gm, ""); // Remove -- comments (SQL style)
-    // Replace multiple spaces with a single space
-    result = result.replace(/\s+/g, " ");
+    // Collapse whitespace OUTSIDE brackets but preserve whitespace INSIDE brackets [...]
+    // This preserves measure/column names that may have intentional multiple spaces
+    result = collapseWhitespacePreservingBrackets(result);
     return result;
   }
   return "";
+}
+
+/**
+ * Collapse multiple whitespace characters to single space, but preserve
+ * whitespace inside square brackets [...] since those are measure/column names.
+ */
+function collapseWhitespacePreservingBrackets(input: string): string {
+  let result = "";
+  let inBracket = false;
+  let i = 0;
+
+  while (i < input.length) {
+    const char = input[i];
+
+    if (char === "[") {
+      inBracket = true;
+      result += char;
+      i++;
+    } else if (char === "]") {
+      inBracket = false;
+      result += char;
+      i++;
+    } else if (inBracket) {
+      // Inside brackets: preserve all characters as-is
+      result += char;
+      i++;
+    } else if (/\s/.test(char)) {
+      // Outside brackets: collapse whitespace
+      result += " ";
+      // Skip all consecutive whitespace
+      while (i < input.length && /\s/.test(input[i])) {
+        i++;
+      }
+    } else {
+      result += char;
+      i++;
+    }
+  }
+
+  return result;
 }
 
 export function expressionAsOneLineLowerCaseString(
