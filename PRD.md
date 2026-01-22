@@ -83,14 +83,14 @@ The deploy command uses the AtScale Public API:
 **Description:** As a developer, I need a script that converts BIM → SML and deploys to AtScale, capturing any errors.
 
 **Acceptance Criteria:**
-- [ ] Create `scripts/deploy-test.ts` script
-- [ ] Script accepts AtScale connection parameters (host, token, org, project)
-- [ ] Script converts BIM to SML using existing converter
-- [ ] Script deploys SML using SML CLI push command
-- [ ] Script parses AtScale API response for errors
-- [ ] Script outputs structured error list (metric name, error message, original DAX)
-- [ ] Add pnpm script: `pnpm run deploy-test`
-- [ ] Typecheck passes
+- [x] Create `scripts/deploy-test.ts` script
+- [x] Script accepts AtScale connection parameters (host, token, org, project)
+- [x] Script converts BIM to SML using existing converter
+- [x] Script deploys SML using SML CLI push command
+- [x] Script parses AtScale API response for errors
+- [x] Script outputs structured error list (metric name, error message, original DAX)
+- [x] Add pnpm script: `pnpm run deploy-test`
+- [x] Typecheck passes
 
 ### US-004: Run initial deployment and capture errors
 
