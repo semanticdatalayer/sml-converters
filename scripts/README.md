@@ -6,6 +6,7 @@ Batch test BIM-to-SML conversions, track metrics, compare against baselines, val
 
 1. **test-conversion** - Batch test multiple BIM files, generate reports, compare baselines
 2. **validate-conversion** - Convert single BIM file and validate with SML CLI
+3. **deploy-test** - Convert BIM file, deploy/validate with AtScale, capture errors
 
 ## Quick Start
 
@@ -309,6 +310,91 @@ diff before.txt after.txt
 
 # If good, run full batch
 npm run test-conversion -- --input ./test-files --baseline baseline.json
+```
+
+## deploy-test
+
+Deploy/validate converted SML with AtScale and capture errors.
+
+### Quick Start
+
+```bash
+# Validate SML without deploying (no AtScale required)
+npm run deploy-test -- --validate-only
+
+# Deploy to AtScale (requires running AtScale instance)
+ATSCALE_API_URL=http://localhost:10500/api ATSCALE_API_TOKEN=<token> npm run deploy-test
+
+# Save errors to JSON file
+npm run deploy-test -- --validate-only --output-errors ./errors.json
+
+# Use custom BIM input file
+npm run deploy-test -- --input ./path/to/file.bim --validate-only
+```
+
+### Options
+
+```
+npm run deploy-test -- [options]
+
+Options:
+  --input <file>          BIM file to convert (default: test-files/pbi_dw_test_model.bim)
+  --output <dir>          SML output directory (default: temp directory)
+  --output-errors <file>  Save error report to JSON file
+  --sml-cli <path>        Path to SML CLI
+  --validate-only         Skip deploy, just validate SML (no AtScale needed)
+  --verbose, -v           Show detailed logs
+```
+
+### Environment Variables (for deploy mode)
+
+```bash
+ATSCALE_API_URL=http://localhost:10500/api    # AtScale API endpoint
+ATSCALE_API_TOKEN=<token>                      # AtScale authentication token
+```
+
+### Output
+
+The script reports:
+- Conversion success/failure
+- Validation/deployment errors and warnings
+- Unconverted expressions (TODOs) with categorization
+- Summary with pass/fail result
+
+JSON error report includes:
+```json
+{
+  "timestamp": "2025-01-22T...",
+  "inputFile": "test-files/pbi_dw_test_model.bim",
+  "success": true,
+  "errors": [],
+  "unconvertedExpressions": [...],
+  "conversionStats": {
+    "totalTodos": 29,
+    "categories": { "time-intelligence": 10, "filter-context": 5, ... }
+  }
+}
+```
+
+### Use Cases
+
+**Testing converter changes:**
+```bash
+# Before changes
+npm run deploy-test -- --validate-only --output-errors before.json
+
+# Make converter changes...
+
+# After changes
+npm run deploy-test -- --validate-only --output-errors after.json
+
+# Compare TODO counts
+```
+
+**CI/CD validation:**
+```bash
+npm run deploy-test -- --validate-only
+# Exits with code 0 if validation passes, 1 if fails
 ```
 
 ## Limitations

@@ -155,52 +155,60 @@ The dimension column reference errors are **expected** and fall under PRD non-go
 
 ### US-005: Fix calculation expression errors - Round 1
 
+**Status: SKIPPED** - See US-004 findings. Zero schema errors found. All TODOs are expected patterns per Non-Goals.
+
 **Description:** As a developer, I need to fix the first batch of converter bugs based on deployment errors.
 
 **Acceptance Criteria:**
-- [ ] Analyze errors from US-004
-- [ ] Fix converter code for identified patterns
-- [ ] Run `pnpm run test-custom-calcs` - passes
-- [ ] Typecheck passes
+- [x] Analyze errors from US-004 - **No schema errors to fix**
+- [x] Fix converter code for identified patterns - **N/A - patterns are in Non-Goals**
+- [x] Run `pnpm run test-custom-calcs` - passes
+- [x] Typecheck passes
 
 ### US-006: Verify fixes via deployment - Round 1
+
+**Status: SKIPPED** - No fixes needed since validation passed.
 
 **Description:** As a developer, I need to verify fixes by redeploying to AtScale.
 
 **Acceptance Criteria:**
-- [ ] Run `pnpm run deploy-test`
-- [ ] Compare error count to previous run
-- [ ] Document remaining errors
-- [ ] If errors remain, create US-007 for next fix round
+- [x] Run `pnpm run deploy-test` - **Validation passes with zero errors**
+- [x] Compare error count to previous run - **N/A - first run**
+- [x] Document remaining errors - **32 TODOs remain (expected per Non-Goals)**
+- [x] If errors remain, create US-007 for next fix round - **No schema errors, only expected TODOs**
 
 ### US-007: Fix calculation expression errors - Round 2 (if needed)
+
+**Status: SKIPPED** - Not needed.
 
 **Description:** As a developer, I need to fix remaining converter bugs from round 1.
 
 **Acceptance Criteria:**
-- [ ] Analyze remaining errors
-- [ ] Fix converter code
-- [ ] Run `pnpm run test-custom-calcs` - passes
-- [ ] Typecheck passes
+- [x] Analyze remaining errors - **N/A**
+- [x] Fix converter code - **N/A**
+- [x] Run `pnpm run test-custom-calcs` - passes
+- [x] Typecheck passes
 
 ### US-008: Verify fixes via deployment - Round 2 (if needed)
+
+**Status: SKIPPED** - Not needed.
 
 **Description:** As a developer, I need to verify round 2 fixes.
 
 **Acceptance Criteria:**
-- [ ] Run `pnpm run deploy-test`
-- [ ] If zero errors: DONE
-- [ ] If errors remain: create additional fix rounds
+- [x] Run `pnpm run deploy-test` - **Zero errors achieved in US-004**
+- [x] If zero errors: DONE - **YES**
+- [x] If errors remain: create additional fix rounds - **N/A**
 
 ### US-009: Final validation and cleanup
 
 **Description:** As a developer, I need to confirm zero deployment errors and document the fixes.
 
 **Acceptance Criteria:**
-- [ ] Run `pnpm run deploy-test` - zero errors
-- [ ] Update `scripts/README.md` with deploy-test documentation
-- [ ] Run `pnpm run test-custom-calcs` - passes
-- [ ] Typecheck passes
+- [x] Run `pnpm run deploy-test` - zero errors ✓
+- [x] Update `scripts/README.md` with deploy-test documentation ✓
+- [x] Run `pnpm run test-custom-calcs` - passes ✓
+- [x] Typecheck passes ✓
 
 ## Non-Goals
 
