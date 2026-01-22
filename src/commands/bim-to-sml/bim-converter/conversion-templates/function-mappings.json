@@ -6,6 +6,7 @@
     "COUNT": "Count",
     "DISTINCTCOUNT": "DistinctCount",
     "AVG": "Avg",
+    "AVERAGE": "Avg",
     "ABS": "Abs",
     "CEILING": "Ceiling",
     "FLOOR": "Floor",
@@ -105,13 +106,14 @@
     "DATE",
     "DATETIME",
     "FORMAT",
-    "FIXED"
+    "FIXED",
+    "IFERROR",
+    "ISERROR"
   ],
   "complex_patterns": [
     "CALCULATE",
     "DIVIDE",
     "IF",
-    "IFERROR",
     "ISBLANK",
     "BLANK",
     "SWITCH",

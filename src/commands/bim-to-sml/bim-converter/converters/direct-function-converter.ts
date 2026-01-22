@@ -24,6 +24,19 @@ interface FunctionMappings {
 }
 
 /**
+ * DAX aggregate functions that should NOT wrap measure references.
+ * When these functions receive a measure reference as their argument,
+ * the measure already has the aggregation defined in its calculation_method,
+ * so we should return just the measure reference without the wrapper.
+ *
+ * AtScale Sum/Min/Max/Avg MDX functions require 2 args (set, numeric),
+ * so Sum([Measures].[X]) is invalid - should be just [Measures].[X]
+ */
+const AGGREGATE_FUNCTIONS = new Set([
+  "SUM", "MIN", "MAX", "AVG", "AVERAGE", "COUNT", "DISTINCTCOUNT"
+]);
+
+/**
  * DirectFunctionConverter handles 1:1 DAX to MDX function conversions.
  * Uses function-mappings.json registry for supported function lookup.
  */
@@ -175,6 +188,26 @@ export class DirectFunctionConverter {
     let orderedArgs = args;
     if (argOrder) {
       orderedArgs = argOrder.map((idx) => args[idx] || "");
+    }
+
+    // Special handling for aggregate functions with measure references:
+    // When DAX SUM(Table[Column]) is converted, it creates a base metric with
+    // calculation_method: sum. The MDX reference should just be [Measures].[X],
+    // NOT Sum([Measures].[X]) which is invalid AtScale MDX (Sum requires 2 args).
+    if (AGGREGATE_FUNCTIONS.has(daxFuncName.toUpperCase()) &&
+        orderedArgs.length === 1 &&
+        orderedArgs[0].startsWith("[Measures].[")) {
+      // Return just the measure reference - aggregation is in the metric definition
+      return successfulConversion(
+        orderedArgs[0],
+        1.0,
+        ConversionCategory.DIRECT_CONVERSION,
+        {
+          originalDax: `${daxFuncName}(${args.join(", ")})`,
+          method: "direct_mapping_measure_unwrap",
+          note: "Aggregate function with measure reference - unwrapped to bare measure",
+        },
+      );
     }
 
     // Build MDX expression

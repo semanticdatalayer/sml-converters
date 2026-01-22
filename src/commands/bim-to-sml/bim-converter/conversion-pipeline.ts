@@ -1,4 +1,4 @@
-import { DaxTokenizer, DaxToken, FunctionToken } from "./dax-converter";
+import { DaxTokenizer, DaxToken, FunctionToken, CommaToken, OperatorToken, LiteralToken } from "./dax-converter";
 import { DaxExpression } from "./dax-expression";
 import {
   ConversionResult,
@@ -499,6 +499,8 @@ export class ConversionPipeline {
 
   /**
    * Convert tokens to MDX strings (helper for direct conversion)
+   * Filters out CommaTokens since the direct converter adds its own commas.
+   * Also handles negative numbers where "-" and number are separate tokens.
    */
   private convertTokensToMdx(
     tokens: DaxToken[],
@@ -514,7 +516,30 @@ export class ConversionPipeline {
       measureConverter: context.measureConverter,
     };
 
-    return tokens.map((token) => token.toMdx(info));
+    const results: string[] = [];
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+
+      // Skip CommaTokens - the direct converter adds its own commas
+      if (token instanceof CommaToken) {
+        continue;
+      }
+
+      // Handle negative numbers: "-" followed by a number
+      if (token instanceof OperatorToken && token.value === "-") {
+        const nextToken = tokens[i + 1];
+        if (nextToken instanceof LiteralToken) {
+          // Combine "-" and number into a single negative number
+          results.push(`-${nextToken.toMdx(info)}`);
+          i++; // Skip the next token since we combined it
+          continue;
+        }
+      }
+
+      results.push(token.toMdx(info));
+    }
+
+    return results;
   }
 
   /**

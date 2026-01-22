@@ -174,12 +174,17 @@ export class TableColumnReference extends DaxToken {
         }
       }
 
-      // Check if this is a dimension table - if so, return dimension attribute syntax
-      // instead of trying to create a metric
+      // Check if this is a dimension table - if so, we cannot convert this to MDX
+      // because dimension column references require the column to be exposed as a
+      // level or secondary attribute in the dimension hierarchy
       if (info.measureConverter.isDimensionOnlyTable &&
           info.measureConverter.isDimensionOnlyTable(this.tableName)) {
-        // Return dimension attribute reference syntax: [Table].[Column].CurrentMember.MemberValue
-        return `[${this.tableName}].[${columnName}].CurrentMember.MemberValue`;
+        // Throw to trigger TODO fallback - dimension column references are not convertible
+        // unless the column is part of the dimension hierarchy
+        throw new Error(
+          `Cannot convert dimension column reference '${this.tableName}'[${columnName}] - ` +
+          `dimension table columns in calculations require the column to be exposed in the dimension hierarchy`
+        );
       }
 
       // Base metric doesn't exist - need to create it
@@ -294,6 +299,28 @@ export class LiteralToken extends DaxToken {
 
   toString(): string {
     return this.value; // Return the literal value as a string
+  }
+}
+
+/**
+ * StringLiteralToken handles DAX string literals (double-quoted).
+ * Preserves quotes in MDX output since MDX also uses double-quoted strings.
+ */
+export class StringLiteralToken extends DaxToken {
+  constructor(
+    public stringValue: string,
+    position: number,
+  ) {
+    super(TokenType.LITERAL, stringValue, position);
+  }
+
+  toMdx(info?: any): string {
+    // Return the string with double quotes for MDX
+    return `"${this.stringValue}"`;
+  }
+
+  toString(): string {
+    return `"${this.stringValue}"`;
   }
 }
 
@@ -428,6 +455,8 @@ export class DaxTokenizer {
         this.parseFunction(daxExpression);
       } else if (char === "{") {
         this.parseBraceExpression(daxExpression);
+      } else if (char === '"') {
+        this.parseStringLiteral(daxExpression);
       } else if (char === ",") {
         this.tokens.push(new CommaToken(this.position));
         this.position++;
@@ -642,6 +671,35 @@ export class DaxTokenizer {
       columnName = this.parseColumnReference(expression);
     }
     this.tokens.push(new TableColumnReference(tableName, columnName, start));
+  }
+
+  /**
+   * Parse a double-quoted string literal in DAX (e.g., "High", "Low")
+   * DAX uses double quotes for string literals, which map directly to MDX
+   */
+  private parseStringLiteral(expression: string): void {
+    const start = this.position;
+    this.position++; // Skip opening double quote
+
+    while (
+      this.position < expression.length &&
+      expression[this.position] !== '"'
+    ) {
+      // Handle escaped quotes ("") if needed
+      if (expression[this.position] === '"' && expression[this.position + 1] === '"') {
+        this.position += 2; // Skip escaped quote
+        continue;
+      }
+      this.position++;
+    }
+
+    if (this.position < expression.length) {
+      this.position++; // Skip closing double quote
+    }
+
+    // Extract the string content without quotes
+    const stringValue = expression.substring(start + 1, this.position - 1);
+    this.tokens.push(new StringLiteralToken(stringValue, start));
   }
 
   private parseColumnReferenceSingular(expression: string): void {

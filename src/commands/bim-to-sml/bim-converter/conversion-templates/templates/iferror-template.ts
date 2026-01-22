@@ -17,56 +17,20 @@ import { ConversionContext } from "../conversion-context";
  * DAX: IFERROR(value, value_if_error)
  * Returns value if no error, otherwise returns value_if_error
  *
- * MDX equivalent (using IIF + IsError if available):
- * → IIF(IsError(value), value_if_error, value)
+ * NOTE: AtScale MDX does NOT support the IsError function, so IFERROR
+ * cannot be properly converted. This template is DISABLED - all IFERROR
+ * expressions will fall through to TODO.
  *
- * Note: IsError function availability depends on MDX implementation.
- * Some environments may need alternative error handling approaches.
- *
- * Confidence: 0.85 (good match where IsError is available)
+ * Confidence: 0.0 (disabled - IsError not supported in AtScale)
  */
 export class IfErrorTemplate extends ConversionTemplate {
   readonly name = "IfErrorTemplate";
-  readonly confidence = 0.85;
+  readonly confidence = 0.0;
 
   canConvert(tokens: DaxToken[], context: ConversionContext): boolean {
-    // Must have exactly one token at root level
-    if (tokens.length !== 1) {
-      return false;
-    }
-
-    const token = tokens[0];
-
-    // Must be an IFERROR function
-    if (!(token instanceof FunctionToken)) {
-      return false;
-    }
-
-    const funcName = token.functionAgg.toUpperCase();
-    if (funcName !== "IFERROR") {
-      return false;
-    }
-
-    // Validate argument structure - requires exactly 2 arguments
-    const argCount = this.countArguments(token.args);
-    if (argCount !== 2) {
-      this.warn(
-        `IFERROR function has ${argCount} arguments, expected 2`,
-        context,
-      );
-      return false;
-    }
-
-    // CRITICAL: Reject if arguments contain unconvertible functions
-    if (this.containsUnconvertibleFunctions(token.args, context)) {
-      this.warn(
-        `IFERROR arguments contain unconvertible functions - rejecting conversion`,
-        context,
-      );
-      return false;
-    }
-
-    return true;
+    // DISABLED: AtScale MDX does not support IsError function
+    // All IFERROR expressions should fall through to TODO
+    return false;
   }
 
   convert(tokens: DaxToken[], context: ConversionContext): ConversionResult {

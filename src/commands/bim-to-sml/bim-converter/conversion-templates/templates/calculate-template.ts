@@ -118,8 +118,10 @@ export class CalculateTemplate extends ConversionTemplate {
 
   /**
    * Convert ALL() filter to MDX [All] member reference
-   * ALL('Table') → [Table].[Table].[All]
+   * ALL('Table') → [Table].[Table Hierarchy].[All]
    * ALL('Table'[Column]) → [Table].[Column].[All]
+   *
+   * Note: SML dimensions have hierarchies named "{Table} Hierarchy" by convention (with space)
    */
   private convertAllFilter(tokens: DaxToken[], context: ConversionContext): string {
     const funcToken = tokens[0] as FunctionToken;
@@ -140,13 +142,14 @@ export class CalculateTemplate extends ConversionTemplate {
         // ALL('Table'[Column]) → [Table].[Column].[All]
         return `[${tableName}].[${columnName}].[All]`;
       } else {
-        // ALL('Table') → [Table].[Table].[All]
-        return `[${tableName}].[${tableName}].[All]`;
+        // ALL('Table') → [Table].[Table Hierarchy].[All]
+        // SML naming convention: hierarchy = "{TableName} Hierarchy" (with space)
+        return `[${tableName}].[${tableName} Hierarchy].[All]`;
       }
     } else if (firstArg instanceof IdentifierToken) {
-      // ALL(Table) without quotes → [Table].[Table].[All]
+      // ALL(Table) without quotes → [Table].[Table Hierarchy].[All]
       const tableName = firstArg.value;
-      return `[${tableName}].[${tableName}].[All]`;
+      return `[${tableName}].[${tableName} Hierarchy].[All]`;
     }
 
     // Fallback: try to extract name from converted expression
