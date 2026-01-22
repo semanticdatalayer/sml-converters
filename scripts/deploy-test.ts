@@ -12,6 +12,7 @@
  *   npm run deploy-test
  *   npm run deploy-test -- --input ./path/to/file.bim
  *   npm run deploy-test -- --output-errors ./errors.json
+ *   npm run deploy-test -- --validate-only  # Skip deploy, just validate
  */
 
 import fs from "fs/promises";
@@ -161,6 +162,44 @@ function parseCliOutput(output: string): DeployError[] {
 }
 
 /**
+ * Validate SML using SML CLI validate command
+ */
+async function validateSml(
+  outputDir: string,
+  smlCliPath: string
+): Promise<DeployResult> {
+  const result = spawnSync(smlCliPath, ["validate", outputDir], {
+    encoding: "utf-8",
+    shell: true,
+  });
+
+  const rawOutput = (result.stdout || "") + "\n" + (result.stderr || "");
+  const errors = parseCliOutput(rawOutput);
+
+  // Parse validation errors from output
+  const lines = rawOutput.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Match error patterns like "[ERROR]" or error messages
+    if (trimmed.toLowerCase().includes("error") && !trimmed.includes("No errors found")) {
+      const existing = errors.find(e => e.message === trimmed);
+      if (!existing) {
+        errors.push({ severity: "error", message: trimmed });
+      }
+    }
+  }
+
+  const hasErrors = errors.filter((e) => e.severity === "error").length > 0;
+  const success = result.status === 0 && !hasErrors && rawOutput.includes("Validation SUCCESSFUL");
+
+  return {
+    success,
+    errors,
+    rawOutput,
+  };
+}
+
+/**
  * Deploy SML to AtScale using SML CLI
  */
 async function deployToAtScale(
@@ -189,7 +228,7 @@ async function deployToAtScale(
   await initGitRepo(outputDir);
 
   // Run SML CLI deploy command
-  const result = spawnSync(smlCliPath, ["deploy", outputDir], {
+  const result = spawnSync(smlCliPath, ["atscale-deploy", outputDir], {
     encoding: "utf-8",
     env: {
       ...process.env,
@@ -259,6 +298,116 @@ async function enrichErrorsWithDax(
   return metricErrors;
 }
 
+interface UnconvertedExpression {
+  name: string;
+  expression: string;
+  file: string;
+  category: string;
+}
+
+/**
+ * Scan SML output directory for TODO markers in calculation expressions
+ */
+async function scanForTodos(outputDir: string): Promise<UnconvertedExpression[]> {
+  const unconverted: UnconvertedExpression[] = [];
+
+  // Look for yaml files in metrics/ and calculations/ folders
+  const folders = ["metrics", "calculations"];
+  for (const folder of folders) {
+    const folderPath = path.join(outputDir, folder);
+    try {
+      const files = await fs.readdir(folderPath);
+      for (const file of files) {
+        if (!file.endsWith(".yml") && !file.endsWith(".yaml")) continue;
+        const filePath = path.join(folderPath, file);
+        const content = await fs.readFile(filePath, "utf-8");
+
+        // Find TODO markers in expressions
+        const todoPattern = /unique_name:\s*([^\n]+)[\s\S]*?expression:\s*0\s*\/\*\s*TODO:\s*([^*]+)\*\//g;
+        let match;
+        while ((match = todoPattern.exec(content)) !== null) {
+          const name = match[1].trim();
+          const expr = match[2].trim();
+          unconverted.push({
+            name,
+            expression: expr,
+            file: filePath,
+            category: categorizeExpression(expr),
+          });
+        }
+
+        // Also look for simpler TODO format
+        const simpleTodoPattern = /name:\s*([^\n]+)[\s\S]*?expression:\s*['"]?0\s*\/\*\s*TODO/g;
+        while ((match = simpleTodoPattern.exec(content)) !== null) {
+          // Skip if already matched above
+          const name = match[1].trim();
+          if (!unconverted.find((u) => u.name === name)) {
+            // Re-read to get full expression
+            const exprMatch = content.match(new RegExp(`name:\\s*${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?expression:\\s*([^\\n]+)`));
+            if (exprMatch) {
+              unconverted.push({
+                name,
+                expression: exprMatch[1].trim(),
+                file: filePath,
+                category: "unknown",
+              });
+            }
+          }
+        }
+      }
+    } catch {
+      // Folder doesn't exist, skip
+    }
+  }
+
+  return unconverted;
+}
+
+/**
+ * Categorize an unconverted DAX expression
+ */
+function categorizeExpression(expr: string): string {
+  const upperExpr = expr.toUpperCase();
+  if (upperExpr.includes("TOTALYTD") || upperExpr.includes("TOTALMTD") || upperExpr.includes("TOTALQTD") ||
+      upperExpr.includes("SAMEPERIODLASTYEAR") || upperExpr.includes("PREVIOUSMONTH") ||
+      upperExpr.includes("PARALLELPERIOD") || upperExpr.includes("CLOSINGBALANCE") ||
+      upperExpr.includes("DATESBETWEEN") || upperExpr.includes("DATEDIFF") || upperExpr.includes("EOMONTH")) {
+    return "time-intelligence";
+  }
+  if (upperExpr.includes("SUMX") || upperExpr.includes("AVERAGEX") || upperExpr.includes("MAXX") ||
+      upperExpr.includes("MINX") || upperExpr.includes("COUNTX")) {
+    return "iterator-aggregate";
+  }
+  if (upperExpr.includes("ISFILTERED") || upperExpr.includes("ISCROSSFILTERED") ||
+      upperExpr.includes("HASONEVALUE") || upperExpr.includes("VALUES")) {
+    return "filter-context";
+  }
+  if (upperExpr.includes("CALCULATE") && upperExpr.includes("FILTER")) {
+    return "calculate-filter";
+  }
+  if (upperExpr.includes("CALCULATE")) {
+    return "calculate";
+  }
+  if (upperExpr.includes("VAR") && upperExpr.includes("RETURN")) {
+    return "var-expression";
+  }
+  if (upperExpr.includes("IFERROR")) {
+    return "iferror";
+  }
+  return "other";
+}
+
+/**
+ * Categorize all unconverted expressions and return counts
+ */
+function categorizeUnconverted(unconverted: UnconvertedExpression[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const expr of unconverted) {
+    counts[expr.category] = (counts[expr.category] || 0) + 1;
+  }
+  return counts;
+}
+
 function printSummary(
   inputFile: string,
   deployResult: DeployResult,
@@ -311,6 +460,7 @@ async function main() {
   let smlCliPath = "/Users/dianne/go/src/github.com/AtScaleInc/SML/apps/cli/bin/dev.js";
   let outputErrorsFile: string | undefined;
   let verbose = false;
+  let validateOnly = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--input" && i + 1 < args.length) {
@@ -323,6 +473,8 @@ async function main() {
       outputErrorsFile = args[++i];
     } else if (args[i] === "--verbose" || args[i] === "-v") {
       verbose = true;
+    } else if (args[i] === "--validate-only") {
+      validateOnly = true;
     }
   }
 
@@ -331,7 +483,7 @@ async function main() {
     await fs.access(inputFile);
   } catch {
     console.error(`Error: Input file not found: ${inputFile}`);
-    console.error("\nUsage: npm run deploy-test -- [--input <file.bim>] [--output <dir>] [--output-errors <file.json>] [--verbose]");
+    console.error("\nUsage: npm run deploy-test -- [--input <file.bim>] [--output <dir>] [--output-errors <file.json>] [--verbose] [--validate-only]");
     process.exit(1);
   }
 
@@ -346,9 +498,11 @@ async function main() {
   const logger = new DeployLogger(verbose);
   console.log(`Converting: ${path.basename(inputFile)}`);
   console.log(`Output: ${outputDir}`);
+  console.log(`Mode: ${validateOnly ? "validate-only" : "deploy"}`);
 
   // Step 1: Convert BIM to SML
-  console.log("\n[1/2] Converting BIM to SML...");
+  const totalSteps = validateOnly ? 2 : 2;
+  console.log(`\n[1/${totalSteps}] Converting BIM to SML...`);
   try {
     await convertBimToSml(inputFile, outputDir, logger);
     console.log("  Conversion complete.");
@@ -357,9 +511,15 @@ async function main() {
     process.exit(1);
   }
 
-  // Step 2: Deploy to AtScale
-  console.log("\n[2/2] Deploying to AtScale...");
-  const deployResult = await deployToAtScale(outputDir, smlCliPath);
+  // Step 2: Validate or Deploy
+  let deployResult: DeployResult;
+  if (validateOnly) {
+    console.log(`\n[2/${totalSteps}] Validating SML...`);
+    deployResult = await validateSml(outputDir, smlCliPath);
+  } else {
+    console.log(`\n[2/${totalSteps}] Deploying to AtScale...`);
+    deployResult = await deployToAtScale(outputDir, smlCliPath);
+  }
 
   if (verbose) {
     console.log("\n--- Raw Output ---");
@@ -369,8 +529,21 @@ async function main() {
   // Enrich errors with metric info
   const metricErrors = await enrichErrorsWithDax(deployResult.errors, outputDir);
 
+  // Scan SML output for unconverted expressions
+  const unconvertedExpressions = await scanForTodos(outputDir);
+
   // Print summary
   printSummary(inputFile, deployResult, metricErrors);
+
+  if (unconvertedExpressions.length > 0) {
+    console.log(`\n--- Unconverted Expressions (${unconvertedExpressions.length}) ---`);
+    for (const expr of unconvertedExpressions.slice(0, 10)) {
+      console.log(`  ${expr.name}: ${expr.expression.substring(0, 60)}...`);
+    }
+    if (unconvertedExpressions.length > 10) {
+      console.log(`  ... and ${unconvertedExpressions.length - 10} more`);
+    }
+  }
 
   // Save errors to file if requested
   if (outputErrorsFile) {
@@ -381,6 +554,11 @@ async function main() {
       success: deployResult.success,
       errors: deployResult.errors,
       metricErrors,
+      unconvertedExpressions,
+      conversionStats: {
+        totalTodos: unconvertedExpressions.length,
+        categories: categorizeUnconverted(unconvertedExpressions),
+      },
       rawOutput: deployResult.rawOutput,
     };
     await fs.writeFile(outputErrorsFile, JSON.stringify(errorData, null, 2));

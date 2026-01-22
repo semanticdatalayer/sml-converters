@@ -1,0 +1,196 @@
+{
+  "timestamp": "2026-01-22T22:52:06.284Z",
+  "inputFile": "/Users/dianne/go/src/github.com/semanticdatalayer/sml-converters/test-files/pbi_dw_test_model.bim",
+  "outputDir": "/tmp/sml-deploy-test-1769122323898",
+  "success": true,
+  "errors": [
+    {
+      "severity": "warning",
+      "message": "Your current SML version is different from the latest supported version. Latest supported version: \"1.5\""
+    }
+  ],
+  "metricErrors": [],
+  "unconvertedExpressions": [
+    {
+      "name": "Avg Sales Per Year",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Avg Sales Per Year.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Closing Balance Month Sales",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Closing Balance Month Sales.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Conditional Sales Display",
+      "expression": "'0 /* TODO: IF(ISFILTERED(DATE_DIM), [Total Sales], BLANK()) */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Conditional Sales Display.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Days Since Last Sale",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Days Since Last Sale.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "End of Month Date",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/End of Month Date.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "First Half Year Sales",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/First Half Year Sales.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Has One Year",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Has One Year.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Is Date Filtered",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Is Date Filtered.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Is Store Crossfiltered",
+      "expression": "'0 /* TODO: ISCROSSFILTERED(STORE) */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Is Store Crossfiltered.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "MTD Sales",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/MTD Sales.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Max Date",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Max Date.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Max Year Sales",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Max Year Sales.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Nested IF Calculate",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Nested IF Calculate.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Non-Holiday Sales",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Non-Holiday Sales.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Q1 Sales",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Q1 Sales.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "QTD Sales",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/QTD Sales.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Quarter Name",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Quarter Name.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Safe Division",
+      "expression": "'0 /* TODO: IFERROR([Profit Margin], 0) */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Safe Division.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Sales All Years",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Sales All Years.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Sales Date Range",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Sales Date Range.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Sales Parallel Period LY",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Sales Parallel Period LY.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Sales Per Store Iteration",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Sales Per Store Iteration.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Sales Per Year",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Sales Per Year.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Sales Previous Month",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Sales Previous Month.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Sales Same Period Last Year",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Sales Same Period Last Year.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Selected Year",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Selected Year.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "Weekend Sales",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/Weekend Sales.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "YTD Sales Via Filter",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/YTD Sales Via Filter.yml",
+      "category": "unknown"
+    },
+    {
+      "name": "YTD Sales",
+      "expression": "'0 /* TODO: Conversion failed */'",
+      "file": "/tmp/sml-deploy-test-1769122323898/calculations/YTD Sales.yml",
+      "category": "unknown"
+    }
+  ],
+  "conversionStats": {
+    "totalTodos": 29,
+    "categories": {
+      "unknown": 29
+    }
+  },
+  "rawOutput": "Validating SML project at /tmp/sml-deploy-test-1769122323898\n\nFile Validation Results:\n/tmp/sml-deploy-test-1769122323898/catalog.yml\n[WARNING] Your current SML version is different from the latest supported version. Latest supported version: \"1.5\"\n\nValidation SUCCESSFUL. No errors found.\n\n\n"
+}
