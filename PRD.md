@@ -34,10 +34,49 @@ When deploying BIM-converted SML output to AtScale, calculation expression error
 **Description:** As a developer, I need to understand the SML CLI deploy/push command syntax and requirements.
 
 **Acceptance Criteria:**
-- [ ] Document SML CLI deploy command syntax
-- [ ] Identify required connection parameters (host, credentials, org, project)
-- [ ] Document how AtScale returns errors in API response
-- [ ] Update this PRD with findings
+- [x] Document SML CLI deploy command syntax
+- [x] Identify required connection parameters (host, credentials, org, project)
+- [x] Document how AtScale returns errors in API response
+- [x] Update this PRD with findings
+
+**Findings:**
+
+#### SML CLI Deploy Command Syntax
+```bash
+sml-cli atscale-deploy [FILEPATH] [--catalog-name <value>] [--catalog-label <value>]
+```
+
+Arguments:
+- `FILEPATH` - Path to SML project root (default: ".")
+- `--catalog-name` - Override catalog unique name (optional)
+- `--catalog-label` - Override catalog label (optional)
+
+#### Required Connection Parameters
+Two environment variables required:
+- `ATSCALE_API_URL` - AtScale API URL (e.g., `http://localhost:10500/api`)
+- `ATSCALE_API_TOKEN` - AtScale API token
+
+#### Git Requirement
+The SML project directory MUST be a git repository with a remote origin configured. The CLI uses the remote URL to locate/create the repository in AtScale.
+
+#### AtScale API Error Response Format
+The deploy command uses the AtScale Public API:
+- Endpoint: `POST /v1/public/catalogs`
+- On error: `ResponseError` with `response.status`, `response.statusText`, and `response.text()` for error body
+- Validation errors during compilation appear in `ICompilationOutput`:
+  ```typescript
+  interface ICompilationOutput {
+    severity: "error" | "warning" | "info";
+    message: string;
+    context?: IValidationOutputContext;  // Contains metric/object context
+  }
+  ```
+- File-level errors include `relativePath` for the source file
+
+#### Pipeline Flow
+1. Find repository ID (from git remote URL)
+2. Compile SML → XML (validation errors captured here)
+3. Deploy compiled XML to AtScale (runtime errors captured here)
 
 ### US-003: Create deploy-and-test script
 

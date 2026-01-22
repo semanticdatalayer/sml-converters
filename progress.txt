@@ -4,6 +4,11 @@
 
 (Patterns discovered during implementation)
 
+- SML CLI dev path: `/Users/dianne/go/src/github.com/AtScaleInc/SML/apps/cli/bin/dev.js`
+- SML CLI requires ATSCALE_API_URL and ATSCALE_API_TOKEN env vars
+- SML project must be a git repo with remote origin for deploy
+- Validation errors use ICompilationOutput interface with severity, message, context
+
 ---
 
 ## Iteration 1 - US-001: Copy test BIM file locally
@@ -13,4 +18,17 @@
 - Learnings:
   - Test BIM file comes from SML repo's test-suites
   - `npm run build` runs tsc typecheck
+---
+
+## Iteration 2 - US-002: Research SML CLI deploy command
+- Researched SML CLI atscale-deploy command in /Users/dianne/go/src/github.com/AtScaleInc/SML/apps/cli
+- Documented command syntax, env vars, API endpoint and error format
+- Files changed: PRD.md (updated with findings)
+- Learnings:
+  - Command: `sml-cli atscale-deploy [FILEPATH]`
+  - Env vars: ATSCALE_API_URL, ATSCALE_API_TOKEN
+  - SML project must be git repo with remote origin
+  - Deploy API: POST /v1/public/catalogs
+  - Errors returned via ResponseError with JSON body
+  - Compilation errors via ICompilationOutput (severity, message, context)
 ---
