@@ -43,6 +43,7 @@ import {
   createUniqueAttrName,
   descriptionAsString,
   errorUtil,
+  escapeForComment,
   expressionAsString,
   firstChars,
   incrementNumberMap,
@@ -722,11 +723,11 @@ export class MeasureConverter {
     try {
       pipelineResult = await pipeline.convert(daxExpression, context);
     } catch (error) {
-      // If pipeline fails (e.g., VAR parsing errors), create fallback result
+      // If pipeline fails (e.g., VAR parsing errors), create fallback result with original DAX
       this.logger.warn(`Pipeline conversion failed for '${bimMeasure.name}': ${error}`);
       pipelineResult = {
         success: false,
-        expression: "0 /* TODO: Conversion failed */",
+        expression: `0 /* TODO: ${escapeForComment(daxExpression)} */`,
         category: ConversionCategory.UNCONVERTIBLE,
         stageName: "fallback",
       };
@@ -744,7 +745,7 @@ export class MeasureConverter {
     );
 
     // Build MDX expression from pipeline result
-    let mdxExpression = pipelineResult.expression || "0 /* TODO: Conversion failed */";
+    let mdxExpression = pipelineResult.expression || `0 /* TODO: ${escapeForComment(daxExpression)} */`;
 
     if (pipelineResult.success && pipelineResult.category !== ConversionCategory.UNCONVERTIBLE) {
       const stageName = pipelineResult.stageName || "unknown";
