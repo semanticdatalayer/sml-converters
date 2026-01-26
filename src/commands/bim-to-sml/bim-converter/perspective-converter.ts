@@ -105,6 +105,7 @@ export class PerspectiveConverter {
               dims,
               measures,
               result,
+              attrNameMap,
             );
           });
         }
@@ -202,6 +203,7 @@ export class PerspectiveConverter {
     dims: Map<string, DimAttrsType>,
     measures: string[],
     result: SmlConverterResult,
+    attrNameMap: Map<string, string[]>,
   ) {
     const origCol = findColumn(pTable.name, pCol.name, bim);
     let aggFn = "";
@@ -219,22 +221,26 @@ export class PerspectiveConverter {
       measures.push(bimMeasName);
     }
 
-    const bimAttrName =
+    const defaultAttrName =
       makeUniqueName(`dimension.${pTable.name}.attr.`) + pCol.name;
+    // Resolve the actual unique_name using attrNameMap (may be simplified from default)
+    const actualAttrName =
+      lookupAttrUniqueName(attrNameMap, defaultAttrName, false, this.logger) ||
+      defaultAttrName;
     const val = dims.get(pTable.name);
-    const found = findAttrUse(bimAttrName, result);
+    const found = findAttrUse(actualAttrName, result);
 
     if (found === "level") {
       if (val) {
-        val.levels.push(bimAttrName);
+        val.levels.push(actualAttrName);
       } else {
-        dims.set(pTable.name, { levels: [bimAttrName], attrs: [] });
+        dims.set(pTable.name, { levels: [actualAttrName], attrs: [] });
       }
     } else if (found === "attr") {
       if (val) {
-        val.attrs.push(bimAttrName);
+        val.attrs.push(actualAttrName);
       } else {
-        dims.set(pTable.name, { levels: [], attrs: [bimAttrName] });
+        dims.set(pTable.name, { levels: [], attrs: [actualAttrName] });
       }
     }
   }
