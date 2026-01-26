@@ -187,6 +187,43 @@ export class DimensionConverter {
       );
     }
     dimension.hierarchies.push(hierarchy);
+
+    // Add composite keys to child levels for proper aggregation roll-up
+    this.addCompositeKeysToHierarchy(hierarchy, dimension);
+  }
+
+  // For multi-level hierarchies, add parent level key columns to child levels
+  // e.g., Year->Quarter->Month becomes: Year:[year], Quarter:[year,qtr], Month:[year,qtr,month]
+  // Note: Leaf level is excluded since relationships join on it with a single key
+  addCompositeKeysToHierarchy(
+    hierarchy: SMLDimensionHierarchy,
+    dimension: SMLDimension,
+  ): void {
+    if (hierarchy.levels.length <= 1) return;
+
+    const parentKeyColumns: string[] = [];
+    const leafIndex = hierarchy.levels.length - 1;
+
+    for (let i = 0; i < hierarchy.levels.length; i++) {
+      const level = hierarchy.levels[i];
+      const isLeaf = i === leafIndex;
+
+      const levelAttr = dimension.level_attributes.find(
+        (la) => la.unique_name === level.unique_name,
+      );
+
+      if (levelAttr && "key_columns" in levelAttr) {
+        const ownKeyColumns = [...levelAttr.key_columns];
+
+        // Add parent key columns before this level's own key columns (skip leaf level)
+        if (parentKeyColumns.length > 0 && !isLeaf) {
+          levelAttr.key_columns = [...parentKeyColumns, ...ownKeyColumns];
+        }
+
+        // Add this level's key columns to parent keys for next iteration
+        parentKeyColumns.push(...ownKeyColumns);
+      }
+    }
   }
 
   // Called when bim table doesn't define a hierarchy. Returns {str1: <leaf name>, str2: ""}
@@ -238,6 +275,9 @@ export class DimensionConverter {
       }
     });
     dimension.hierarchies.push(hierarchy);
+
+    // Add composite keys to child levels for proper aggregation roll-up
+    this.addCompositeKeysToHierarchy(hierarchy, dimension);
   }
 
   // Adds level to hierarchy along with level_attribute
