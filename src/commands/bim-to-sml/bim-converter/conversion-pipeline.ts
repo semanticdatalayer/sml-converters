@@ -183,6 +183,11 @@ export class ConversionPipeline {
     return this.createFallback(daxExpression);
   }
 
+  // DAX aggregate functions that should pass their aggregation type to child column references
+  private static readonly AGGREGATE_FUNCTIONS = new Set([
+    "SUM", "MIN", "MAX", "AVG", "AVERAGE", "COUNT", "DISTINCTCOUNT"
+  ]);
+
   /**
    * Stage 1: Try direct function conversion
    */
@@ -203,8 +208,15 @@ export class ConversionPipeline {
       return failedConversion("Direct conversion requires function token", "");
     }
 
+    // For aggregate functions (SUM, COUNT, etc.), pass the function name so that
+    // TableColumnReference can create metrics with the correct aggregation type
+    const funcName = token.functionAgg.trim().toUpperCase();
+    const parentAggFn = ConversionPipeline.AGGREGATE_FUNCTIONS.has(funcName)
+      ? funcName
+      : undefined;
+
     // Convert arguments first (recursively)
-    const args = this.convertTokensToMdx(token.args, context);
+    const args = this.convertTokensToMdx(token.args, context, parentAggFn);
 
     // Try direct conversion
     return this.directConverter.tryConvert(token, args);
@@ -501,10 +513,13 @@ export class ConversionPipeline {
    * Convert tokens to MDX strings (helper for direct conversion)
    * Filters out CommaTokens since the direct converter adds its own commas.
    * Also handles negative numbers where "-" and number are separate tokens.
+   * @param parentAggFn - If set, indicates this is inside an aggregate function (SUM, COUNT, etc.)
+   *                      and should be used when creating metrics from column references
    */
   private convertTokensToMdx(
     tokens: DaxToken[],
     context: ConversionContext,
+    parentAggFn?: string,
   ): string[] {
     const info = {
       bim: context.bim,
@@ -514,6 +529,7 @@ export class ConversionPipeline {
       attrMaps: context.attrMaps,
       unusedTables: context.unusedTables,
       measureConverter: context.measureConverter,
+      parentAggFn,
     };
 
     const results: string[] = [];

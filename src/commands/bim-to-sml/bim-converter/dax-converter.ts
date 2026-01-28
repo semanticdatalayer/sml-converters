@@ -164,13 +164,28 @@ export class TableColumnReference extends DaxToken {
 
     // Need to find or create a base metric for this table+column combination
     if (info && info.attrMaps && info.bim && info.measureConverter) {
-      // Check if a base metric already exists for this table+column
+      // Determine the aggregation function to use:
+      // 1. If parentAggFn is set (from enclosing DAX function like SUM), use that
+      // 2. Otherwise fall back to column's summarizeBy property
+      // 3. Default to 'sum' if neither is available
+      const bimTable = info.bim.model?.tables.find(
+        (t: any) => t.name === this.tableName
+      );
+      const bimColumn = bimTable?.columns?.find(
+        (c: any) => c.name === columnName
+      );
+      const aggFn = info.parentAggFn?.toLowerCase() ||
+                    bimColumn?.summarizeBy?.toLowerCase() ||
+                    'sum';
+
+      // Check if a base metric already exists for this table+column+aggFn combination
       // The key format in metricLookup is: aggFn + lowerNoSpace(tableName + "[" + columnName + "]")
-      // For a column reference without explicit aggregation, we need to search for any metric
-      // that matches this table+column combination
       for (const [key, metricInfo] of info.attrMaps.metricLookup.entries()) {
         if (metricInfo.table === this.tableName && metricInfo.colName === columnName) {
-          return `[Measures].[${metricInfo.uniqueName}]`;
+          // Check if the aggregation matches by examining the key prefix
+          if (key.startsWith(aggFn.toLowerCase())) {
+            return `[Measures].[${metricInfo.uniqueName}]`;
+          }
         }
       }
 
@@ -187,33 +202,19 @@ export class TableColumnReference extends DaxToken {
         );
       }
 
-      // Base metric doesn't exist - need to create it
-      // Find the table and column in BIM model
-      const bimTable = info.bim.model?.tables.find(
-        (t: any) => t.name === this.tableName
-      );
-
-      if (bimTable) {
-        const bimColumn = bimTable.columns?.find(
-          (c: any) => c.name === columnName
+      // Base metric doesn't exist - need to create it using aggFn determined above
+      if (bimColumn) {
+        const measureUniqueName = info.measureConverter.createAndAddMeasureFromColumn(
+          bimColumn,
+          this.tableName,
+          aggFn,
+          info.result,
+          info.attrMaps,
+          info.unusedTables,
         );
 
-        if (bimColumn) {
-          // Determine aggregation function from column's summarizeBy property, default to sum
-          const aggFn = bimColumn.summarizeBy?.toLowerCase() || 'sum';
-
-          const measureUniqueName = info.measureConverter.createAndAddMeasureFromColumn(
-            bimColumn,
-            this.tableName,
-            aggFn,
-            info.result,
-            info.attrMaps,
-            info.unusedTables,
-          );
-
-          if (measureUniqueName) {
-            return `[Measures].[${measureUniqueName}]`;
-          }
+        if (measureUniqueName) {
+          return `[Measures].[${measureUniqueName}]`;
         }
       }
     }
