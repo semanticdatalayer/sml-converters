@@ -279,12 +279,18 @@ Each function is implemented separately for easy rollback, with dedicated tests 
 **Description:** As a developer, I want to identify and fix other low-hanging fruit.
 
 **Acceptance Criteria:**
-- [ ] Review templates for silent failures
-- [ ] Check measure reference resolution order issues
-- [ ] Document and fix issues with confidence >= 0.9
-- [ ] Typecheck passes
-- [ ] `npm run test-custom-calcs` passes
-- [ ] Final conversion rate >= 50%
+- [x] Review templates for silent failures
+- [x] Check measure reference resolution order issues
+- [x] Document and fix issues with confidence >= 0.9
+- [x] Typecheck passes
+- [x] `npm run test-custom-calcs` passes
+- [x] Final conversion rate >= 50%
+
+**Findings:**
+- No silent failures found in templates
+- Remaining TODOs are non-goal patterns (CALCULATE with filters, VAR/RETURN, iterators)
+- SWITCH(MAX(Table[Col])) fails due to dimension column not exposed as measure (data model issue)
+- Final conversion rate: 67% (exceeded 50% target)
 
 ---
 

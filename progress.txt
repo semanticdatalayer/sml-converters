@@ -225,3 +225,55 @@
   - Test model.bim is in test-files/ directory for sml-converters, AtScaleInc/SML has separate copy
   - Conversion rate: 65% (45/69 converted)
 ---
+
+## Iteration 14 - US-010: LASTNONBLANK Template
+- Implemented LastNonBlankTemplate in lastnonblank-template.ts
+- Converts LASTNONBLANK('Table'[Column], 0) to Tail(NonEmpty([dim].[hier].Members), 1).Item(0)
+- Files changed (in sml-converters repo):
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/lastnonblank-template.ts (new)
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/template-registry.ts
+  - test-files/dw_test_model.bim (added "Last Non Blank Date" measure)
+  - PRD.md (marked US-010 complete)
+- Test files created (in AtScaleInc/SML repo):
+  - dw-test-model/model.bim (added "Last Non Blank Date" measure)
+  - dw-test-model/expr-lastnonblank/pbi.dax (new)
+  - dw-test-model/expr-lastnonblank/engine.sql (new)
+  - dw-test-model/expr-lastnonblank/expected.csv (new)
+  - pbi-smoke.test.ts (added test case)
+- Learnings:
+  - LASTNONBLANK was already in function-mappings.json complex_patterns
+  - Returns last non-blank member from dimension using Tail(NonEmpty()) MDX pattern
+  - Second DAX arg (0) is "check expression" - we rely on NonEmpty filtering
+  - Conversion rate: 66% (46/70 converted)
+---
+
+## Iteration 15 - US-011: Fix IFERROR Template
+- Fixed IfErrorTemplate to use ISEMPTY instead of IsError (AtScale doesn't support IsError)
+- Re-enabled template with confidence 0.95 and proper canConvert logic
+- IFERROR([Profit Margin], 0) -> IIF(ISEMPTY([Measures].[Profit Margin]), 0, [Measures].[Profit Margin])
+- Files changed (in sml-converters repo):
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/iferror-template.ts
+  - PRD.md (marked US-011 complete)
+- Test updates (in AtScaleInc/SML repo):
+  - pbi-smoke.test.ts (unskipped expr-iferror test)
+- Learnings:
+  - AtScale MDX does NOT support IsError function
+  - ISEMPTY is a good approximation since most IFERROR usage handles NULL/blank
+  - IFERROR was already disabled with confidence 0.0 and canConvert returning false
+  - "Safe Division" measure now converts successfully
+  - Conversion rate: 67% (47/70 converted)
+---
+
+## Iteration 16 - US-012: Investigate Additional Easy Wins
+- Reviewed all templates for silent failures - none found
+- Investigated SWITCH(MAX(DATE_DIM[D_QOY])) failure - not a template bug
+- Template properly reports: "dimension column not exposed in hierarchy"
+- Remaining TODOs are all non-goal patterns per PRD
+- Files changed:
+  - PRD.md (marked US-012 complete with findings)
+- Learnings:
+  - Templates properly report conversion failures with clear messages
+  - SWITCH template works but fails when subexpression uses unexposed dimension columns
+  - Final conversion rate: 67% (exceeds 50% target)
+  - All 12 user stories now complete
+---
