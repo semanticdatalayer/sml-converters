@@ -1,234 +1,569 @@
-# PRD: Fix BIM Converter Calculation Expression Errors via AtScale Deployment
+# PRD: Time Intelligence DAX to MDX Conversion
 
 ## Introduction
 
-When deploying BIM-converted SML output to AtScale, calculation expression errors occur. This PRD covers creating a deployment test loop: deploy → capture errors → fix converter → repeat until zero errors.
+The BIM-to-SML converter achieves ~44% conversion rate for DAX measures. Many fail due to dimension column reference handling in time intelligence functions. This PRD adds support for time intelligence functions to reach 50%+ conversion rate.
+
+Each function is implemented separately for easy rollback, with dedicated tests in pbi-smoke to verify results against Power BI.
 
 ## Goals
 
-- Create script to deploy converted SML to AtScale via SML CLI
-- Capture and parse deployment errors from AtScale API response
-- Fix calculation expression conversion bugs in the BIM converter
-- Achieve zero deployment errors for test model
-
-## Configuration
-
-- **AtScale Instance:** Local development (localhost)
-- **Branch:** ai-experiments (continue on current branch)
-- **TODO Handling:** Deploy as-is (`0 /* TODO: ... */`) - should pass validation
-- **Success Criteria:** Model deploys without schema errors (queryability not required)
+- Increase conversion rate from 44% to 50%+
+- Maintain 0.9+ confidence on all new conversions
+- Each function separately implemented and rollback-able
+- Create pbi-smoke tests for each function to verify against Power BI
 
 ## User Stories
 
-### US-001: Copy test BIM file locally
+### US-001: Fix Dimension Column Reference Resolution
 
-**Description:** As a developer, I need the test BIM file in the local repo so I can use it for iterative testing.
+**Description:** As a converter, I need to resolve dimension column references to SML dimension hierarchies so time intelligence functions can reference the correct dimension.
 
 **Acceptance Criteria:**
-- [x] Copy `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter/src/test-suites/pbi-smoke/dw-test-model/model.bim` to `test-files/pbi_dw_test_model.bim` (new name to preserve existing file)
-- [x] Verify file exists and is valid JSON
+- [x] Add `resolveDimensionHierarchy(tableName, columnName, result)` utility function
+- [x] Lookup: search `result.dimensions` for matching dataset/table name
+- [x] Fallback: use convention `[dimension.{TableName}].[{TableName}]`
+- [x] Only apply in time intelligence contexts (not general CALCULATE)
 - [x] Typecheck passes
+- [x] `npm run test-custom-calcs` passes
 
-### US-002: Research SML CLI deploy command
+---
 
-**Description:** As a developer, I need to understand the SML CLI deploy/push command syntax and requirements.
+### US-002: Add TOTALYTD Template
+
+**Description:** As a user, I want TOTALYTD expressions converted to MDX.
+
+**DAX:** `TOTALYTD([Total Sales], DATE_DIM[D_DATE])`
+**MDX:** `Sum(YTD([dimension.DATE_DIM].[DATE_DIM].CurrentMember), [Measures].[Total Sales])`
 
 **Acceptance Criteria:**
-- [x] Document SML CLI deploy command syntax
-- [x] Identify required connection parameters (host, credentials, org, project)
-- [x] Document how AtScale returns errors in API response
-- [x] Update this PRD with findings
+- [ ] Create `totalytd-template.ts`
+- [ ] Register in `template-registry.ts`
+- [ ] Add to `complex_patterns` in `function-mappings.json`
+- [ ] Confidence: 0.95
+- [ ] Typecheck passes
+- [ ] `npm run test-custom-calcs` passes
 
-**Findings:**
+**Test:** Create `dw-test-model/expr-totalytd/`
+- [ ] Add measure to `dw-test-model/model.bim`: `"YTD Sales": "TOTALYTD([Total Sales], DATE_DIM[D_DATE])"`
+- [ ] `pbi.dax` with TOTALYTD query
+- [ ] `engine.sql` with equivalent AtScale query
+- [ ] Empty `expected.csv` (populate manually)
+- [ ] Add test case to `pbi-smoke.test.ts`
 
-#### SML CLI Deploy Command Syntax
-```bash
-sml-cli atscale-deploy [FILEPATH] [--catalog-name <value>] [--catalog-label <value>]
+---
+
+### US-003: Add TOTALMTD Template
+
+**Description:** As a user, I want TOTALMTD expressions converted to MDX.
+
+**DAX:** `TOTALMTD([Total Sales], DATE_DIM[D_DATE])`
+**MDX:** `Sum(MTD([dimension.DATE_DIM].[DATE_DIM].CurrentMember), [Measures].[Total Sales])`
+
+**Acceptance Criteria:**
+- [ ] Create `totalmtd-template.ts`
+- [ ] Register in `template-registry.ts`
+- [ ] Add to `complex_patterns` in `function-mappings.json`
+- [ ] Confidence: 0.95
+- [ ] Typecheck passes
+- [ ] `npm run test-custom-calcs` passes
+
+**Test:** Create `dw-test-model/expr-totalmtd/`
+- [ ] Add measure to `dw-test-model/model.bim`: `"MTD Sales": "TOTALMTD([Total Sales], DATE_DIM[D_DATE])"`
+- [ ] `pbi.dax` with TOTALMTD query
+- [ ] `engine.sql` with equivalent AtScale query
+- [ ] Empty `expected.csv`
+- [ ] Add test case to `pbi-smoke.test.ts`
+
+---
+
+### US-004: Add TOTALQTD Template
+
+**Description:** As a user, I want TOTALQTD expressions converted to MDX.
+
+**DAX:** `TOTALQTD([Total Sales], DATE_DIM[D_DATE])`
+**MDX:** `Sum(QTD([dimension.DATE_DIM].[DATE_DIM].CurrentMember), [Measures].[Total Sales])`
+
+**Acceptance Criteria:**
+- [ ] Create `totalqtd-template.ts`
+- [ ] Register in `template-registry.ts`
+- [ ] Add to `complex_patterns` in `function-mappings.json`
+- [ ] Confidence: 0.95
+- [ ] Typecheck passes
+- [ ] `npm run test-custom-calcs` passes
+
+**Test:** Create `dw-test-model/expr-totalqtd/`
+- [ ] Add measure to `dw-test-model/model.bim`: `"QTD Sales": "TOTALQTD([Total Sales], DATE_DIM[D_DATE])"`
+- [ ] `pbi.dax` with TOTALQTD query
+- [ ] `engine.sql` with equivalent AtScale query
+- [ ] Empty `expected.csv`
+- [ ] Add test case to `pbi-smoke.test.ts`
+
+---
+
+### US-005: Add SAMEPERIODLASTYEAR Template
+
+**Description:** As a user, I want SAMEPERIODLASTYEAR expressions converted to MDX.
+
+**DAX:** `CALCULATE([Total Sales], SAMEPERIODLASTYEAR(DATE_DIM[D_DATE]))`
+**MDX:** `(ParallelPeriod([dimension.DATE_DIM].[DATE_DIM].[Year], 1, [dimension.DATE_DIM].[DATE_DIM].CurrentMember), [Measures].[Total Sales])`
+
+**Acceptance Criteria:**
+- [ ] Create `sameperiodlastyear-template.ts`
+- [ ] Handle standalone and CALCULATE-wrapped usage
+- [ ] Register in `template-registry.ts`
+- [ ] Add to `complex_patterns` in `function-mappings.json`
+- [ ] Confidence: 0.9
+- [ ] Typecheck passes
+- [ ] `npm run test-custom-calcs` passes
+
+**Test:** Create `dw-test-model/expr-sameperiodly/`
+- [ ] Add measure to `dw-test-model/model.bim`: `"Sales Same Period Last Year": "CALCULATE([Total Sales], SAMEPERIODLASTYEAR(DATE_DIM[D_DATE]))"`
+- [ ] `pbi.dax` with SAMEPERIODLASTYEAR query
+- [ ] `engine.sql` with equivalent AtScale query
+- [ ] Empty `expected.csv`
+- [ ] Add test case to `pbi-smoke.test.ts`
+
+---
+
+### US-006: Add PREVIOUSMONTH Template
+
+**Description:** As a user, I want PREVIOUSMONTH expressions converted to MDX.
+
+**DAX:** `CALCULATE([Total Sales], PREVIOUSMONTH(DATE_DIM[D_DATE]))`
+**MDX:** `([dimension.DATE_DIM].[DATE_DIM].CurrentMember.Lag(1), [Measures].[Total Sales])`
+
+**Acceptance Criteria:**
+- [ ] Create `previousmonth-template.ts`
+- [ ] Use `Lag(1)` or `PrevMember` at month level
+- [ ] Register in `template-registry.ts`
+- [ ] Add to `complex_patterns` in `function-mappings.json`
+- [ ] Confidence: 0.9
+- [ ] Typecheck passes
+- [ ] `npm run test-custom-calcs` passes
+
+**Test:** Create `dw-test-model/expr-previousmonth/`
+- [ ] Add measure to `dw-test-model/model.bim`: `"Sales Previous Month": "CALCULATE([Total Sales], PREVIOUSMONTH(DATE_DIM[D_DATE]))"`
+- [ ] `pbi.dax` with PREVIOUSMONTH query
+- [ ] `engine.sql` with equivalent AtScale query
+- [ ] Empty `expected.csv`
+- [ ] Add test case to `pbi-smoke.test.ts`
+
+---
+
+### US-007: Add PARALLELPERIOD Template
+
+**Description:** As a user, I want PARALLELPERIOD expressions converted to MDX.
+
+**DAX:** `CALCULATE([Total Sales], PARALLELPERIOD(DATE_DIM[D_DATE], -1, YEAR))`
+**MDX:** `(ParallelPeriod([dimension.DATE_DIM].[DATE_DIM].[Year], 1, [dimension.DATE_DIM].[DATE_DIM].CurrentMember), [Measures].[Total Sales])`
+
+**Acceptance Criteria:**
+- [ ] Create `parallelperiod-template.ts`
+- [ ] Map DAX intervals (YEAR, QUARTER, MONTH, DAY) to MDX hierarchy levels
+- [ ] Handle negative offsets (DAX -1 = MDX 1)
+- [ ] Register in `template-registry.ts`
+- [ ] Add to `complex_patterns` in `function-mappings.json`
+- [ ] Confidence: 0.9
+- [ ] Typecheck passes
+- [ ] `npm run test-custom-calcs` passes
+
+**Test:** Create `dw-test-model/expr-parallelperiod/`
+- [ ] Add measure to `dw-test-model/model.bim`: `"Sales Parallel Period LY": "CALCULATE([Total Sales], PARALLELPERIOD(DATE_DIM[D_DATE], -1, YEAR))"`
+- [ ] `pbi.dax` with PARALLELPERIOD query
+- [ ] `engine.sql` with equivalent AtScale query
+- [ ] Empty `expected.csv`
+- [ ] Add test case to `pbi-smoke.test.ts`
+
+---
+
+### US-008: Add CLOSINGBALANCEMONTH Template
+
+**Description:** As a user, I want CLOSINGBALANCEMONTH expressions converted to MDX for semi-additive measures.
+
+**DAX:** `CLOSINGBALANCEMONTH(SUM(STORE_SALES[SS_NET_PAID]), DATE_DIM[D_DATE])`
+**MDX:** `(ClosingPeriod([dimension.DATE_DIM].[DATE_DIM].[Month]), [Measures].[SS_NET_PAID])`
+
+**Acceptance Criteria:**
+- [ ] Create `closingbalancemonth-template.ts`
+- [ ] Handle the measure expression as first argument
+- [ ] Register in `template-registry.ts`
+- [ ] Add to `complex_patterns` in `function-mappings.json`
+- [ ] Confidence: 0.9
+- [ ] Typecheck passes
+- [ ] `npm run test-custom-calcs` passes
+
+**Test:** Create `dw-test-model/expr-closingbalance/`
+- [ ] Add measure to `dw-test-model/model.bim`: `"Closing Balance Sales": "CLOSINGBALANCEMONTH(SUM(STORE_SALES[SS_NET_PAID]), DATE_DIM[D_DATE])"`
+- [ ] `pbi.dax` with CLOSINGBALANCEMONTH query
+- [ ] `engine.sql` with equivalent AtScale query
+- [ ] Empty `expected.csv`
+- [ ] Add test case to `pbi-smoke.test.ts`
+
+---
+
+### US-009: Add DATEADD Template
+
+**Description:** As a user, I want DATEADD expressions converted to MDX for date offset calculations.
+
+**DAX:** `CALCULATE([Total Sales], DATEADD(DATE_DIM[D_DATE], -7, DAY))`
+**MDX:** `([dimension.DATE_DIM].[DATE_DIM].CurrentMember.Lag(7), [Measures].[Total Sales])`
+
+**Acceptance Criteria:**
+- [ ] Create `dateadd-template.ts`
+- [ ] Map DAX intervals (DAY, MONTH, QUARTER, YEAR) to appropriate MDX Lag/Lead
+- [ ] Handle negative offsets
+- [ ] Register in `template-registry.ts`
+- [ ] Add to `complex_patterns` in `function-mappings.json`
+- [ ] Confidence: 0.9
+- [ ] Typecheck passes
+- [ ] `npm run test-custom-calcs` passes
+
+**Test:** Create `dw-test-model/expr-dateadd/`
+- [ ] Add measure to `dw-test-model/model.bim`: `"Sales 7 Days Ago": "CALCULATE([Total Sales], DATEADD(DATE_DIM[D_DATE], -7, DAY))"`
+- [ ] `pbi.dax` with DATEADD query
+- [ ] `engine.sql` with equivalent AtScale query
+- [ ] Empty `expected.csv`
+- [ ] Add test case to `pbi-smoke.test.ts`
+
+---
+
+### US-010: Add LASTNONBLANK Template
+
+**Description:** As a user, I want LASTNONBLANK expressions converted to MDX for semi-additive snapshot measures.
+
+**DAX:** `LASTNONBLANK('Table'[Column], 0)`
+**MDX:** `Tail(NonEmpty([dimension.Table].[Table].Members, [Measures].[Column]), 1)`
+
+**Acceptance Criteria:**
+- [ ] Create `lastnonblank-template.ts`
+- [ ] Handle column reference as first argument
+- [ ] Register in `template-registry.ts`
+- [ ] Add to `complex_patterns` in `function-mappings.json`
+- [ ] Confidence: 0.85 (semi-additive semantics may differ)
+- [ ] Typecheck passes
+- [ ] `npm run test-custom-calcs` passes
+
+**Test:** Create `dw-test-model/expr-lastnonblank/`
+- [ ] Add measure to `dw-test-model/model.bim` with LASTNONBLANK pattern
+- [ ] `pbi.dax` with LASTNONBLANK query
+- [ ] `engine.sql` with equivalent AtScale query
+- [ ] Empty `expected.csv`
+- [ ] Add test case to `pbi-smoke.test.ts`
+
+---
+
+### US-011: Fix IFERROR Template
+
+**Description:** As a user, I want IFERROR expressions to convert properly.
+
+**DAX:** `IFERROR([Profit Margin], 0)`
+**MDX:** `IIF(ISEMPTY([Measures].[Profit Margin]), 0, [Measures].[Profit Margin])`
+
+**Acceptance Criteria:**
+- [ ] Investigate why `iferror-template.ts` fails for `IFERROR([Profit Margin], 0)`
+- [ ] Fix template to handle measure references correctly
+- [ ] Confidence: 0.95
+- [ ] Typecheck passes
+- [ ] `npm run test-custom-calcs` passes
+
+**Test:** Update existing `dw-test-model/expr-iferror/`
+- [ ] Verify `pbi.dax` tests IFERROR
+- [ ] Update `engine.sql` if needed
+- [ ] Unskip test in `pbi-smoke.test.ts`
+
+---
+
+### US-012: Investigate Additional Easy Wins
+
+**Description:** As a developer, I want to identify and fix other low-hanging fruit.
+
+**Acceptance Criteria:**
+- [ ] Review templates for silent failures
+- [ ] Check measure reference resolution order issues
+- [ ] Document and fix issues with confidence >= 0.9
+- [ ] Typecheck passes
+- [ ] `npm run test-custom-calcs` passes
+- [ ] Final conversion rate >= 50%
+
+---
+
+## Test Specifications
+
+### Test Model Location
+
+All tests use the shared BIM file at:
+```
+/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter/src/test-suites/pbi-smoke/dw-test-model/model.bim
 ```
 
-Arguments:
-- `FILEPATH` - Path to SML project root (default: ".")
-- `--catalog-name` - Override catalog unique name (optional)
-- `--catalog-label` - Override catalog label (optional)
+New measures must be added to this `model.bim` file. The pbi-smoke test suite converts this BIM to SML and deploys it to AtScale for query validation.
 
-#### Required Connection Parameters
-Two environment variables required:
-- `ATSCALE_API_URL` - AtScale API URL (e.g., `http://localhost:10500/api`)
-- `ATSCALE_API_TOKEN` - AtScale API token
+### Test Directory Structure
 
-#### Git Requirement
-The SML project directory MUST be a git repository with a remote origin configured. The CLI uses the remote URL to locate/create the repository in AtScale.
+Each test folder is created under the same `dw-test-model/` directory:
 
-#### AtScale API Error Response Format
-The deploy command uses the AtScale Public API:
-- Endpoint: `POST /v1/public/catalogs`
-- On error: `ResponseError` with `response.status`, `response.statusText`, and `response.text()` for error body
-- Validation errors during compilation appear in `ICompilationOutput`:
-  ```typescript
-  interface ICompilationOutput {
-    severity: "error" | "warning" | "info";
-    message: string;
-    context?: IValidationOutputContext;  // Contains metric/object context
-  }
-  ```
-- File-level errors include `relativePath` for the source file
+```
+expr-{function}/
+├── pbi.dax         # DAX query for Power BI
+├── engine.sql      # SQL query for AtScale
+├── expected.csv    # Expected results (populate manually)
+└── engine.csv      # Actual results (generated by test)
+```
 
-#### Pipeline Flow
-1. Find repository ID (from git remote URL)
-2. Compile SML → XML (validation errors captured here)
-3. Deploy compiled XML to AtScale (runtime errors captured here)
+### US-002 Test: expr-totalytd
 
-### US-003: Create deploy-and-test script
+**pbi.dax:**
+```dax
+// TOTALYTD - Year to date sales by year
+EVALUATE
+SUMMARIZECOLUMNS(
+    DATE_DIM[D_YEAR],
+    "YTD Sales", [YTD Sales]
+)
+ORDER BY DATE_DIM[D_YEAR]
+```
 
-**Description:** As a developer, I need a script that converts BIM → SML and deploys to AtScale, capturing any errors.
+**engine.sql:**
+```sql
+SELECT "D_YEAR", "YTD Sales"
+FROM {{catalog}}."model_model"
+ORDER BY "D_YEAR"
+```
 
-**Acceptance Criteria:**
-- [x] Create `scripts/deploy-test.ts` script
-- [x] Script accepts AtScale connection parameters (host, token, org, project)
-- [x] Script converts BIM to SML using existing converter
-- [x] Script deploys SML using SML CLI push command
-- [x] Script parses AtScale API response for errors
-- [x] Script outputs structured error list (metric name, error message, original DAX)
-- [x] Add pnpm script: `pnpm run deploy-test`
-- [x] Typecheck passes
+### US-003 Test: expr-totalmtd
 
-### US-004: Run initial deployment and capture errors
+**pbi.dax:**
+```dax
+// TOTALMTD - Month to date sales by year and month
+EVALUATE
+SUMMARIZECOLUMNS(
+    DATE_DIM[D_YEAR],
+    DATE_DIM[D_MOY],
+    "MTD Sales", [MTD Sales]
+)
+ORDER BY DATE_DIM[D_YEAR], DATE_DIM[D_MOY]
+```
 
-**Description:** As a developer, I need to run the first deployment to identify all calculation expression errors.
+**engine.sql:**
+```sql
+SELECT "D_YEAR", "D_MOY", "MTD Sales"
+FROM {{catalog}}."model_model"
+ORDER BY "D_YEAR", "D_MOY"
+```
 
-**Acceptance Criteria:**
-- [x] Run `pnpm run deploy-test` against local AtScale instance
-- [x] Capture full error output to `test-files/deployment-errors.json`
-- [x] Document error categories found (syntax, reference, function)
-- [x] Update this PRD with specific error patterns to fix
+### US-004 Test: expr-totalqtd
 
-**Findings:**
+**pbi.dax:**
+```dax
+// TOTALQTD - Quarter to date sales by year and quarter
+EVALUATE
+SUMMARIZECOLUMNS(
+    DATE_DIM[D_YEAR],
+    DATE_DIM[D_QOY],
+    "QTD Sales", [QTD Sales]
+)
+ORDER BY DATE_DIM[D_YEAR], DATE_DIM[D_QOY]
+```
 
-#### Validation Result
-- **SML Validation: PASSED** - Zero schema errors
-- **Warnings: 1** - SML version mismatch (1.4 vs 1.5)
-- Note: AtScale instance not running; used `--validate-only` mode
+**engine.sql:**
+```sql
+SELECT "D_YEAR", "D_QOY", "QTD Sales"
+FROM {{catalog}}."model_model"
+ORDER BY "D_YEAR", "D_QOY"
+```
 
-#### Conversion Statistics
-- **Total BIM measures:** 68
-- **Converted successfully:** 36 (53%)
-- **Unconverted (TODO):** 32 (47%)
+### US-005 Test: expr-sameperiodly
 
-The unconverted expressions use `0 /* TODO: ... */` format, which is valid SML and passes validation as specified in the PRD's "TODO Handling" section.
+**pbi.dax:**
+```dax
+// SAMEPERIODLASTYEAR - Sales vs same period last year by year
+EVALUATE
+SUMMARIZECOLUMNS(
+    DATE_DIM[D_YEAR],
+    "Sales SPLY", [Sales Same Period Last Year]
+)
+ORDER BY DATE_DIM[D_YEAR]
+```
 
-#### Unconverted Expression Categories
+**engine.sql:**
+```sql
+SELECT "D_YEAR", "Sales Same Period Last Year"
+FROM {{catalog}}."model_model"
+ORDER BY "D_YEAR"
+```
 
-1. **Dimension Column References** (27 expressions)
-   - Error: `Cannot convert dimension column reference 'TABLE'[COLUMN] - dimension table columns in calculations require the column to be exposed in the dimension hierarchy`
-   - Examples: `Weekend Sales`, `Q1 Sales`, `YTD Sales`, `Sales Per Year`
-   - Root cause: DAX expressions reference dimension columns (e.g., `DATE_DIM[D_DATE]`) which require those columns to be in SML dimension hierarchies
+### US-006 Test: expr-previousmonth
 
-2. **IFERROR Function** (1 expression)
-   - Expression: `IFERROR([Profit Margin], 0)`
-   - Measure: `Safe Division`
+**pbi.dax:**
+```dax
+// PREVIOUSMONTH - Sales vs previous month by year and month
+EVALUATE
+SUMMARIZECOLUMNS(
+    DATE_DIM[D_YEAR],
+    DATE_DIM[D_MOY],
+    "Sales Prev Month", [Sales Previous Month]
+)
+ORDER BY DATE_DIM[D_YEAR], DATE_DIM[D_MOY]
+```
 
-3. **ISCROSSFILTERED Function** (1 expression)
-   - Expression: `ISCROSSFILTERED(STORE)`
-   - Measure: `Is Store Crossfiltered`
+**engine.sql:**
+```sql
+SELECT "D_YEAR", "D_MOY", "Sales Previous Month"
+FROM {{catalog}}."model_model"
+ORDER BY "D_YEAR", "D_MOY"
+```
 
-4. **CALCULATE with FILTER** (1 expression)
-   - Expression: `CALCULATE([Total Sales], FILTER(STORE_SALES, STORE_SALES[SS_NET_PAID] > 100))`
-   - Measure: `High Value Sales`
+### US-007 Test: expr-parallelperiod
 
-5. **VAR/RETURN with CALCULATE** (1 expression)
-   - Expression: `VAR MaxDate = MAX(DATE_DIM[d_date_sk]) RETURN CALCULATE([On Hand Qty], DATE_DIM[d_date_sk] = MaxDate)`
-   - Measure: `On Hand Qty (Latest Date)`
+**pbi.dax:**
+```dax
+// PARALLELPERIOD - Sales parallel period last year by year
+EVALUATE
+SUMMARIZECOLUMNS(
+    DATE_DIM[D_YEAR],
+    "Sales Parallel LY", [Sales Parallel Period LY]
+)
+ORDER BY DATE_DIM[D_YEAR]
+```
 
-6. **Iterator with non-VALUES** (1 expression)
-   - Expression: `SUMX(STORE_SALES, STORE_SALES[SS_QUANTITY] * STORE_SALES[SS_SALES_PRICE])`
-   - Measure: `Revenue via SUMX`
+**engine.sql:**
+```sql
+SELECT "D_YEAR", "Sales Parallel Period LY"
+FROM {{catalog}}."model_model"
+ORDER BY "D_YEAR"
+```
 
-#### Patterns to NOT Fix (Non-Goals per PRD)
-The dimension column reference errors are **expected** and fall under PRD non-goals:
-- These require dimension hierarchy changes, not converter fixes
-- The converter correctly produces TODOs for unsupported patterns
+### US-009 Test: expr-closingbalance
 
-#### Patterns to Potentially Fix
-1. **IFERROR** - Could convert to `IIF(IsError(...), alternative, value)` or similar MDX
-2. **ISCROSSFILTERED** - Limited MDX equivalent; may remain TODO
-3. **CALCULATE with FILTER on fact table** - Complex; may need template enhancement
+**pbi.dax:**
+```dax
+// CLOSINGBALANCEMONTH - Closing balance by year and month
+EVALUATE
+SUMMARIZECOLUMNS(
+    DATE_DIM[D_YEAR],
+    DATE_DIM[D_MOY],
+    "Closing Balance Sales", [Closing Balance Month Sales]
+)
+ORDER BY DATE_DIM[D_YEAR], DATE_DIM[D_MOY]
+```
 
-### US-005: Fix calculation expression errors - Round 1
+**engine.sql:**
+```sql
+SELECT "D_YEAR", "D_MOY", "Closing Balance Month Sales"
+FROM {{catalog}}."model_model"
+ORDER BY "D_YEAR", "D_MOY"
+```
 
-**Status: SKIPPED** - See US-004 findings. Zero schema errors found. All TODOs are expected patterns per Non-Goals.
+### US-010 Test: expr-dateadd
 
-**Description:** As a developer, I need to fix the first batch of converter bugs based on deployment errors.
+**pbi.dax:**
+```dax
+// DATEADD - Sales with date offset by year
+EVALUATE
+SUMMARIZECOLUMNS(
+    DATE_DIM[D_YEAR],
+    "Sales 7 Days Ago", [Sales 7 Days Ago]
+)
+ORDER BY DATE_DIM[D_YEAR]
+```
 
-**Acceptance Criteria:**
-- [x] Analyze errors from US-004 - **No schema errors to fix**
-- [x] Fix converter code for identified patterns - **N/A - patterns are in Non-Goals**
-- [x] Run `pnpm run test-custom-calcs` - passes
-- [x] Typecheck passes
+**engine.sql:**
+```sql
+SELECT "D_YEAR", "Sales 7 Days Ago"
+FROM {{catalog}}."model_model"
+ORDER BY "D_YEAR"
+```
 
-### US-006: Verify fixes via deployment - Round 1
+---
 
-**Status: SKIPPED** - No fixes needed since validation passed.
+## Patterns Analyzed (from MOL_bim_from_xmla.json)
 
-**Description:** As a developer, I need to verify fixes by redeploying to AtScale.
+Analysis of production BIM file revealed these patterns:
 
-**Acceptance Criteria:**
-- [x] Run `pnpm run deploy-test` - **Validation passes with zero errors**
-- [x] Compare error count to previous run - **N/A - first run**
-- [x] Document remaining errors - **32 TODOs remain (expected per Non-Goals)**
-- [x] If errors remain, create US-007 for next fix round - **No schema errors, only expected TODOs**
+| Pattern | Count | Status |
+|---------|-------|--------|
+| CALCULATE with filters | 95 | Partial (ALL only) |
+| DIVIDE | 66 | ✓ Already supported |
+| BLANK | 16 | ✓ Already supported |
+| SUM/AVERAGE/MIN/MAX | 32 | ✓ Already supported |
+| SWITCH | 10 | ✓ Template exists |
+| ABS | 6 | ✓ Direct mapping |
+| CONCATENATE | 5 | ✓ Just added |
+| LASTNONBLANK | 4 | US-011 (new) |
+| SELECTEDMEASURE | 4 | Non-goal (calc groups) |
+| DATATABLE | 4 | Non-goal (table creation) |
+| TOTALYTD/MTD | 2 | US-002, US-003 |
+| DATEADD | 1 | US-010 (new) |
+| EDATE | 1 | Deferred (date math) |
+| FORMAT | 1 | Deferred (string format) |
 
-### US-007: Fix calculation expression errors - Round 2 (if needed)
+### Common CALCULATE Filter Patterns
 
-**Status: SKIPPED** - Not needed.
+From MOL file, most CALCULATE uses simple equality filters:
+- `CALCULATE([Measure], 'Table'[Column] = "value")` - 60+ occurrences
+- `CALCULATE([Measure], 'Table'[Column] IN {"v1", "v2"})` - 10+ occurrences
 
-**Description:** As a developer, I need to fix remaining converter bugs from round 1.
+These are deferred as they require complex filter context handling.
 
-**Acceptance Criteria:**
-- [x] Analyze remaining errors - **N/A**
-- [x] Fix converter code - **N/A**
-- [x] Run `pnpm run test-custom-calcs` - passes
-- [x] Typecheck passes
-
-### US-008: Verify fixes via deployment - Round 2 (if needed)
-
-**Status: SKIPPED** - Not needed.
-
-**Description:** As a developer, I need to verify round 2 fixes.
-
-**Acceptance Criteria:**
-- [x] Run `pnpm run deploy-test` - **Zero errors achieved in US-004**
-- [x] If zero errors: DONE - **YES**
-- [x] If errors remain: create additional fix rounds - **N/A**
-
-### US-009: Final validation and cleanup
-
-**Description:** As a developer, I need to confirm zero deployment errors and document the fixes.
-
-**Acceptance Criteria:**
-- [x] Run `pnpm run deploy-test` - zero errors ✓
-- [x] Update `scripts/README.md` with deploy-test documentation ✓
-- [x] Run `pnpm run test-custom-calcs` - passes ✓
-- [x] Typecheck passes ✓
+---
 
 ## Non-Goals
 
-- Adding new DAX functions that aren't already partially supported
-- Fixing unconvertible functions (SUMX, CALCULATE with complex filters, etc.) that produce TODOs
-- Handling Power BI-specific features not relevant to AtScale
-- Performance optimization of the converter
-- Verifying metrics are queryable (only schema validation)
+- CALCULATE with dimension equality filters (`Table[Col] = "value"`) - complex filter context
+- CALCULATE with IN filters (`Table[Col] IN {values}`) - complex filter context
+- Iterator functions (SUMX, AVERAGEX, MAXX) - require row context
+- Filter introspection (HASONEVALUE, ISFILTERED, ISCROSSFILTERED) - no MDX equivalent
+- Table functions (VALUES, DISTINCT) - return tables, not scalars
+- Calculation groups (SELECTEDMEASURE) - different architecture in AtScale
+- DATATABLE - table creation not applicable
+- FORMAT - string formatting complexity
+- EDATE - date arithmetic (lower priority)
 
 ## Technical Considerations
 
-- SML CLI is at `/usr/local/bin/sml-cli` or dev version at `/Users/dianne/go/src/github.com/AtScaleInc/SML/apps/cli/bin/dev.js`
-- Existing test infrastructure in `scripts/test-custom-calcs.ts` can be leveraged
-- AtScale API errors typically include metric name and error description
-- Fix patterns should be applied to `src/commands/bim-to-sml/bim-converter/` files
-- Existing `test-files/dw_test_model.bim` preserved; new file named `pbi_dw_test_model.bim`
+### Dimension Reference Resolution
 
-## Dependencies
+```typescript
+function resolveDimensionHierarchy(
+  tableName: string,
+  columnName: string,
+  result: SmlConverterResult
+): string | undefined {
+  // Lookup: search dimensions for matching dataset
+  for (const dim of result.dimensions) {
+    if (dim.dataset?.includes(tableName) || dim.label === tableName) {
+      const hierarchyName = dim.hierarchies?.[0]?.name || dim.unique_name;
+      return `[${dim.unique_name}].[${hierarchyName}]`;
+    }
+  }
+  // Fallback: convention-based
+  return `[dimension.${tableName}].[${tableName}]`;
+}
+```
 
-- US-002 must complete before US-003 (need to understand SML CLI deploy)
-- US-003 must complete before US-004 (need script to capture errors)
-- US-004 must complete before US-005 (need errors to fix)
-- Fix/verify rounds alternate: US-005 → US-006 → US-007 → US-008 → ...
+### AtScale MDX Time Intelligence
+
+Supported per CLAUDE.md:
+- `DatesMTD`, `DatesQTD`, `DatesYTD`, `DatesWTD`
+- `ParallelPeriod`, `PeriodsToDate`
+- `Lag`, `Lead`, `PrevMember`, `NextMember`
+
+## Success Metrics
+
+| Metric | Before | Target |
+|--------|--------|--------|
+| Conversion Rate | 44% | 50%+ |
+| Time Intelligence (YTD/MTD/QTD) | 0/3 | 3/3 |
+| Period Comparison (SPLY/PrevMonth/Parallel) | 0/3 | 3/3 |
+| Semi-additive (ClosingBalance/LastNonBlank) | 0/2 | 2/2 |
+| Date Offset (DATEADD) | 0/1 | 1/1 |
+| Error Handling (IFERROR) | 0/1 | 1/1 |
+| Confidence | - | 0.85+ all |
+
+## Rollback Strategy
+
+Each template in separate file. To rollback:
+1. Remove import from `template-registry.ts`
+2. Move function to `unconvertible` in `function-mappings.json`
+3. Re-skip test in `pbi-smoke.test.ts`

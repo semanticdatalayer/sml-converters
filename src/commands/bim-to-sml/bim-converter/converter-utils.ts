@@ -422,3 +422,50 @@ export function shortAggFn(aggFn: string): string {
   }
   return aggFn.toLowerCase();
 }
+
+/**
+ * Resolves a BIM table/column reference to an MDX dimension hierarchy reference.
+ * Used by time intelligence functions (TOTALYTD, TOTALMTD, etc.) to map
+ * DAX dimension column references to SML hierarchy paths.
+ *
+ * @param tableName - The BIM table name (e.g., "DATE_DIM")
+ * @param columnName - The BIM column name (e.g., "D_DATE") - currently unused but reserved for future column-specific resolution
+ * @param result - The SmlConverterResult containing converted dimensions
+ * @returns MDX hierarchy reference string like "[dimension.DATE_DIM].[DATE_DIM Hierarchy]" or undefined if not found
+ *
+ * Resolution strategy:
+ * 1. Lookup: search result.dimensions for matching label or dataset table name
+ * 2. Fallback: use convention [dimension.{TableName}].[{TableName} Hierarchy]
+ */
+export function resolveDimensionHierarchy(
+  tableName: string,
+  columnName: string,
+  result: SmlConverterResult,
+): string {
+  // Lookup: search dimensions for matching label (table name)
+  for (const dim of result.dimensions) {
+    if (dim.label === tableName) {
+      // Found matching dimension by label
+      const hierarchyName =
+        dim.hierarchies?.[0]?.unique_name || `${tableName} Hierarchy`;
+      return `[${dim.unique_name}].[${hierarchyName}]`;
+    }
+  }
+
+  // Check if any dimension has level_attributes with dataset matching the table
+  const datasetUniqueName = makeUniqueName(`dataset.${tableName}`);
+  for (const dim of result.dimensions) {
+    for (const la of dim.level_attributes) {
+      if ("dataset" in la && la.dataset === datasetUniqueName) {
+        const hierarchyName =
+          dim.hierarchies?.[0]?.unique_name || `${tableName} Hierarchy`;
+        return `[${dim.unique_name}].[${hierarchyName}]`;
+      }
+    }
+  }
+
+  // Fallback: use convention-based reference
+  const dimUniqueName = makeUniqueName(`dimension.${tableName}`);
+  const hierarchyUniqueName = makeUniqueName(`${tableName} Hierarchy`);
+  return `[${dimUniqueName}].[${hierarchyUniqueName}]`;
+}
