@@ -168,3 +168,18 @@
   - Measure "Sales Previous Month" already existed in model.bim
   - Conversion rate: 62% (42/68 converted)
 ---
+
+## Iteration 11 - US-007: PARALLELPERIOD Template
+- Implemented ParallelPeriodTemplate in parallelperiod-template.ts
+- Converts CALCULATE([measure], PARALLELPERIOD(Table[DateCol], -1, YEAR)) to (ParallelPeriod([dim].[hier].[Year], 1, [dim].[hier].CurrentMember), [Measures].[measure])
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/parallelperiod-template.ts (new)
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/template-registry.ts
+- Learnings:
+  - PARALLELPERIOD takes 3 args: date column, offset, interval (YEAR/QUARTER/MONTH/DAY)
+  - DAX negative offset (-1) means "go back in time"; MDX positive offset (1) means same
+  - Used LiteralToken for numeric values, OperatorToken for "-", IdentifierToken for interval names
+  - PARALLELPERIOD was already in function-mappings.json complex_patterns
+  - Measure "Sales Parallel Period LY" already existed in model.bim
+  - Conversion rate: 63% (43/68 converted)
+---
