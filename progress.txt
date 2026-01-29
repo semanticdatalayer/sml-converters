@@ -80,3 +80,17 @@
 | After TOTALQTD | 59% | QTD Sales now converts |
 | After all time intel | - | |
 | Final | - | Target: 50%+ |
+
+## Iteration 5 - US-002 Test: TOTALYTD test files
+- Created expr-totalytd test directory with pbi.dax, engine.sql, expected.csv
+- Added test case to pbi-smoke.test.ts
+- Files changed:
+  - dw-test-model/expr-totalytd/pbi.dax (new)
+  - dw-test-model/expr-totalytd/engine.sql (new)
+  - dw-test-model/expr-totalytd/expected.csv (new)
+  - pbi-smoke.test.ts (added test case)
+- Learnings:
+  - Test files live in AtScaleInc/SML repo, not sml-converters
+  - Measure "YTD Sales" already existed in model.bim
+  - Test uses SUMMARIZECOLUMNS for Power BI DAX query format
+---

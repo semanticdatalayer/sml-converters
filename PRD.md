@@ -45,11 +45,11 @@ Each function is implemented separately for easy rollback, with dedicated tests 
 - [x] `npm run test-custom-calcs` passes
 
 **Test:** Create `dw-test-model/expr-totalytd/`
-- [ ] Add measure to `dw-test-model/model.bim`: `"YTD Sales": "TOTALYTD([Total Sales], DATE_DIM[D_DATE])"`
-- [ ] `pbi.dax` with TOTALYTD query
-- [ ] `engine.sql` with equivalent AtScale query
-- [ ] Empty `expected.csv` (populate manually)
-- [ ] Add test case to `pbi-smoke.test.ts`
+- [x] Add measure to `dw-test-model/model.bim`: `"YTD Sales": "TOTALYTD([Total Sales], DATE_DIM[D_DATE])"`
+- [x] `pbi.dax` with TOTALYTD query
+- [x] `engine.sql` with equivalent AtScale query
+- [x] Empty `expected.csv` (populate manually)
+- [x] Add test case to `pbi-smoke.test.ts`
 
 ---
 
