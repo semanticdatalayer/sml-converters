@@ -134,20 +134,20 @@ Each function is implemented separately for easy rollback, with dedicated tests 
 **MDX:** `([dimension.DATE_DIM].[DATE_DIM].CurrentMember.Lag(1), [Measures].[Total Sales])`
 
 **Acceptance Criteria:**
-- [ ] Create `previousmonth-template.ts`
-- [ ] Use `Lag(1)` or `PrevMember` at month level
-- [ ] Register in `template-registry.ts`
-- [ ] Add to `complex_patterns` in `function-mappings.json`
-- [ ] Confidence: 0.9
-- [ ] Typecheck passes
-- [ ] `npm run test-custom-calcs` passes
+- [x] Create `previousmonth-template.ts`
+- [x] Use `Lag(1)` or `PrevMember` at month level
+- [x] Register in `template-registry.ts`
+- [x] Add to `complex_patterns` in `function-mappings.json`
+- [x] Confidence: 0.9
+- [x] Typecheck passes
+- [x] `npm run test-custom-calcs` passes
 
 **Test:** Create `dw-test-model/expr-previousmonth/`
-- [ ] Add measure to `dw-test-model/model.bim`: `"Sales Previous Month": "CALCULATE([Total Sales], PREVIOUSMONTH(DATE_DIM[D_DATE]))"`
-- [ ] `pbi.dax` with PREVIOUSMONTH query
-- [ ] `engine.sql` with equivalent AtScale query
-- [ ] Empty `expected.csv`
-- [ ] Add test case to `pbi-smoke.test.ts`
+- [x] Add measure to `dw-test-model/model.bim`: `"Sales Previous Month": "CALCULATE([Total Sales], PREVIOUSMONTH(DATE_DIM[D_DATE]))"` (already exists)
+- [x] `pbi.dax` with PREVIOUSMONTH query
+- [x] `engine.sql` with equivalent AtScale query
+- [x] Empty `expected.csv`
+- [x] Add test case to `pbi-smoke.test.ts`
 
 ---
 

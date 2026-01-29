@@ -79,6 +79,7 @@
 | After TOTALMTD | 57% | MTD Sales now converts |
 | After TOTALQTD | 59% | QTD Sales now converts |
 | After SAMEPERIODLASTYEAR | 60% | Sales Same Period Last Year now converts |
+| After PREVIOUSMONTH | 62% | Sales Previous Month now converts |
 | After all time intel | - | |
 | Final | - | Target: 50%+ |
 
@@ -148,4 +149,22 @@
 - Learnings:
   - Measure "Sales Same Period Last Year" already existed in model.bim with expression CALCULATE([Total Sales], SAMEPERIODLASTYEAR(DATE_DIM[D_DATE]))
   - Test queries use D_YEAR only for year-level aggregation
+---
+
+## Iteration 10 - US-006: PREVIOUSMONTH Template
+- Implemented PreviousMonthTemplate in previousmonth-template.ts
+- Converts CALCULATE([measure], PREVIOUSMONTH(Table[DateCol])) to ([dim].[hier].CurrentMember.Lag(1), [Measures].[measure])
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/previousmonth-template.ts (new)
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/template-registry.ts
+- Test files created (in AtScaleInc/SML repo):
+  - dw-test-model/expr-previousmonth/pbi.dax (new)
+  - dw-test-model/expr-previousmonth/engine.sql (new)
+  - dw-test-model/expr-previousmonth/expected.csv (new)
+  - pbi-smoke.test.ts (added test case)
+- Learnings:
+  - PREVIOUSMONTH pattern similar to SAMEPERIODLASTYEAR but uses Lag(1) instead of ParallelPeriod
+  - PREVIOUSMONTH was already in function-mappings.json complex_patterns
+  - Measure "Sales Previous Month" already existed in model.bim
+  - Conversion rate: 62% (42/68 converted)
 ---
