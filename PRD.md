@@ -159,14 +159,14 @@ Each function is implemented separately for easy rollback, with dedicated tests 
 **MDX:** `(ParallelPeriod([dimension.DATE_DIM].[DATE_DIM].[Year], 1, [dimension.DATE_DIM].[DATE_DIM].CurrentMember), [Measures].[Total Sales])`
 
 **Acceptance Criteria:**
-- [ ] Create `parallelperiod-template.ts`
-- [ ] Map DAX intervals (YEAR, QUARTER, MONTH, DAY) to MDX hierarchy levels
-- [ ] Handle negative offsets (DAX -1 = MDX 1)
-- [ ] Register in `template-registry.ts`
-- [ ] Add to `complex_patterns` in `function-mappings.json`
-- [ ] Confidence: 0.9
-- [ ] Typecheck passes
-- [ ] `npm run test-custom-calcs` passes
+- [x] Create `parallelperiod-template.ts`
+- [x] Map DAX intervals (YEAR, QUARTER, MONTH, DAY) to MDX hierarchy levels
+- [x] Handle negative offsets (DAX -1 = MDX 1)
+- [x] Register in `template-registry.ts`
+- [x] Add to `complex_patterns` in `function-mappings.json`
+- [x] Confidence: 0.9
+- [x] Typecheck passes
+- [x] `npm run test-custom-calcs` passes
 
 **Test:** Create `dw-test-model/expr-parallelperiod/`
 - [ ] Add measure to `dw-test-model/model.bim`: `"Sales Parallel Period LY": "CALCULATE([Total Sales], PARALLELPERIOD(DATE_DIM[D_DATE], -1, YEAR))"`

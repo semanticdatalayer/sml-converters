@@ -14,6 +14,7 @@ import { TotalMtdTemplate } from "./templates/totalmtd-template";
 import { TotalQtdTemplate } from "./templates/totalqtd-template";
 import { SamePeriodLastYearTemplate } from "./templates/sameperiodlastyear-template";
 import { PreviousMonthTemplate } from "./templates/previousmonth-template";
+import { ParallelPeriodTemplate } from "./templates/parallelperiod-template";
 import { DaxToken, DaxTokenizer } from "../dax-converter";
 import {
   ConversionResult,
@@ -78,6 +79,7 @@ export class TemplateRegistry {
     this.registerTemplate(new TotalQtdTemplate());
     this.registerTemplate(new SamePeriodLastYearTemplate());
     this.registerTemplate(new PreviousMonthTemplate());
+    this.registerTemplate(new ParallelPeriodTemplate());
   }
 
   /**
