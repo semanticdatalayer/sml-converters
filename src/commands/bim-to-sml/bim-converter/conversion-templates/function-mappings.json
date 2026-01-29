@@ -91,7 +91,6 @@
     "DISTINCT",
     "CONTAINS",
     "COMBINEVALUES",
-    "CONCATENATE",
     "CONCATENATEX",
     "UNION",
     "INTERSECT",
@@ -112,6 +111,7 @@
   ],
   "complex_patterns": [
     "CALCULATE",
+    "CONCATENATE",
     "DIVIDE",
     "IF",
     "ISBLANK",
