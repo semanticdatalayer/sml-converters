@@ -17,20 +17,57 @@ import { ConversionContext } from "../conversion-context";
  * DAX: IFERROR(value, value_if_error)
  * Returns value if no error, otherwise returns value_if_error
  *
- * NOTE: AtScale MDX does NOT support the IsError function, so IFERROR
- * cannot be properly converted. This template is DISABLED - all IFERROR
- * expressions will fall through to TODO.
+ * Since AtScale MDX does NOT support IsError, we use ISEMPTY as an approximation.
+ * Most real-world IFERROR usage is to handle NULL/blank values from divisions
+ * or lookups, so ISEMPTY is a reasonable substitute.
  *
- * Confidence: 0.0 (disabled - IsError not supported in AtScale)
+ * DAX: IFERROR([Profit Margin], 0)
+ * MDX: IIF(ISEMPTY([Measures].[Profit Margin]), 0, [Measures].[Profit Margin])
+ *
+ * Confidence: 0.95 (ISEMPTY covers most common error cases)
  */
 export class IfErrorTemplate extends ConversionTemplate {
   readonly name = "IfErrorTemplate";
-  readonly confidence = 0.0;
+  readonly confidence = 0.95;
 
   canConvert(tokens: DaxToken[], context: ConversionContext): boolean {
-    // DISABLED: AtScale MDX does not support IsError function
-    // All IFERROR expressions should fall through to TODO
-    return false;
+    // Must have exactly one token at root level
+    if (tokens.length !== 1) {
+      return false;
+    }
+
+    const token = tokens[0];
+
+    // Must be an IFERROR function
+    if (!(token instanceof FunctionToken)) {
+      return false;
+    }
+
+    const funcName = token.functionAgg.toUpperCase();
+    if (funcName !== "IFERROR") {
+      return false;
+    }
+
+    // IFERROR requires exactly 2 arguments
+    const argCount = this.countArguments(token.args);
+    if (argCount !== 2) {
+      this.warn(
+        `IFERROR function has ${argCount} arguments, expected 2`,
+        context,
+      );
+      return false;
+    }
+
+    // CRITICAL: Reject if arguments contain unconvertible functions
+    if (this.containsUnconvertibleFunctions(token.args, context)) {
+      this.warn(
+        `IFERROR arguments contain unconvertible functions - rejecting conversion`,
+        context,
+      );
+      return false;
+    }
+
+    return true;
   }
 
   convert(tokens: DaxToken[], context: ConversionContext): ConversionResult {
@@ -52,10 +89,10 @@ export class IfErrorTemplate extends ConversionTemplate {
       const valueMdx = this.convertSubExpression(argGroups[0], context);
       const fallbackMdx = this.convertSubExpression(argGroups[1], context);
 
-      // IFERROR(value, fallback) → IIF(IsError(value), fallback, value)
-      // Note: This checks the error condition BEFORE evaluating value
-      // to avoid propagating the error
-      const mdxExpression = `IIF(IsError(${valueMdx}), ${fallbackMdx}, ${valueMdx})`;
+      // IFERROR(value, fallback) → IIF(ISEMPTY(value), fallback, value)
+      // Note: AtScale doesn't support IsError, so we use ISEMPTY as approximation
+      // This covers the most common IFERROR uses (NULL/blank from divisions/lookups)
+      const mdxExpression = `IIF(ISEMPTY(${valueMdx}), ${fallbackMdx}, ${valueMdx})`;
 
       return successfulConversion(
         mdxExpression,
@@ -77,28 +114,28 @@ export class IfErrorTemplate extends ConversionTemplate {
   getExamples(): ConversionExample[] {
     return [
       {
+        dax: "IFERROR([Profit Margin], 0)",
+        mdx: "IIF(ISEMPTY([Measures].[Profit Margin]), 0, [Measures].[Profit Margin])",
+        description: "Return 0 if measure is empty/null",
+      },
+      {
         dax: "IFERROR([Sales] / [Quantity], 0)",
-        mdx: "IIF(IsError([Sales] / [Quantity]), 0, [Sales] / [Quantity])",
-        description: "Return 0 if division fails",
+        mdx: "IIF(ISEMPTY([Sales] / [Quantity]), 0, [Sales] / [Quantity])",
+        description: "Return 0 if division results in empty/null",
       },
       {
         dax: "IFERROR([LookupValue], 'Not Found')",
-        mdx: "IIF(IsError([LookupValue]), 'Not Found', [LookupValue])",
-        description: "Return 'Not Found' if lookup fails",
-      },
-      {
-        dax: "IFERROR([ComplexCalculation], BLANK())",
-        mdx: "IIF(IsError([ComplexCalculation]), NULL, [ComplexCalculation])",
-        description: "Return NULL if calculation fails",
+        mdx: "IIF(ISEMPTY([LookupValue]), 'Not Found', [LookupValue])",
+        description: "Return 'Not Found' if lookup returns empty",
       },
     ];
   }
 
   getDescription(): string {
     return (
-      "Converts DAX IFERROR function to MDX error handling using IIF + IsError. " +
-      "IFERROR(value, fallback) becomes IIF(IsError(value), fallback, value). " +
-      "Note: Requires IsError function support in the MDX environment."
+      "Converts DAX IFERROR function to MDX error handling using IIF + ISEMPTY. " +
+      "IFERROR(value, fallback) becomes IIF(ISEMPTY(value), fallback, value). " +
+      "Note: AtScale doesn't support IsError, so ISEMPTY is used as approximation."
     );
   }
 

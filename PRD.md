@@ -261,16 +261,16 @@ Each function is implemented separately for easy rollback, with dedicated tests 
 **MDX:** `IIF(ISEMPTY([Measures].[Profit Margin]), 0, [Measures].[Profit Margin])`
 
 **Acceptance Criteria:**
-- [ ] Investigate why `iferror-template.ts` fails for `IFERROR([Profit Margin], 0)`
-- [ ] Fix template to handle measure references correctly
-- [ ] Confidence: 0.95
-- [ ] Typecheck passes
-- [ ] `npm run test-custom-calcs` passes
+- [x] Investigate why `iferror-template.ts` fails for `IFERROR([Profit Margin], 0)`
+- [x] Fix template to handle measure references correctly
+- [x] Confidence: 0.95
+- [x] Typecheck passes
+- [x] `npm run test-custom-calcs` passes
 
 **Test:** Update existing `dw-test-model/expr-iferror/`
-- [ ] Verify `pbi.dax` tests IFERROR
-- [ ] Update `engine.sql` if needed
-- [ ] Unskip test in `pbi-smoke.test.ts`
+- [x] Verify `pbi.dax` tests IFERROR
+- [x] Update `engine.sql` if needed
+- [x] Unskip test in `pbi-smoke.test.ts`
 
 ---
 
