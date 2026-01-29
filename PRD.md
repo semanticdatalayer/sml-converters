@@ -118,11 +118,11 @@ Each function is implemented separately for easy rollback, with dedicated tests 
 - [x] `npm run test-custom-calcs` passes
 
 **Test:** Create `dw-test-model/expr-sameperiodly/`
-- [ ] Add measure to `dw-test-model/model.bim`: `"Sales Same Period Last Year": "CALCULATE([Total Sales], SAMEPERIODLASTYEAR(DATE_DIM[D_DATE]))"`
-- [ ] `pbi.dax` with SAMEPERIODLASTYEAR query
-- [ ] `engine.sql` with equivalent AtScale query
-- [ ] Empty `expected.csv`
-- [ ] Add test case to `pbi-smoke.test.ts`
+- [x] Add measure to `dw-test-model/model.bim`: `"Sales Same Period Last Year": "CALCULATE([Total Sales], SAMEPERIODLASTYEAR(DATE_DIM[D_DATE]))"` (already exists)
+- [x] `pbi.dax` with SAMEPERIODLASTYEAR query
+- [x] `engine.sql` with equivalent AtScale query
+- [x] Empty `expected.csv`
+- [x] Add test case to `pbi-smoke.test.ts`
 
 ---
 

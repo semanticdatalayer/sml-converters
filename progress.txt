@@ -78,6 +78,7 @@
 | After TOTALYTD | 56% | +2 measures, YTD Sales now converts |
 | After TOTALMTD | 57% | MTD Sales now converts |
 | After TOTALQTD | 59% | QTD Sales now converts |
+| After SAMEPERIODLASTYEAR | 60% | Sales Same Period Last Year now converts |
 | After all time intel | - | |
 | Final | - | Target: 50%+ |
 
@@ -120,4 +121,31 @@
 - Learnings:
   - Measure "QTD Sales" already existed in model.bim
   - Test queries use D_YEAR + D_QOY for quarter-level aggregation
+---
+
+## Iteration 8 - US-005: SAMEPERIODLASTYEAR Template
+- Implemented SamePeriodLastYearTemplate in sameperiodlastyear-template.ts
+- Converts CALCULATE([measure], SAMEPERIODLASTYEAR(Table[DateCol])) to (ParallelPeriod([dim].[hier].[Year], 1, [dim].[hier].CurrentMember), [Measures].[measure])
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/sameperiodlastyear-template.ts (new)
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/template-registry.ts
+- Learnings:
+  - SAMEPERIODLASTYEAR is typically wrapped in CALCULATE, need to handle both standalone and wrapped usage
+  - Uses ParallelPeriod with [Year] level and offset 1 to shift back one year
+  - SAMEPERIODLASTYEAR was already in function-mappings.json complex_patterns
+  - Measure "Sales Same Period Last Year" already existed in model.bim
+  - Conversion rate: 60% (41/68 converted)
+---
+
+## Iteration 9 - US-005 Test: SAMEPERIODLASTYEAR test files
+- Created expr-sameperiodly test directory with pbi.dax, engine.sql, expected.csv
+- Added test case to pbi-smoke.test.ts
+- Files changed (in AtScaleInc/SML repo):
+  - dw-test-model/expr-sameperiodly/pbi.dax (new)
+  - dw-test-model/expr-sameperiodly/engine.sql (new)
+  - dw-test-model/expr-sameperiodly/expected.csv (new)
+  - pbi-smoke.test.ts (added test case)
+- Learnings:
+  - Measure "Sales Same Period Last Year" already existed in model.bim with expression CALCULATE([Total Sales], SAMEPERIODLASTYEAR(DATE_DIM[D_DATE]))
+  - Test queries use D_YEAR only for year-level aggregation
 ---
