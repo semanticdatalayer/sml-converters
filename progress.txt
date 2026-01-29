@@ -2,70 +2,55 @@
 
 ## Learnings
 
-(Patterns discovered during implementation)
-
-- SML CLI dev path: `/Users/dianne/go/src/github.com/AtScaleInc/SML/apps/cli/bin/dev.js`
-- SML CLI requires ATSCALE_API_URL and ATSCALE_API_TOKEN env vars
-- SML project must be a git repo with remote origin for deploy
-- Validation errors use ICompilationOutput interface with severity, message, context
+- Dimensions have unique_name like `dimension.{tableName}` and hierarchies like `{tableName} Hierarchy`
+- Use makeUniqueName() to generate proper SML unique names
+- ConversionContext provides access to result.dimensions for lookups
+- Templates use result via ConversionContext for cross-object resolution
 
 ---
 
-## Iteration 1 - US-001: Copy test BIM file locally
-- Copied `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter/src/test-suites/pbi-smoke/dw-test-model/model.bim` to `test-files/pbi_dw_test_model.bim`
-- File is 229KB, valid JSON
-- Files changed: test-files/pbi_dw_test_model.bim (new)
+## Iteration 1 - US-001: Dimension Column Reference Resolution
+- Implemented resolveDimensionHierarchy() in converter-utils.ts
+- Resolution strategy: 1) lookup by dim.label, 2) lookup by level_attribute.dataset, 3) fallback to convention
+- Files changed: src/commands/bim-to-sml/bim-converter/converter-utils.ts
 - Learnings:
-  - Test BIM file comes from SML repo's test-suites
-  - `npm run build` runs tsc typecheck
+  - Dimensions created with label = bimTable.name, unique_name = dimension.{tableName}
+  - Hierarchies have unique_name = {tableName} Hierarchy (with makeUniqueName)
+  - Level attributes have dataset = dataset.{tableName}
 ---
 
-## Iteration 2 - US-002: Research SML CLI deploy command
-- Researched SML CLI atscale-deploy command in /Users/dianne/go/src/github.com/AtScaleInc/SML/apps/cli
-- Documented command syntax, env vars, API endpoint and error format
-- Files changed: PRD.md (updated with findings)
+## Implementation Order
+
+1. US-001: Dimension column reference resolution (prerequisite)
+2. US-008: Fix IFERROR (quick win)
+3. US-002: TOTALYTD
+4. US-003: TOTALMTD
+5. US-004: TOTALQTD
+6. US-005: SAMEPERIODLASTYEAR
+7. US-006: PREVIOUSMONTH
+8. US-007: PARALLELPERIOD
+9. US-009: Additional easy wins
+
+## Iteration 2 - US-002: TOTALYTD Template
+- Implemented TotalYtdTemplate in totalytd-template.ts
+- Converts TOTALYTD([measure], Table[DateCol]) to Sum(YTD([dim].[hier].CurrentMember), [Measures].[measure])
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/totalytd-template.ts (new)
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/template-registry.ts
+  - src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts (fix Stage 1 to skip complex patterns)
 - Learnings:
-  - Command: `sml-cli atscale-deploy [FILEPATH]`
-  - Env vars: ATSCALE_API_URL, ATSCALE_API_TOKEN
-  - SML project must be git repo with remote origin
-  - Deploy API: POST /v1/public/catalogs
-  - Errors returned via ResponseError with JSON body
-  - Compilation errors via ICompilationOutput (severity, message, context)
+  - Stage 1 (direct conversion) was trying to convert ALL function args before checking templates
+  - This caused dimension column refs to throw before templates could handle them
+  - Fix: Skip complex pattern functions in Stage 1 to let Stage 3 templates handle them
+  - resolveDimensionHierarchy() works correctly for mapping TableColumnReference to MDX hierarchy ref
 ---
 
-## Iteration 3 - US-003: Create deploy-test script
-- Created `scripts/deploy-test.ts` - converts BIM to SML and deploys to AtScale
-- Added `npm run deploy-test` script to package.json
-- Script flow: convert BIM -> init git repo -> run sml-cli deploy -> parse errors
-- Files changed: scripts/deploy-test.ts (new), package.json, PRD.md
-- Learnings:
-  - SML output dir must be a git repo with remote origin for deploy to work
-  - SML CLI deploy command is `deploy` not `atscale-deploy`
-  - Errors parsed from CLI stdout/stderr with [ERROR]/[WARNING] prefix format
-  - test-custom-calcs uses dw_test_model.bim; deploy-test defaults to pbi_dw_test_model.bim
----
+## Conversion Rate Tracking
 
-## Iteration 4 - US-004: Run initial deployment and capture errors
-- Ran deploy-test with --validate-only mode (AtScale not running locally)
-- SML validation passes with zero errors
-- Captured 29 unconverted expressions to deployment-errors.json
-- Files changed: PRD.md, scripts/deploy-test.ts, test-files/deployment-errors.json (new)
-- Learnings:
-  - SML CLI command is `atscale-deploy` not `deploy`
-  - `sml-cli validate` command can check SML without needing AtScale running
-  - 27 of 32 TODOs are "dimension column reference" errors - these are expected/non-goals
-  - Remaining 5 TODOs: IFERROR(1), ISCROSSFILTERED(1), CALCULATE+FILTER(1), VAR/RETURN(1), SUMX non-VALUES(1)
-  - `0 /* TODO: ... */` format is valid SML and passes validation
-  - 53% conversion rate (36/68 measures fully converted)
----
-
-## Iteration 5 - US-005 through US-009: Final validation and cleanup
-- US-005/006/007/008: SKIPPED - No schema errors to fix (TODOs are expected per Non-Goals)
-- US-009: Added deploy-test documentation to scripts/README.md
-- All PRD tasks now complete
-- Files changed: PRD.md, scripts/README.md
-- Learnings:
-  - Success criteria was "zero schema errors" not "zero TODOs"
-  - SML validates successfully, achieving the PRD goal
-  - 32 TODOs remain but are expected/acceptable per PRD configuration
----
+| Checkpoint | Rate | Notes |
+|------------|------|-------|
+| Baseline | 44% | Before changes |
+| After IFERROR | - | |
+| After TOTALYTD | 56% | +2 measures, YTD Sales now converts |
+| After all time intel | - | |
+| Final | - | Target: 50%+ |

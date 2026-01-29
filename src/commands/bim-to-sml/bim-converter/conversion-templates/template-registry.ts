@@ -9,6 +9,7 @@ import { LogicalTemplate } from "./templates/logical-template";
 import { IteratorAggregateTemplate } from "./templates/iterator-aggregate-template";
 import { InOperatorTemplate } from "./templates/in-operator-template";
 import { ConcatenateTemplate } from "./templates/concatenate-template";
+import { TotalYtdTemplate } from "./templates/totalytd-template";
 import { DaxToken, DaxTokenizer } from "../dax-converter";
 import {
   ConversionResult,
@@ -68,9 +69,7 @@ export class TemplateRegistry {
     this.registerTemplate(new IteratorAggregateTemplate());
     this.registerTemplate(new InOperatorTemplate());
     this.registerTemplate(new ConcatenateTemplate());
-
-    // Future templates can be added here:
-    // this.registerTemplate(new TimeIntelligenceTemplate());
+    this.registerTemplate(new TotalYtdTemplate());
   }
 
   /**

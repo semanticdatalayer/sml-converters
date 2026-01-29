@@ -211,6 +211,16 @@ export class ConversionPipeline {
     // For aggregate functions (SUM, COUNT, etc.), pass the function name so that
     // TableColumnReference can create metrics with the correct aggregation type
     const funcName = token.functionAgg.trim().toUpperCase();
+
+    // Skip complex pattern functions (TOTALYTD, CALCULATE, etc.) - these have templates
+    // and should not have their arguments converted in Stage 1 as some arguments
+    // (like dimension column references) are handled specially by templates
+    if (this.directConverter.isComplexPattern(funcName)) {
+      return failedConversion(
+        `Function ${funcName} requires template conversion`,
+        funcName,
+      );
+    }
     const parentAggFn = ConversionPipeline.AGGREGATE_FUNCTIONS.has(funcName)
       ? funcName
       : undefined;
