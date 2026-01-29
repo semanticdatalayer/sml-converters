@@ -11,6 +11,7 @@ import { InOperatorTemplate } from "./templates/in-operator-template";
 import { ConcatenateTemplate } from "./templates/concatenate-template";
 import { TotalYtdTemplate } from "./templates/totalytd-template";
 import { TotalMtdTemplate } from "./templates/totalmtd-template";
+import { TotalQtdTemplate } from "./templates/totalqtd-template";
 import { DaxToken, DaxTokenizer } from "../dax-converter";
 import {
   ConversionResult,
@@ -72,6 +73,7 @@ export class TemplateRegistry {
     this.registerTemplate(new ConcatenateTemplate());
     this.registerTemplate(new TotalYtdTemplate());
     this.registerTemplate(new TotalMtdTemplate());
+    this.registerTemplate(new TotalQtdTemplate());
   }
 
   /**

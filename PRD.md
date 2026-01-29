@@ -85,12 +85,12 @@ Each function is implemented separately for easy rollback, with dedicated tests 
 **MDX:** `Sum(QTD([dimension.DATE_DIM].[DATE_DIM].CurrentMember), [Measures].[Total Sales])`
 
 **Acceptance Criteria:**
-- [ ] Create `totalqtd-template.ts`
-- [ ] Register in `template-registry.ts`
-- [ ] Add to `complex_patterns` in `function-mappings.json`
-- [ ] Confidence: 0.95
-- [ ] Typecheck passes
-- [ ] `npm run test-custom-calcs` passes
+- [x] Create `totalqtd-template.ts`
+- [x] Register in `template-registry.ts`
+- [x] Add to `complex_patterns` in `function-mappings.json`
+- [x] Confidence: 0.95
+- [x] Typecheck passes
+- [x] `npm run test-custom-calcs` passes
 
 **Test:** Create `dw-test-model/expr-totalqtd/`
 - [ ] Add measure to `dw-test-model/model.bim`: `"QTD Sales": "TOTALQTD([Total Sales], DATE_DIM[D_DATE])"`

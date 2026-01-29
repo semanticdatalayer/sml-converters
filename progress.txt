@@ -57,6 +57,18 @@
   - MTD Sales now converts successfully
 ---
 
+## Iteration 4 - US-004: TOTALQTD Template
+- Implemented TotalQtdTemplate in totalqtd-template.ts
+- Converts TOTALQTD([measure], Table[DateCol]) to Sum(QTD([dim].[hier].CurrentMember), [Measures].[measure])
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/totalqtd-template.ts (new)
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/template-registry.ts
+- Learnings:
+  - Identical pattern to TOTALYTD/TOTALMTD, just uses QTD() instead
+  - TOTALQTD already in function-mappings.json complex_patterns
+  - QTD Sales now converts successfully
+---
+
 ## Conversion Rate Tracking
 
 | Checkpoint | Rate | Notes |
@@ -65,5 +77,6 @@
 | After IFERROR | - | |
 | After TOTALYTD | 56% | +2 measures, YTD Sales now converts |
 | After TOTALMTD | 57% | MTD Sales now converts |
+| After TOTALQTD | 59% | QTD Sales now converts |
 | After all time intel | - | |
 | Final | - | Target: 50%+ |
