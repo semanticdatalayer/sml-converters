@@ -236,20 +236,20 @@ Each function is implemented separately for easy rollback, with dedicated tests 
 **MDX:** `Tail(NonEmpty([dimension.Table].[Table].Members, [Measures].[Column]), 1)`
 
 **Acceptance Criteria:**
-- [ ] Create `lastnonblank-template.ts`
-- [ ] Handle column reference as first argument
-- [ ] Register in `template-registry.ts`
-- [ ] Add to `complex_patterns` in `function-mappings.json`
-- [ ] Confidence: 0.85 (semi-additive semantics may differ)
-- [ ] Typecheck passes
-- [ ] `npm run test-custom-calcs` passes
+- [x] Create `lastnonblank-template.ts`
+- [x] Handle column reference as first argument
+- [x] Register in `template-registry.ts`
+- [x] Add to `complex_patterns` in `function-mappings.json`
+- [x] Confidence: 0.85 (semi-additive semantics may differ)
+- [x] Typecheck passes
+- [x] `npm run test-custom-calcs` passes
 
 **Test:** Create `dw-test-model/expr-lastnonblank/`
-- [ ] Add measure to `dw-test-model/model.bim` with LASTNONBLANK pattern
-- [ ] `pbi.dax` with LASTNONBLANK query
-- [ ] `engine.sql` with equivalent AtScale query
-- [ ] Empty `expected.csv`
-- [ ] Add test case to `pbi-smoke.test.ts`
+- [x] Add measure to `dw-test-model/model.bim` with LASTNONBLANK pattern
+- [x] `pbi.dax` with LASTNONBLANK query
+- [x] `engine.sql` with equivalent AtScale query
+- [x] Empty `expected.csv`
+- [x] Add test case to `pbi-smoke.test.ts`
 
 ---
 

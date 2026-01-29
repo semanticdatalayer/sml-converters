@@ -17,6 +17,7 @@ import { PreviousMonthTemplate } from "./templates/previousmonth-template";
 import { ParallelPeriodTemplate } from "./templates/parallelperiod-template";
 import { ClosingBalanceMonthTemplate } from "./templates/closingbalancemonth-template";
 import { DateAddTemplate } from "./templates/dateadd-template";
+import { LastNonBlankTemplate } from "./templates/lastnonblank-template";
 import { DaxToken, DaxTokenizer } from "../dax-converter";
 import {
   ConversionResult,
@@ -84,6 +85,7 @@ export class TemplateRegistry {
     this.registerTemplate(new ParallelPeriodTemplate());
     this.registerTemplate(new ClosingBalanceMonthTemplate());
     this.registerTemplate(new DateAddTemplate());
+    this.registerTemplate(new LastNonBlankTemplate());
   }
 
   /**
