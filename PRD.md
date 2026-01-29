@@ -185,20 +185,20 @@ Each function is implemented separately for easy rollback, with dedicated tests 
 **MDX:** `(ClosingPeriod([dimension.DATE_DIM].[DATE_DIM].[Month]), [Measures].[SS_NET_PAID])`
 
 **Acceptance Criteria:**
-- [ ] Create `closingbalancemonth-template.ts`
-- [ ] Handle the measure expression as first argument
-- [ ] Register in `template-registry.ts`
-- [ ] Add to `complex_patterns` in `function-mappings.json`
-- [ ] Confidence: 0.9
-- [ ] Typecheck passes
-- [ ] `npm run test-custom-calcs` passes
+- [x] Create `closingbalancemonth-template.ts`
+- [x] Handle the measure expression as first argument
+- [x] Register in `template-registry.ts`
+- [x] Add to `complex_patterns` in `function-mappings.json`
+- [x] Confidence: 0.9
+- [x] Typecheck passes
+- [x] `npm run test-custom-calcs` passes
 
 **Test:** Create `dw-test-model/expr-closingbalance/`
-- [ ] Add measure to `dw-test-model/model.bim`: `"Closing Balance Sales": "CLOSINGBALANCEMONTH(SUM(STORE_SALES[SS_NET_PAID]), DATE_DIM[D_DATE])"`
-- [ ] `pbi.dax` with CLOSINGBALANCEMONTH query
-- [ ] `engine.sql` with equivalent AtScale query
-- [ ] Empty `expected.csv`
-- [ ] Add test case to `pbi-smoke.test.ts`
+- [x] Add measure to `dw-test-model/model.bim`: `"Closing Balance Sales": "CLOSINGBALANCEMONTH(SUM(STORE_SALES[SS_NET_PAID]), DATE_DIM[D_DATE])"` (already exists)
+- [x] `pbi.dax` with CLOSINGBALANCEMONTH query
+- [x] `engine.sql` with equivalent AtScale query
+- [x] Empty `expected.csv`
+- [x] Add test case to `pbi-smoke.test.ts`
 
 ---
 
@@ -210,21 +210,21 @@ Each function is implemented separately for easy rollback, with dedicated tests 
 **MDX:** `([dimension.DATE_DIM].[DATE_DIM].CurrentMember.Lag(7), [Measures].[Total Sales])`
 
 **Acceptance Criteria:**
-- [ ] Create `dateadd-template.ts`
-- [ ] Map DAX intervals (DAY, MONTH, QUARTER, YEAR) to appropriate MDX Lag/Lead
-- [ ] Handle negative offsets
-- [ ] Register in `template-registry.ts`
-- [ ] Add to `complex_patterns` in `function-mappings.json`
-- [ ] Confidence: 0.9
-- [ ] Typecheck passes
-- [ ] `npm run test-custom-calcs` passes
+- [x] Create `dateadd-template.ts`
+- [x] Map DAX intervals (DAY, MONTH, QUARTER, YEAR) to appropriate MDX Lag/Lead
+- [x] Handle negative offsets
+- [x] Register in `template-registry.ts`
+- [x] Add to `complex_patterns` in `function-mappings.json`
+- [x] Confidence: 0.9
+- [x] Typecheck passes
+- [x] `npm run test-custom-calcs` passes
 
 **Test:** Create `dw-test-model/expr-dateadd/`
-- [ ] Add measure to `dw-test-model/model.bim`: `"Sales 7 Days Ago": "CALCULATE([Total Sales], DATEADD(DATE_DIM[D_DATE], -7, DAY))"`
-- [ ] `pbi.dax` with DATEADD query
-- [ ] `engine.sql` with equivalent AtScale query
-- [ ] Empty `expected.csv`
-- [ ] Add test case to `pbi-smoke.test.ts`
+- [x] Add measure to `dw-test-model/model.bim`: `"Sales 7 Days Ago": "CALCULATE([Total Sales], DATEADD(DATE_DIM[D_DATE], -7, DAY))"`
+- [x] `pbi.dax` with DATEADD query
+- [x] `engine.sql` with equivalent AtScale query
+- [x] Empty `expected.csv`
+- [x] Add test case to `pbi-smoke.test.ts`
 
 ---
 

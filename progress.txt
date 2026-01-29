@@ -80,6 +80,8 @@
 | After TOTALQTD | 59% | QTD Sales now converts |
 | After SAMEPERIODLASTYEAR | 60% | Sales Same Period Last Year now converts |
 | After PREVIOUSMONTH | 62% | Sales Previous Month now converts |
+| After PARALLELPERIOD | 63% | Sales Parallel Period LY now converts |
+| After CLOSINGBALANCEMONTH | 65% | Closing Balance Month Sales now converts |
 | After all time intel | - | |
 | Final | - | Target: 50%+ |
 
@@ -182,4 +184,44 @@
   - PARALLELPERIOD was already in function-mappings.json complex_patterns
   - Measure "Sales Parallel Period LY" already existed in model.bim
   - Conversion rate: 63% (43/68 converted)
+---
+
+## Iteration 12 - US-008: CLOSINGBALANCEMONTH Template
+- Implemented ClosingBalanceMonthTemplate in closingbalancemonth-template.ts
+- Converts CLOSINGBALANCEMONTH(measure_expr, Table[DateCol]) to (ClosingPeriod([dim].[hier].[Month]), measure_mdx)
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/closingbalancemonth-template.ts (new)
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/template-registry.ts
+- Learnings:
+  - CLOSINGBALANCEMONTH already in function-mappings.json complex_patterns
+  - Measure "Closing Balance Month Sales" already existed in model.bim
+  - Uses ClosingPeriod MDX function with [Month] level
+  - Conversion rate: 65% (44/68 converted)
+- Test files created (in AtScaleInc/SML repo):
+  - dw-test-model/expr-closingbalance/pbi.dax (new)
+  - dw-test-model/expr-closingbalance/engine.sql (new)
+  - dw-test-model/expr-closingbalance/expected.csv (new)
+  - pbi-smoke.test.ts (added test case)
+---
+
+## Iteration 13 - US-009: DATEADD Template
+- Implemented DateAddTemplate in dateadd-template.ts
+- Converts CALCULATE([measure], DATEADD(Table[DateCol], offset, interval)) to MDX Lag/Lead pattern
+- Negative offset in DAX (go back in time) maps to Lag() in MDX
+- Positive offset in DAX (go forward in time) maps to Lead() in MDX
+- Files changed (in sml-converters repo):
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/dateadd-template.ts (new)
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/template-registry.ts
+  - test-files/dw_test_model.bim (added "Sales 7 Days Ago" measure)
+- Test files created (in AtScaleInc/SML repo):
+  - dw-test-model/model.bim (added "Sales 7 Days Ago" measure)
+  - dw-test-model/expr-dateadd/pbi.dax (new)
+  - dw-test-model/expr-dateadd/engine.sql (new)
+  - dw-test-model/expr-dateadd/expected.csv (new)
+  - pbi-smoke.test.ts (added test case)
+- Learnings:
+  - DATEADD was already in function-mappings.json complex_patterns
+  - Pattern similar to PARALLELPERIOD but uses Lag/Lead instead of ParallelPeriod
+  - Test model.bim is in test-files/ directory for sml-converters, AtScaleInc/SML has separate copy
+  - Conversion rate: 65% (45/69 converted)
 ---

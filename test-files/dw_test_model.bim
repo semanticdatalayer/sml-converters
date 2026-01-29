@@ -3208,6 +3208,13 @@
             "lineageTag": "eeb7a055-dbcd-4c03-b2b6-e79eff7d2a64"
           },
           {
+            "name": "Sales 7 Days Ago",
+            "expression": "CALCULATE([Total Sales], DATEADD(DATE_DIM[D_DATE], -7, DAY))",
+            "formatString": "#,##0.00",
+            "displayFolder": "Time Intelligence",
+            "lineageTag": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          {
             "name": "Sales Date Range",
             "expression": "CALCULATE([Total Sales], DATESBETWEEN(DATE_DIM[D_DATE], BLANK(), LASTDATE(DATE_DIM[D_DATE])))",
             "formatString": "#,##0.00",
