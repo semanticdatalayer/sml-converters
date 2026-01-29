@@ -94,3 +94,30 @@
   - Measure "YTD Sales" already existed in model.bim
   - Test uses SUMMARIZECOLUMNS for Power BI DAX query format
 ---
+
+## Iteration 6 - US-003 Test: TOTALMTD test files
+- Created expr-totalmtd test directory with pbi.dax, engine.sql, expected.csv
+- Added test case to pbi-smoke.test.ts
+- Files changed (in AtScaleInc/SML repo):
+  - dw-test-model/expr-totalmtd/pbi.dax (new)
+  - dw-test-model/expr-totalmtd/engine.sql (new)
+  - dw-test-model/expr-totalmtd/expected.csv (new)
+  - pbi-smoke.test.ts (added test case)
+- Learnings:
+  - Measure "MTD Sales" already existed in model.bim
+  - SML repo commit messages must be lowercase (subject-case linting)
+  - Test queries use D_YEAR + D_MOY for month-level aggregation
+---
+
+## Iteration 7 - US-004 Test: TOTALQTD test files
+- Created expr-totalqtd test directory with pbi.dax, engine.sql, expected.csv
+- Added test case to pbi-smoke.test.ts
+- Files changed (in AtScaleInc/SML repo):
+  - dw-test-model/expr-totalqtd/pbi.dax (new)
+  - dw-test-model/expr-totalqtd/engine.sql (new)
+  - dw-test-model/expr-totalqtd/expected.csv (new)
+  - pbi-smoke.test.ts (added test case)
+- Learnings:
+  - Measure "QTD Sales" already existed in model.bim
+  - Test queries use D_YEAR + D_QOY for quarter-level aggregation
+---
