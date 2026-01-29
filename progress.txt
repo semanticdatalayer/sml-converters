@@ -45,6 +45,18 @@
   - resolveDimensionHierarchy() works correctly for mapping TableColumnReference to MDX hierarchy ref
 ---
 
+## Iteration 3 - US-003: TOTALMTD Template
+- Implemented TotalMtdTemplate in totalmtd-template.ts
+- Converts TOTALMTD([measure], Table[DateCol]) to Sum(MTD([dim].[hier].CurrentMember), [Measures].[measure])
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/templates/totalmtd-template.ts (new)
+  - src/commands/bim-to-sml/bim-converter/conversion-templates/template-registry.ts
+- Learnings:
+  - Identical pattern to TOTALYTD, just uses MTD() instead of YTD()
+  - TOTALMTD already in function-mappings.json complex_patterns
+  - MTD Sales now converts successfully
+---
+
 ## Conversion Rate Tracking
 
 | Checkpoint | Rate | Notes |
@@ -52,5 +64,6 @@
 | Baseline | 44% | Before changes |
 | After IFERROR | - | |
 | After TOTALYTD | 56% | +2 measures, YTD Sales now converts |
+| After TOTALMTD | 57% | MTD Sales now converts |
 | After all time intel | - | |
 | Final | - | Target: 50%+ |

@@ -10,6 +10,7 @@ import { IteratorAggregateTemplate } from "./templates/iterator-aggregate-templa
 import { InOperatorTemplate } from "./templates/in-operator-template";
 import { ConcatenateTemplate } from "./templates/concatenate-template";
 import { TotalYtdTemplate } from "./templates/totalytd-template";
+import { TotalMtdTemplate } from "./templates/totalmtd-template";
 import { DaxToken, DaxTokenizer } from "../dax-converter";
 import {
   ConversionResult,
@@ -70,6 +71,7 @@ export class TemplateRegistry {
     this.registerTemplate(new InOperatorTemplate());
     this.registerTemplate(new ConcatenateTemplate());
     this.registerTemplate(new TotalYtdTemplate());
+    this.registerTemplate(new TotalMtdTemplate());
   }
 
   /**
