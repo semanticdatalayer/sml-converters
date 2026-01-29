@@ -109,13 +109,13 @@ Each function is implemented separately for easy rollback, with dedicated tests 
 **MDX:** `(ParallelPeriod([dimension.DATE_DIM].[DATE_DIM].[Year], 1, [dimension.DATE_DIM].[DATE_DIM].CurrentMember), [Measures].[Total Sales])`
 
 **Acceptance Criteria:**
-- [ ] Create `sameperiodlastyear-template.ts`
-- [ ] Handle standalone and CALCULATE-wrapped usage
-- [ ] Register in `template-registry.ts`
-- [ ] Add to `complex_patterns` in `function-mappings.json`
-- [ ] Confidence: 0.9
-- [ ] Typecheck passes
-- [ ] `npm run test-custom-calcs` passes
+- [x] Create `sameperiodlastyear-template.ts`
+- [x] Handle standalone and CALCULATE-wrapped usage
+- [x] Register in `template-registry.ts`
+- [x] Add to `complex_patterns` in `function-mappings.json`
+- [x] Confidence: 0.9
+- [x] Typecheck passes
+- [x] `npm run test-custom-calcs` passes
 
 **Test:** Create `dw-test-model/expr-sameperiodly/`
 - [ ] Add measure to `dw-test-model/model.bim`: `"Sales Same Period Last Year": "CALCULATE([Total Sales], SAMEPERIODLASTYEAR(DATE_DIM[D_DATE]))"`
