@@ -94,6 +94,10 @@ export class FunctionToken extends DaxToken {
     // in the conversion pipeline, which preserves the function wrapper.
 
     switch (this.functionAgg.replace(" ", "").toLowerCase()) {
+      case "blank":
+        // DAX BLANK() → MDX NULL
+        // BLANK() returns a null value in DAX, which is NULL in MDX
+        return "NULL";
       case "round":
         return `ROUND(${this.args[0].toMdx(info)}, ${this.args[2].toMdx(
           info,
@@ -110,10 +114,29 @@ export class FunctionToken extends DaxToken {
         const daxFuncUpper = this.functionAgg.toUpperCase();
         const mappings = getFunctionMappings();
         const mdxFuncName = mappings.get(daxFuncUpper) || daxFuncUpper;
+
+        // Convert arguments first
+        const convertedArgs = this.args.map((arg) => arg.toMdx(info));
+
+        // Special handling for aggregate functions (SUM, MIN, MAX, AVG, COUNT, etc.)
+        // When the argument is a measure reference, unwrap - the measure already has aggregation
+        // AtScale MDX Sum/Min/Max/Avg require 2 args, so Sum([Measures].[X]) is invalid
+        const aggregateFunctions = new Set([
+          "SUM", "MIN", "MAX", "AVG", "AVERAGE", "COUNT", "DISTINCTCOUNT",
+        ]);
+        if (aggregateFunctions.has(daxFuncUpper)) {
+          // Filter out CommaTokens to get actual arguments
+          const actualArgs = convertedArgs.filter((_, i) =>
+            !(this.args[i] instanceof CommaToken)
+          );
+          if (actualArgs.length === 1 && actualArgs[0].startsWith("[Measures].[")) {
+            // Return just the measure reference - aggregation is in the metric definition
+            return actualArgs[0];
+          }
+        }
+
         // args array includes CommaTokens, so join with "" not ", "
-        return `${mdxFuncName}(${this.args
-          .map((arg) => arg.toMdx(info))
-          .join("")})`;
+        return `${mdxFuncName}(${convertedArgs.join("")})`;
       }
     }
   }
@@ -396,6 +419,9 @@ export class OperatorToken extends DaxToken {
         return " OR ";
       case "!=":
         return "<>";
+      case "&":
+        // DAX uses & for string concatenation, MDX uses +
+        return " + ";
       default:
         return this.value;
     }

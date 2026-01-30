@@ -1,131 +1,104 @@
 # Progress Log
 
-## Learnings
+## Learnings (from previous sessions)
 
 - EDATE DAX function was not in unconvertible list, causing invalid MDX to be generated
 - AtScale MDX does not have an EDATE equivalent for measure expressions
 - DAX uses "N/A" strings as null indicators; MDX uses NULL - need to transform comparisons
-
----
-
-## Session: Fix N/A String-as-Null Pattern Type Mismatch
-
-**Initial Error:**
-```
-IfFunction requires both results to be of the same type:
-[ConstantValue[StringType](N/A): StringType] ,
-[SwitchConditional(...): IntType]
-```
-
-**Root cause:** DAX pattern `IF([Measure] = "N/A", "N/A", numeric_expr)` produces MDX with type mismatch. The IFERROR template converts `"N/A"` fallback to NULL, but downstream measures still compare against `"N/A"` string.
-
-**Fix needed:** Transform conditions like `[Measure] = "N/A"` to `ISEMPTY([Measure])` in IF/SWITCH templates.
-
----
-
-## Iteration 1 - US-001: Add transformNullPlaceholderComparison helper method
-- Added `transformNullPlaceholderComparison(conditionMdx: string)` method to IfTemplate
-- Handles both orderings: `<expr> = "N/A"` and `"N/A" = <expr>`
-- Uses regex to match all NULL_PLACEHOLDER_STRINGS (N/A, n/a, NA, na, -, "")
-- Transforms matched patterns to `ISEMPTY(<expr>)`
-- Files changed: if-template.ts, PRD.md
-- Learnings:
-  - NULL_PLACEHOLDER_STRINGS set was already defined and reusable
-  - Regex needs to escape special chars when building from the set
-  - Method is public to allow use from convert() in next US
----
-
-## Iteration 2 - US-002: Transform N/A comparisons to ISEMPTY in IfTemplate
-- Integrated `transformNullPlaceholderComparison()` into `convert()` method
-- After converting condition via `convertSubExpression()`, now calls transform method
-- Changed `conditionMdx` from `const` to `let` to allow reassignment
-- Files changed: if-template.ts, PRD.md
-- Learnings:
-  - Simple 3-line integration - just call the helper after conversion
-  - Existing null-placeholder-to-NULL logic for true/false branches still works
-  - Tests pass with 63% conversion rate (unchanged from before)
----
-
-## Iteration 3 - US-003: Validate mol.bim.json conversion and deploy
-- Ran conversion - `Total margin with SC - change compared to plan (%)` now uses `ISEMPTY()` correctly
-- Deploy failed with NEW error on `CAPEX utilisation - measures`
-- New error: `IfFunction requires both results to be of the same type: [ConstantValue[StringType](CAPEX UTILISATION): StringType] , [SwitchConditional(...): DoubleType]`
-- Root cause: DAX SWITCH returns BOTH string labels (e.g. "CAPEX UTILISATION") AND numeric measures in different cases
-- This is a fundamentally different pattern - not N/A-as-null, but mixed-type UI labels
-- Original DAX: `SWITCH([Selector], 1, "CAPEX UTILISATION", 2, [NumericMeasure], 3, "N/A", ...)`
-- The converter correctly turns "N/A" → NULL but leaves label strings as strings
-- Learnings:
-  - DAX supports mixed-type SWITCH returns (strings AND numbers)
-  - MDX/AtScale requires type consistency across all branches
-  - Need follow-up story to handle UI label strings in SWITCH statements
----
-
-## Iteration 4 - US-004: Handle mixed-type SWITCH with UI label strings
-- Added `isStringLiteral()` method to SwitchTemplate
-- Updated type normalization to convert ANY string literal to NULL in numeric context
-- Changed from `isNullPlaceholderString` to `isStringLiteral` for type normalization
-- Files changed: switch-template.ts
-- Result: CAPEX utilisation error FIXED - now uses NULL instead of "CAPEX UTILISATION"
-- Deploy hit NEW error: `Constructor function not defined at value` on `Number of special transactions for PL interim - actual`
-- Root cause: DAX `VALUE()` function incorrectly converted - MDX doesn't have VALUE equivalent
-- Learnings:
-  - MDX requires type consistency; converting ALL string literals to NULL in numeric SWITCH works
-  - New issue: DAX VALUE() function needs to be added to unconvertible list or handled specially
----
-
-## Iteration 5 - US-005: Add VALUE function to unconvertible DAX functions
-- Added VALUE to unconvertible list in function-mappings.json
-- Files changed: function-mappings.json
-- Result: VALUE error FIXED - measure now falls back to TODO stub
-- Deploy hit NEW error: `'CloseParen' expected but Comma found` on `Write-off in selling price - average per ses wo filter`
-- Root cause: CALCULATE with ALL(Table[Column]) produces malformed MDX tuple syntax
-- Generated MDX: `([dimension].[Hierarchy].[All], (division))` - comma is wrong
-- Learnings:
-  - function-mappings.json is the central place to mark functions as unconvertible
-  - The CALCULATE with ALL filter context conversion has a bug in tuple syntax
----
-
-## Iteration 6 - US-006: Reject CALCULATE with ALL() filters
-- Modified calculate-template to reject ALL() filters (AtScale MDX doesn't support tuple syntax in calculations)
-- Conversion rate dropped from 63% to 57% (expected - safer fallback to TODO)
-- Files changed: calculate-template.ts
-- Result: Tuple syntax error FIXED
-- Deploy hit NEW error: `Measure SUPPLIER_ID in calculation is not a measure`
-- Root cause: Fact table column in CALCULATE filter incorrectly referenced as [Measures].[SUPPLIER_ID]
-- DAX: `CALCULATE(SUM(fact[col]), fact[SUPPLIER_ID] > 0)` - filter on fact table column
-- MDX has no direct equivalent for fact table column filters (row-level filtering vs. aggregated data)
-- Learnings:
-  - ALL() filter removal is safest to reject until proper scoping is implemented
-  - Fact table columns in CALCULATE filters need special handling - cannot simply use [Measures].[X]
----
-
-## Iteration 7 - US-007: Handle fact table column references in CALCULATE filters
-- Added check in `isSimpleComparisonFilter()` to detect fact table column references
-- Fact tables are identified as tables on left side of relationships but not right side
-- Modified method to accept ConversionContext for BIM model access
-- Files changed: calculate-template.ts
-- Result: **DEPLOYMENT SUCCEEDED!** 🎉
-- All errors fixed, mol.bim.json deploys successfully
-- Final conversion rate: 57% (tradeoff for correctness over coverage)
-- Learnings:
-  - Fact table columns cannot be used in MDX calculation filters
-  - MDX works on aggregated data, not row-level filtering
-  - Better to fallback to TODO than produce invalid MDX
----
-
-## SESSION COMPLETE
-
-**Summary of fixes applied:**
-1. US-001/002: Transform N/A comparisons to ISEMPTY in IF conditions
-2. US-003: Validated original fix works
-3. US-004: Convert ALL string literals to NULL in mixed-type SWITCH
-4. US-005: Add VALUE to unconvertible functions
-5. US-006: Reject CALCULATE with ALL() filters
-6. US-007: Reject CALCULATE with fact table column filters
-
-**Key learnings for future work:**
 - AtScale MDX is stricter than standard MDX - test deployments early
 - DAX filter context modifications (ALL, column filters) don't translate to MDX
 - Type consistency is critical - MDX IIF requires same type in both branches
 - Fallback to TODO stub is safer than producing invalid MDX
+- DAX BLANK() in nested expressions needs toMdx() handling → NULL
+- DAX & operator for string concat → MDX + operator
+
+---
+
+## Session: Deploy BIM Files from /fails Directory
+
+### Files Status
+
+| File | Status | Stories Completed |
+|------|--------|-------------------|
+| Trek_bim.json | future work | US-001 |
+| PTM_bim.json | deployed | US-002 |
+| test_bim.json | pending | - |
+| Ulta_bim.json | pending | - |
+| POC_bim.json | pending | - |
+| PFM_from_Daniel_bim.json | pending | - |
+
+---
+
+## Future Work
+
+(Items requiring significant new functionality - out of scope for this PRD)
+
+### Trek_bim.json - Relationship-less BIM file support
+- **Issue**: BIM file has 4 tables but NO relationships between them
+- **Converter behavior**: Skips all tables when no relationships exist (produces model with 0 datasets/dimensions)
+- **Error**: Deploy fails with "Invalid xml format" because model has no data sources
+- **Required work**: New functionality to handle BIM files without relationships
+  - Need heuristics to classify standalone tables as fact vs dimension
+  - Or treat all standalone tables as facts with their columns as degenerate dimensions
+- **Status**: Documented as future work, out of scope for bug-fix PRD
+
+---
+
+## Iteration 1 - US-001: Trek_bim.json
+
+**What was attempted:**
+- Converted Trek_bim.json to SML
+- Attempted deploy
+
+**Result:** Future work (skipped)
+
+**Analysis:**
+- BIM file has 4 tables: SSRS, DateTableTemplate, "Cubes & Users", "Total Number Cube Users"
+- BIM file has NO relationships defined between tables
+- Converter logs: "No relationships found to or from the following table(s) so they will not be created"
+- All 4 tables were skipped → model has 0 datasets, 0 dimensions
+- Only 1 metric "Today" was converted (NOW() function)
+- Deploy failed: "Invalid xml format" - model with no underlying data is invalid
+
+**Learnings for future iterations:**
+- BIM files without relationships cannot be converted with current architecture
+- Converter relies on relationships to classify tables as fact vs dimension
+- This is new functionality, not a bug fix
+
+---
+
+## Completed Fixes
+
+(Summary of converter bugs fixed this session)
+
+### Fix 1: BLANK() nested in expressions → NULL
+- **File**: `dax-converter.ts`
+- **Issue**: When BLANK() appeared inside a larger expression (e.g., `[X]<>BLANK()`), it wasn't being converted to NULL
+- **Cause**: FunctionToken.toMdx() didn't have special handling for BLANK - it passed through as `BLANK()`
+- **Fix**: Added case for "blank" in FunctionToken.toMdx() switch statement to return "NULL"
+
+### Fix 2: DAX & (string concat) → MDX +
+- **File**: `dax-converter.ts`
+- **Issue**: DAX uses `&` for string concatenation, MDX uses `+`
+- **Error**: "Comma expected but Amp found"
+- **Fix**: Added case for "&" in OperatorToken.toMdx() switch statement to return " + "
+
+---
+
+## Iteration 2 - US-002: PTM_bim.json
+
+**What was implemented:**
+- Fixed BLANK() nested in expressions to convert to NULL
+- Fixed & string concatenation operator to convert to +
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/dax-converter.ts`
+
+**Result:** Deploy succeeded after fixes
+
+**Learnings for future iterations:**
+- When DAX functions appear nested in expressions, they need to be handled in toMdx() not just in templates
+- Templates only match when the function is the top-level token
+- Operator conversion needs to handle DAX-specific operators like & for string concat
+
 ---

@@ -1,172 +1,163 @@
-# PRD: Fix N/A String-as-Null Pattern in DAX→MDX Conversion
+# PRD: BIM Converter Bug Fixes via Real-World File Deployment
 
 ## Introduction
 
-DAX commonly uses strings like `"N/A"` as semantic null indicators in numeric contexts. When converted to MDX, these patterns cause type mismatches because MDX IIF requires both branches to have the same type. The converter needs to:
-1. Convert string placeholders (`"N/A"`) to `NULL` in return values (already done)
-2. Convert conditions comparing to `"N/A"` into `ISEMPTY()` checks (missing)
-
-Error from deployment:
-```
-IfFunction requires both results to be of the same type:
-[ConstantValue[StringType](N/A): StringType] ,
-[SwitchConditional(...): IntType]
-```
+Expand BIM-to-SML converter coverage by iteratively converting and deploying real customer BIM files. Each deployment failure reveals converter bugs to fix. This creates a feedback loop that improves converter quality through real-world validation.
 
 ## Goals
 
-- Fix type mismatch errors when deploying converted BIM files to AtScale
-- Handle the pattern `IF([Measure] = "N/A", "N/A", ...)` → `IIF(ISEMPTY([Measures].[Measure]), NULL, ...)`
-- Apply consistently across IF, SWITCH, and related templates
-- Preserve semantic equivalence between DAX and converted MDX
+- Deploy all 6 BIM files from `/Users/dianne/Downloads/bim/fails/` successfully
+- Fix converter bugs discovered during deployment attempts
+- Document learnings in `progress.txt` after each iteration
+- Skip files requiring significant new functionality (document as future work)
+
+## Workflow
+
+```
+For each BIM file:
+  1. Convert: node bin/run.js bim-to-sml --source <file> --output /tmp/sml-out --clean
+  2. Deploy: cd /Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter && pnpm pbi-deploy <file>
+  3. If deploy fails:
+     - Analyze error
+     - If fixable in converter code → create next US to fix and retry
+     - If requires significant work → document and skip file
+  4. If deploy succeeds (exit 0) → move to next file
+```
+
+## Files to Process (in order)
+
+1. `Trek_bim.json` (16KB - smallest, likely simplest)
+2. `PTM_bim.json` (321KB)
+3. `test_bim.json` (364KB)
+4. `Ulta_bim.json` (499KB)
+5. `POC_bim.json` (498KB)
+6. `PFM_from_Daniel_bim.json` (1.1MB - largest, likely most complex)
 
 ## User Stories
 
-### US-001: Detect N/A equality comparisons in IF conditions
+### US-001: Trek_bim.json - Initial Conversion Attempt
 
-**Description:** As a converter, I need to detect when an IF condition compares a measure/expression to a null placeholder string so I can transform it appropriately.
-
-**Acceptance Criteria:**
-- [x] Add helper method `transformNullPlaceholderComparison(conditionMdx: string)` to IfTemplate
-- [x] Method returns transformed condition when it matches pattern `<expr> = "N/A"` (or other placeholders)
-- [x] Transforms `[Measures].[X] = "N/A"` → `ISEMPTY([Measures].[X])`
-- [x] Method handles both `<expr> = "N/A"` and `"N/A" = <expr>` orderings
-- [x] Typecheck passes
-- [x] Run `npm run test-custom-calcs` passes
-
-### US-002: Transform N/A comparisons to ISEMPTY in IfTemplate
-
-**Description:** As a converter, I need to transform conditions like `[Measure] = "N/A"` into `ISEMPTY([Measures].[Measure])` so the MDX is semantically correct.
+**Description:** As a developer, I want to convert and deploy Trek_bim.json to discover any converter bugs.
 
 **Acceptance Criteria:**
-- [x] In `convert()`, after converting condition, call `transformNullPlaceholderComparison()`
-- [x] If pattern detected, use transformed condition
-- [x] Existing null-placeholder-to-NULL conversion for result branches continues to work
-- [x] Typecheck passes
-- [x] Run `npm run test-custom-calcs` passes
+- [x] Run conversion: `node bin/run.js bim-to-sml --source /Users/dianne/Downloads/bim/fails/Trek_bim.json --output /tmp/sml-out --clean`
+- [x] Run deploy from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`: `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/Trek_bim.json`
+- [ ] If deploy succeeds (exit 0): document in progress.txt and mark complete
+- [ ] If deploy fails: document error details in progress.txt, create US-001-A for the fix
+- [x] If error requires significant work: document as "future work" in progress.txt, mark complete, proceed to US-002
 
-### US-003: Validate mol.bim.json conversion and deploy
+**Result:** Future work - BIM file has no relationships, converter requires relationships to classify tables. All 4 tables skipped, resulting in empty model that fails deploy.
 
-**Description:** As a user, I need the `Total margin with SC - change compared to plan (%)` calculation to convert and deploy without errors.
+---
 
-**Acceptance Criteria:**
-- [x] Run conversion on `/Users/dianne/Downloads/bim/currenttest/mol.bim.json`
-- [x] Verify calculation uses `ISEMPTY()` instead of `= "N/A"` comparison
-- [x] Run `pnpm pbi-deploy /Users/dianne/Downloads/bim/currenttest/mol.bim.json` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
-- [x] If new error occurs, create follow-up story and repeat
-- [x] Continue until deploy succeeds or 20 iterations reached (succeeded in 7 iterations)
-- [x] Typecheck passes
+### US-002: PTM_bim.json - Initial Conversion Attempt
 
-**Result:** ✅ DEPLOYMENT SUCCEEDED after fixing 6 additional issues (US-004 through US-007).
-
-### US-004: Handle mixed-type SWITCH with UI label strings
-
-**Description:** As a converter, I need to handle DAX SWITCH statements that return both string labels (e.g., "CAPEX UTILISATION") and numeric measures in different cases.
-
-**Background:**
-DAX pattern found: `SWITCH([Selector], 1, "CAPEX UTILISATION", 2, [NumericMeasure], 3, "N/A", ...)`
-- Case 1 returns a UI label string for display headers
-- Case 2 returns a numeric measure
-- Cases 3+ return "N/A" (null placeholders) - these correctly convert to NULL
-
-Error from deployment:
-```
-IfFunction requires both results to be of the same type:
-[ConstantValue[StringType](CAPEX UTILISATION): StringType] ,
-[SwitchConditional(...): DoubleType]
-```
+**Description:** As a developer, I want to convert and deploy PTM_bim.json to discover any converter bugs.
 
 **Acceptance Criteria:**
-- [x] Detect when SWITCH has mixed string label + numeric results
-- [x] Convert non-null-placeholder strings (like "CAPEX UTILISATION") to NULL in numeric contexts
-- [x] Typecheck passes
-- [x] Run `npm run test-custom-calcs` passes
-- [x] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved
+- [x] Run conversion: `node bin/run.js bim-to-sml --source /Users/dianne/Downloads/bim/fails/PTM_bim.json --output /tmp/sml-out --clean`
+- [x] Run deploy from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`: `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/PTM_bim.json`
+- [x] If deploy succeeds (exit 0): document in progress.txt and mark complete
+- [ ] If deploy fails: document error details in progress.txt, create US-002-A for the fix
+- [ ] If error requires significant work: document as "future work" in progress.txt, mark complete, proceed to US-003
 
-**Result:** Error fixed. New error discovered - see US-005.
+**Result:** Deployed successfully after fixing two bugs:
+1. BLANK() nested in expressions not converting to NULL
+2. DAX & (string concat) operator not converting to MDX + operator
 
-### US-005: Add VALUE function to unconvertible DAX functions
+---
 
-**Description:** DAX VALUE() function converts text to numbers but has no MDX equivalent. It should be added to the unconvertible functions list.
+### US-003: test_bim.json - Initial Conversion Attempt
 
-**Background:**
-DAX: `CALCULATE(SUM(...), VALUE('Table'[Column]) <> -1)`
-Incorrectly converts to: `IIF(VALUE([Measures].[Column])<>-1, ...)`
-- VALUE is not an MDX function
-- The column reference is also wrong (using [Measures] for a dimension column)
-
-Error from deployment:
-```
-Calculated measure Number of special transactions for PL interim - actual is not valid:
-Constructor function not defined at value
-```
+**Description:** As a developer, I want to convert and deploy test_bim.json to discover any converter bugs.
 
 **Acceptance Criteria:**
-- [x] Add VALUE to unconvertible DAX functions list
-- [x] Typecheck passes
-- [x] Run `npm run test-custom-calcs` passes
-- [x] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved
+- [ ] Run conversion: `node bin/run.js bim-to-sml --source /Users/dianne/Downloads/bim/fails/test_bim.json --output /tmp/sml-out --clean`
+- [ ] Run deploy from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`: `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/test_bim.json`
+- [ ] If deploy succeeds (exit 0): document in progress.txt and mark complete
+- [ ] If deploy fails: document error details in progress.txt, create US-003-A for the fix
+- [ ] If error requires significant work: document as "future work" in progress.txt, mark complete, proceed to US-004
 
-**Result:** Error fixed. New error discovered - see US-006.
+---
 
-### US-006: Fix malformed MDX tuple syntax in CALCULATE with ALL filter
+### US-004: Ulta_bim.json - Initial Conversion Attempt
 
-**Description:** CALCULATE with ALL(Table[Column]) filter produces malformed MDX with incorrect comma syntax.
-
-**Background:**
-DAX: `CALCULATE(DIVIDE([A], [B]), ALL(SES[Area Manager]))`
-Produces: `([dimension].[Hierarchy].[All], (division))`
-- The comma creates an invalid tuple
-- MDX tuple syntax is wrong for this use case
-
-Error from deployment:
-```
-'CloseParen' expected but Comma found
-```
+**Description:** As a developer, I want to convert and deploy Ulta_bim.json to discover any converter bugs.
 
 **Acceptance Criteria:**
-- [x] Investigate CALCULATE template handling of ALL() filters
-- [x] Fix tuple syntax or mark ALL filters as unconvertible
-- [x] Typecheck passes
-- [x] Run `npm run test-custom-calcs` passes
-- [x] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved
+- [ ] Run conversion: `node bin/run.js bim-to-sml --source /Users/dianne/Downloads/bim/fails/Ulta_bim.json --output /tmp/sml-out --clean`
+- [ ] Run deploy from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`: `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/Ulta_bim.json`
+- [ ] If deploy succeeds (exit 0): document in progress.txt and mark complete
+- [ ] If deploy fails: document error details in progress.txt, create US-004-A for the fix
+- [ ] If error requires significant work: document as "future work" in progress.txt, mark complete, proceed to US-005
 
-**Result:** Rejected ALL() filters in CALCULATE template. Error fixed. New error discovered - see US-007.
+---
 
-### US-007: Handle fact table column references in CALCULATE filters
+### US-005: POC_bim.json - Initial Conversion Attempt
 
-**Description:** CALCULATE filters referencing fact table columns are incorrectly converted to [Measures].[column] instead of proper handling.
-
-**Background:**
-DAX: `CALCULATE(SUM(fact[col]), fact[SUPPLIER_ID] > 0)`
-Produces: `IIF([Measures].[SUPPLIER_ID] > 0, ...)`
-- SUPPLIER_ID is a fact table column, not a measure
-- Row-level filtering on fact tables has no direct MDX equivalent
-
-Error from deployment:
-```
-Measure SUPPLIER_ID in calculation is not a measure
-```
+**Description:** As a developer, I want to convert and deploy POC_bim.json to discover any converter bugs.
 
 **Acceptance Criteria:**
-- [x] Detect when CALCULATE filter references a fact table column
-- [x] Reject conversion or handle appropriately
-- [x] Typecheck passes
-- [x] Run `npm run test-custom-calcs` passes
-- [x] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved
+- [ ] Run conversion: `node bin/run.js bim-to-sml --source /Users/dianne/Downloads/bim/fails/POC_bim.json --output /tmp/sml-out --clean`
+- [ ] Run deploy from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`: `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/POC_bim.json`
+- [ ] If deploy succeeds (exit 0): document in progress.txt and mark complete
+- [ ] If deploy fails: document error details in progress.txt, create US-005-A for the fix
+- [ ] If error requires significant work: document as "future work" in progress.txt, mark complete, proceed to US-006
 
-**Result:** ✅ DEPLOYMENT SUCCEEDED! All errors fixed.
+---
+
+### US-006: PFM_from_Daniel_bim.json - Initial Conversion Attempt
+
+**Description:** As a developer, I want to convert and deploy PFM_from_Daniel_bim.json to discover any converter bugs.
+
+**Acceptance Criteria:**
+- [ ] Run conversion: `node bin/run.js bim-to-sml --source /Users/dianne/Downloads/bim/fails/PFM_from_Daniel_bim.json --output /tmp/sml-out --clean`
+- [ ] Run deploy from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`: `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/PFM_from_Daniel_bim.json`
+- [ ] If deploy succeeds (exit 0): document in progress.txt and mark complete
+- [ ] If deploy fails: document error details in progress.txt, create US-006-A for the fix
+- [ ] If error requires significant work: document as "future work" in progress.txt, mark complete
+
+---
+
+## Dynamic Story Creation Template
+
+When a deployment fails and the fix is in scope, create a new story using this template:
+
+```markdown
+### US-XXX-Y: [File] - Fix [Error Description]
+
+**Description:** As a developer, I want to fix [specific error] so that [file] can deploy successfully.
+
+**Error from previous attempt:**
+[Paste error message]
+
+**Acceptance Criteria:**
+- [ ] Analyze error and identify root cause in converter code
+- [ ] Implement fix in appropriate file (dax-converter.ts, templates, pipeline, etc.)
+- [ ] Run `npm run test-custom-calcs` to verify no regressions
+- [ ] Re-run conversion and deployment
+- [ ] If deploy succeeds: document fix in progress.txt, mark complete
+- [ ] If deploy fails with NEW error: document in progress.txt, create US-XXX-Z
+- [ ] If error requires significant work: document as "future work", mark complete
+- [ ] Typecheck passes
+```
 
 ## Non-Goals
 
-- Not handling arbitrary DAX string comparisons - only null placeholder patterns
-- Not modifying IFERROR template (already handles fallback values correctly)
-- Not adding new null placeholder strings beyond existing set
+- Adding entirely new DAX function support (document as future work)
+- Fixing issues outside converter code (schema changes, new converters)
+- Validating that queries return correct results (only exit code 0 matters)
+- Processing files outside the fails directory
 
 ## Technical Considerations
 
-- Existing `NULL_PLACEHOLDER_STRINGS` set: `["N/A", "n/a", "NA", "na", "-", ""]`
-- MDX string literals use double quotes: `"N/A"`
-- Pattern to detect: `<expr> = "placeholder"` or `"placeholder" = <expr>`
-- `ISEMPTY()` is the MDX function for null checking (AtScale supported)
-- Condition comes through `convertSubExpression()` - transform at string level
+- Converter code is in `src/commands/bim-to-sml/bim-converter/`
+- Key files: `dax-converter.ts`, `conversion-pipeline.ts`, `conversion-templates/`
+- Run `npm run test-custom-calcs` after any converter changes
+- Deploy command must run from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
+
+## Success Criteria
+
+- All 6 files either deploy successfully OR are documented as "future work"
+- Each fix is committed with descriptive message
+- `progress.txt` contains learnings from all iterations
