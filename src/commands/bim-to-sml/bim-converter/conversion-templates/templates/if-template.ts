@@ -101,7 +101,12 @@ export class IfTemplate extends ConversionTemplate {
 
     try {
       // Convert argument tokens to MDX - may recursively invoke templates
-      const conditionMdx = this.convertSubExpression(argGroups[0], context);
+      let conditionMdx = this.convertSubExpression(argGroups[0], context);
+
+      // Transform N/A placeholder comparisons to ISEMPTY() checks
+      // e.g., [Measures].[X] = "N/A" → ISEMPTY([Measures].[X])
+      conditionMdx = this.transformNullPlaceholderComparison(conditionMdx);
+
       let trueValueMdx = this.convertSubExpression(argGroups[1], context);
 
       // DAX IF supports 2 or 3 arguments

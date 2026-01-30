@@ -4,42 +4,44 @@
 
 - EDATE DAX function was not in unconvertible list, causing invalid MDX to be generated
 - AtScale MDX does not have an EDATE equivalent for measure expressions
+- DAX uses "N/A" strings as null indicators; MDX uses NULL - need to transform comparisons
 
 ---
 
-## Session: Fix mol.bim.json deployment errors
+## Session: Fix N/A String-as-Null Pattern Type Mismatch
 
-**Initial Error:** "Error getting physical type of flat attribute [Last transaction (base)]: Calculated measure Last transaction (base) is not valid: end of input expected"
+**Initial Error:**
+```
+IfFunction requires both results to be of the same type:
+[ConstantValue[StringType](N/A): StringType] ,
+[SwitchConditional(...): IntType]
+```
 
-**Root cause:** EDATE([Measures].[Last transaction],-12) is invalid MDX - EDATE is not a supported AtScale function
+**Root cause:** DAX pattern `IF([Measure] = "N/A", "N/A", numeric_expr)` produces MDX with type mismatch. The IFERROR template converts `"N/A"` fallback to NULL, but downstream measures still compare against `"N/A"` string.
 
-**Fix:** Add EDATE to unconvertible functions list in function-mappings.json
+**Fix needed:** Transform conditions like `[Measure] = "N/A"` to `ISEMPTY([Measure])` in IF/SWITCH templates.
 
 ---
 
-## Iteration 1 - US-001: Add EDATE to unconvertible functions list
-- Added "EDATE" to unconvertible array in function-mappings.json
-- Files changed: src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json
-- Verified "Last transaction (base)" now outputs: `0 /* TODO: EDATE ( [Last transaction], -12 ) */`
-- Build/typecheck passed
+## Iteration 1 - US-001: Add transformNullPlaceholderComparison helper method
+- Added `transformNullPlaceholderComparison(conditionMdx: string)` method to IfTemplate
+- Handles both orderings: `<expr> = "N/A"` and `"N/A" = <expr>`
+- Uses regex to match all NULL_PLACEHOLDER_STRINGS (N/A, n/a, NA, na, -, "")
+- Transforms matched patterns to `ISEMPTY(<expr>)`
+- Files changed: if-template.ts, PRD.md
 - Learnings:
-  - The unconvertible list in function-mappings.json marks DAX functions for TODO fallback
-  - Build step copies JSON to dist/ automatically
+  - NULL_PLACEHOLDER_STRINGS set was already defined and reusable
+  - Regex needs to escape special chars when building from the set
+  - Method is public to allow use from convert() in next US
 ---
 
-## Iteration 2 - US-002: Deploy and identify next error
-- Ran `npm run deploy-test -- --input mol.bim.json --validate-only`
-- **Result: SML validation SUCCESSFUL - No errors found**
-- Conversion produces valid SML that passes local validation
-- AtScale API credentials not configured (ATSCALE_API_URL, ATSCALE_API_TOKEN)
-- Cannot do actual deploy without credentials
-- Stats from conversion:
-  - 2438 calculations scanned
-  - 507 converted successfully
-  - 1916 marked as TODO (unconvertible)
-  - Only 1 warning: SML version difference (1.4 vs 1.5)
+## Iteration 2 - US-002: Transform N/A comparisons to ISEMPTY in IfTemplate
+- Integrated `transformNullPlaceholderComparison()` into `convert()` method
+- After converting condition via `convertSubExpression()`, now calls transform method
+- Changed `conditionMdx` from `const` to `let` to allow reassignment
+- Files changed: if-template.ts, PRD.md
 - Learnings:
-  - Use `--validate-only` flag to test without deploy credentials
-  - Local validation confirms SML structure is valid
-  - Full deploy requires ATSCALE_API_URL and ATSCALE_API_TOKEN env vars
+  - Simple 3-line integration - just call the helper after conversion
+  - Existing null-placeholder-to-NULL logic for true/false branches still works
+  - Tests pass with 63% conversion rate (unchanged from before)
 ---

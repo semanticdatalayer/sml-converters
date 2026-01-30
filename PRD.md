@@ -39,11 +39,11 @@ IfFunction requires both results to be of the same type:
 **Description:** As a converter, I need to transform conditions like `[Measure] = "N/A"` into `ISEMPTY([Measures].[Measure])` so the MDX is semantically correct.
 
 **Acceptance Criteria:**
-- [ ] In `convert()`, after converting condition, call `transformNullPlaceholderComparison()`
-- [ ] If pattern detected, use transformed condition
-- [ ] Existing null-placeholder-to-NULL conversion for result branches continues to work
-- [ ] Typecheck passes
-- [ ] Run `npm run test-custom-calcs` passes
+- [x] In `convert()`, after converting condition, call `transformNullPlaceholderComparison()`
+- [x] If pattern detected, use transformed condition
+- [x] Existing null-placeholder-to-NULL conversion for result branches continues to work
+- [x] Typecheck passes
+- [x] Run `npm run test-custom-calcs` passes
 
 ### US-003: Validate mol.bim.json conversion and deploy
 
