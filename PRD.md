@@ -50,12 +50,38 @@ IfFunction requires both results to be of the same type:
 **Description:** As a user, I need the `Total margin with SC - change compared to plan (%)` calculation to convert and deploy without errors.
 
 **Acceptance Criteria:**
-- [ ] Run conversion on `/Users/dianne/Downloads/bim/currenttest/mol.bim.json`
-- [ ] Verify calculation uses `ISEMPTY()` instead of `= "N/A"` comparison
-- [ ] Run `pnpm pbi-deploy /Users/dianne/Downloads/bim/currenttest/mol.bim.json` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
-- [ ] If new error occurs, create follow-up story and repeat
+- [x] Run conversion on `/Users/dianne/Downloads/bim/currenttest/mol.bim.json`
+- [x] Verify calculation uses `ISEMPTY()` instead of `= "N/A"` comparison
+- [x] Run `pnpm pbi-deploy /Users/dianne/Downloads/bim/currenttest/mol.bim.json` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
+- [x] If new error occurs, create follow-up story and repeat
 - [ ] Continue until deploy succeeds or 20 iterations reached
+- [x] Typecheck passes
+
+**Result:** Deploy failed with NEW error - see US-004 for follow-up.
+
+### US-004: Handle mixed-type SWITCH with UI label strings
+
+**Description:** As a converter, I need to handle DAX SWITCH statements that return both string labels (e.g., "CAPEX UTILISATION") and numeric measures in different cases.
+
+**Background:**
+DAX pattern found: `SWITCH([Selector], 1, "CAPEX UTILISATION", 2, [NumericMeasure], 3, "N/A", ...)`
+- Case 1 returns a UI label string for display headers
+- Case 2 returns a numeric measure
+- Cases 3+ return "N/A" (null placeholders) - these correctly convert to NULL
+
+Error from deployment:
+```
+IfFunction requires both results to be of the same type:
+[ConstantValue[StringType](CAPEX UTILISATION): StringType] ,
+[SwitchConditional(...): DoubleType]
+```
+
+**Acceptance Criteria:**
+- [ ] Detect when SWITCH has mixed string label + numeric results
+- [ ] Convert non-null-placeholder strings (like "CAPEX UTILISATION") to NULL in numeric contexts
 - [ ] Typecheck passes
+- [ ] Run `npm run test-custom-calcs` passes
+- [ ] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved
 
 ## Non-Goals
 

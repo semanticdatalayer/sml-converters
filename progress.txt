@@ -45,3 +45,17 @@ IfFunction requires both results to be of the same type:
   - Existing null-placeholder-to-NULL logic for true/false branches still works
   - Tests pass with 63% conversion rate (unchanged from before)
 ---
+
+## Iteration 3 - US-003: Validate mol.bim.json conversion and deploy
+- Ran conversion - `Total margin with SC - change compared to plan (%)` now uses `ISEMPTY()` correctly
+- Deploy failed with NEW error on `CAPEX utilisation - measures`
+- New error: `IfFunction requires both results to be of the same type: [ConstantValue[StringType](CAPEX UTILISATION): StringType] , [SwitchConditional(...): DoubleType]`
+- Root cause: DAX SWITCH returns BOTH string labels (e.g. "CAPEX UTILISATION") AND numeric measures in different cases
+- This is a fundamentally different pattern - not N/A-as-null, but mixed-type UI labels
+- Original DAX: `SWITCH([Selector], 1, "CAPEX UTILISATION", 2, [NumericMeasure], 3, "N/A", ...)`
+- The converter correctly turns "N/A" → NULL but leaves label strings as strings
+- Learnings:
+  - DAX supports mixed-type SWITCH returns (strings AND numbers)
+  - MDX/AtScale requires type consistency across all branches
+  - Need follow-up story to handle UI label strings in SWITCH statements
+---
