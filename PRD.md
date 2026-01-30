@@ -40,13 +40,13 @@ Fix all errors encountered when converting BIM files to SML, validating, and dep
 
 **Acceptance Criteria:**
 
-- [ ] Run: `cd /Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter && pnpm pbi-deploy /Users/dianne/Downloads/bim/quickfiles/DataMgt_bim.json`
-- [ ] If deployment fails, identify root cause in converter code
-- [ ] Fix the bug in sml-converters codebase
-- [ ] Rebuild: `npm run build`
-- [ ] Re-run deployment until successful
-- [ ] Document any unfixable patterns encountered
-- [ ] Typecheck passes
+- [x] Run: `cd /Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter && pnpm pbi-deploy /Users/dianne/Downloads/bim/quickfiles/DataMgt_bim.json`
+- [x] If deployment fails, identify root cause in converter code
+- [x] Fix the bug in sml-converters codebase
+- [x] Rebuild: `npm run build`
+- [x] Re-run deployment until successful
+- [x] Document any unfixable patterns encountered
+- [x] Typecheck passes
 
 ### US-003: Deploy PFM_from_Daniel_bim.json and fix errors
 
