@@ -1,63 +1,72 @@
-# PRD: Fix BIM Deployment Errors - mol.bim.json
+# PRD: Fix N/A String-as-Null Pattern in DAX→MDX Conversion
 
 ## Introduction
 
-The converted mol.bim.json fails to deploy to AtScale with the error: "Error getting physical type of flat attribute [Last transaction (base)]: Calculated measure Last transaction (base) is not valid: end of input expected"
+DAX commonly uses strings like `"N/A"` as semantic null indicators in numeric contexts. When converted to MDX, these patterns cause type mismatches because MDX IIF requires both branches to have the same type. The converter needs to:
+1. Convert string placeholders (`"N/A"`) to `NULL` in return values (already done)
+2. Convert conditions comparing to `"N/A"` into `ISEMPTY()` checks (missing)
 
-The root cause is that DAX function `EDATE` is being passed through to MDX without conversion, but EDATE is not a valid AtScale MDX function. This produces invalid expressions like `EDATE([Measures].[Last transaction],-12)`.
+Error from deployment:
+```
+IfFunction requires both results to be of the same type:
+[ConstantValue[StringType](N/A): StringType] ,
+[SwitchConditional(...): IntType]
+```
 
 ## Goals
 
-- Fix the "Last transaction (base)" deployment error by handling EDATE properly
-- Ensure all unconvertible DAX functions are marked as TODO instead of producing invalid MDX
-- Iterate: fix each deployment error until mol.bim.json deploys successfully
+- Fix type mismatch errors when deploying converted BIM files to AtScale
+- Handle the pattern `IF([Measure] = "N/A", "N/A", ...)` → `IIF(ISEMPTY([Measures].[Measure]), NULL, ...)`
+- Apply consistently across IF, SWITCH, and related templates
+- Preserve semantic equivalence between DAX and converted MDX
 
 ## User Stories
 
-### US-001: Add EDATE to unconvertible functions list
+### US-001: Detect N/A equality comparisons in IF conditions
 
-**Description:** As a converter, I want EDATE to be recognized as an unconvertible DAX function so that it produces a TODO fallback instead of invalid MDX.
+**Description:** As a converter, I need to detect when an IF condition compares a measure/expression to a null placeholder string so I can transform it appropriately.
 
 **Acceptance Criteria:**
-
-- [x] Add "EDATE" to the `unconvertible` array in `function-mappings.json`
-- [x] Re-run conversion: `node bin/run.js bim-to-sml --source /Users/dianne/Downloads/bim/currenttest/mol.bim.json --output /tmp/sml-test --clean`
-- [x] Verify "Last transaction (base)" now has `0 /* TODO: EDATE(...) */` expression
+- [x] Add helper method `transformNullPlaceholderComparison(conditionMdx: string)` to IfTemplate
+- [x] Method returns transformed condition when it matches pattern `<expr> = "N/A"` (or other placeholders)
+- [x] Transforms `[Measures].[X] = "N/A"` → `ISEMPTY([Measures].[X])`
+- [x] Method handles both `<expr> = "N/A"` and `"N/A" = <expr>` orderings
 - [x] Typecheck passes
+- [x] Run `npm run test-custom-calcs` passes
 
-### US-002: Deploy and identify next error
+### US-002: Transform N/A comparisons to ISEMPTY in IfTemplate
 
-**Description:** As a developer, I need to deploy the converted SML and identify the next error if any.
-
-**Acceptance Criteria:**
-
-- [x] Run `npm run deploy-test -- --input mol.bim.json --validate-only` (local validation)
-- [x] Document the next error (if any) in progress.txt
-- [x] Create follow-up user story if needed
-
-**Result:** SML validation SUCCESSFUL. No errors found. The EDATE fix resolved the deployment-blocking error.
-
-### US-003: Fix subsequent deployment errors (iterative)
-
-**Description:** As needed, fix each deployment error discovered during US-002.
+**Description:** As a converter, I need to transform conditions like `[Measure] = "N/A"` into `ISEMPTY([Measures].[Measure])` so the MDX is semantically correct.
 
 **Acceptance Criteria:**
+- [ ] In `convert()`, after converting condition, call `transformNullPlaceholderComparison()`
+- [ ] If pattern detected, use transformed condition
+- [ ] Existing null-placeholder-to-NULL conversion for result branches continues to work
+- [ ] Typecheck passes
+- [ ] Run `npm run test-custom-calcs` passes
 
-- [x] Identify root cause of each error - N/A, no errors after US-001 fix
-- [x] Implement minimal fix - N/A
-- [x] Re-deploy and verify fix - Validation passed
-- [x] Repeat until deployment succeeds - Validation successful on first try
-- [x] Typecheck passes - Confirmed
+### US-003: Validate mol.bim.json conversion and deploy
+
+**Description:** As a user, I need the `Total margin with SC - change compared to plan (%)` calculation to convert and deploy without errors.
+
+**Acceptance Criteria:**
+- [ ] Run conversion on `/Users/dianne/Downloads/bim/currenttest/mol.bim.json`
+- [ ] Verify calculation uses `ISEMPTY()` instead of `= "N/A"` comparison
+- [ ] Run `pnpm pbi-deploy /Users/dianne/Downloads/bim/currenttest/mol.bim.json` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
+- [ ] If new error occurs, create follow-up story and repeat
+- [ ] Continue until deploy succeeds or 20 iterations reached
+- [ ] Typecheck passes
 
 ## Non-Goals
 
-- Not adding full EDATE conversion (requires time dimension context unavailable in measure expressions)
-- Not fixing all TODO measures (only fixing deployment-blocking errors)
-- Not refactoring the conversion pipeline
+- Not handling arbitrary DAX string comparisons - only null placeholder patterns
+- Not modifying IFERROR template (already handles fallback values correctly)
+- Not adding new null placeholder strings beyond existing set
 
 ## Technical Considerations
 
-- EDATE shifts a date by N months: `EDATE(date, months)`
-- AtScale MDX has no equivalent function for use with measure expressions
-- ParallelPeriod exists but requires dimension member context, not measure values
-- Safest approach: mark EDATE as unconvertible to produce TODO fallback
+- Existing `NULL_PLACEHOLDER_STRINGS` set: `["N/A", "n/a", "NA", "na", "-", ""]`
+- MDX string literals use double quotes: `"N/A"`
+- Pattern to detect: `<expr> = "placeholder"` or `"placeholder" = <expr>`
+- `ISEMPTY()` is the MDX function for null checking (AtScale supported)
+- Condition comes through `convertSubExpression()` - transform at string level
