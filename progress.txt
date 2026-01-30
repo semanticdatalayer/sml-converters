@@ -23,7 +23,7 @@
 | Trek_bim.json | future work | US-001 |
 | PTM_bim.json | deployed | US-002 |
 | test_bim.json | future work | US-003 |
-| Ulta_bim.json | pending | - |
+| Ulta_bim.json | deployed | US-004 |
 | POC_bim.json | pending | - |
 | PFM_from_Daniel_bim.json | pending | - |
 
@@ -116,6 +116,19 @@
 - **Error**: "Function DividedBy requires arguments of type NumericType, has type BooleanType"
 - **Fix**: Changed boolean function fallback to `1` instead of `FALSE` (TRUE=1 in DAX numeric context)
 
+### Fix 7: Encoded metric unique_names not resolving in calculation expressions
+- **File**: `measure-converter.ts`, `bim-to-sml-converter.ts`
+- **Issue**: Column names with special characters (e.g., `GR Value w/o BOM`) get encoded unique_names (e.g., `GR Value w_o BOM`), but calculation expressions still referenced the original name
+- **Error**: "Calculated metric expression contains a non-existing metric: GR Value w/o BOM"
+- **Cause**: Base metrics are created AFTER DAX calculations are converted, so lookup fails during conversion; second pass resolution didn't handle filename-encoded names
+- **Fix**: Enhanced `resolveUnresolvedReferences()` to also resolve metric name mismatches caused by filename encoding, and added a second call after `measuresFromColumns()` creates base metrics
+
+### Fix 8: ROUNDUP/ROUNDDOWN producing invalid MDX
+- **File**: `function-mappings.json`
+- **Issue**: DAX `ROUNDUP()` and `ROUNDDOWN()` functions were passed through directly to MDX, but MDX doesn't have these functions
+- **Error**: "end of input expected" (MDX parser couldn't parse ROUNDUP)
+- **Fix**: Added ROUNDUP and ROUNDDOWN to unconvertible list so they produce TODO stubs instead of invalid MDX
+
 ---
 
 ## Iteration 2 - US-002: PTM_bim.json
@@ -167,5 +180,38 @@
 - DAX allows unquoted table names with spaces when followed by `[column]`
 - Boolean TODO stubs (`FALSE`) cause type errors in arithmetic - use `1` instead
 - Columns used as dimension keys AND in fact measure expressions need special handling
+
+---
+
+## Iteration 4 - US-004: Ulta_bim.json
+
+**What was implemented:**
+- Fixed encoded metric unique_names not resolving (e.g., "GR Value w/o BOM" → "GR Value w_o BOM")
+- Added ROUNDUP/ROUNDDOWN to unconvertible list
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/measure-converter.ts`
+- `src/commands/bim-to-sml/bim-converter/bim-to-sml-converter.ts`
+- `src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json`
+
+**Result:** Deploy succeeded after fixes
+
+**Analysis:**
+- First error: "Calculated metric expression contains a non-existing metric: GR Value w/o BOM"
+  - Root cause: Column `GR Value w/o BOM` has `/` which is invalid for filenames
+  - `createUniqueAttrName()` encodes it to `GR Value w_o BOM`
+  - But calculation expressions still referenced original name
+  - Fixed by enhancing `resolveUnresolvedReferences()` to map original names to encoded unique_names
+  - Also needed second call after `measuresFromColumns()` creates base metrics
+- Second error: "end of input expected" for `Total OH Units`
+  - Root cause: DAX `ROUNDUP()` function passed through directly to MDX
+  - MDX doesn't have ROUNDUP, causing parse error
+  - Fixed by adding ROUNDUP/ROUNDDOWN to unconvertible list
+
+**Learnings for future iterations:**
+- When column names contain filename-invalid characters (/\\:*?"<>|), unique_names are encoded
+- Calculation expressions must use the encoded unique_name, not original name
+- resolveUnresolvedReferences() runs twice: once after DAX conversion, once after base metrics created
+- Functions that don't exist in MDX should be in unconvertible list to produce TODO stubs
 
 ---

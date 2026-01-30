@@ -106,7 +106,8 @@ export class MeasureConverter {
   }
 
   /**
-   * Post-process all calculated metrics to resolve __UNRESOLVED__ markers.
+   * Post-process all calculated metrics to resolve __UNRESOLVED__ markers
+   * and fix metric name mismatches caused by filename encoding (e.g., w/o → w_o).
    * Called after all measures have been converted.
    */
   resolveUnresolvedReferences(
@@ -117,10 +118,33 @@ export class MeasureConverter {
     let resolvedCount = 0;
     let unresolvedCount = 0;
 
+    // Build a lookup map from original column/measure name to actual unique_name
+    // This handles cases where unique_name was encoded (e.g., "GR Value w/o BOM" → "GR Value w_o BOM")
+    const nameToUniqueName = new Map<string, string>();
+
+    // Add all base metrics (from columns)
+    for (const metric of result.measures) {
+      if (metric.column && metric.unique_name !== metric.column) {
+        nameToUniqueName.set(metric.column, metric.unique_name);
+      }
+      // Also add by label if different from unique_name
+      if (metric.label && metric.unique_name !== metric.label) {
+        nameToUniqueName.set(metric.label, metric.unique_name);
+      }
+    }
+
+    // Add all calculated metrics
+    for (const calc of result.measuresCalculated) {
+      if (calc.label && calc.unique_name !== calc.label) {
+        nameToUniqueName.set(calc.label, calc.unique_name);
+      }
+    }
+
     for (const calc of result.measuresCalculated) {
       if (!calc.expression) continue;
 
-      const newExpression = calc.expression.replace(unresolvedPattern, (match, measureName) => {
+      // First pass: resolve __UNRESOLVED__ markers
+      let newExpression = calc.expression.replace(unresolvedPattern, (match, measureName) => {
         // Find the table for this measure
         const tableName = this.measureTableMap.get(measureName);
         if (!tableName) {
@@ -140,6 +164,33 @@ export class MeasureConverter {
         unresolvedCount++;
         this.logger.warn(`Could not find unique_name for measure '${measureName}' in calc '${calc.unique_name}'`);
         return `[Measures].[${measureName}]`; // Use original name as fallback
+      });
+
+      // Second pass: resolve encoded name mismatches (e.g., [Measures].[GR Value w/o BOM] → [Measures].[GR Value w_o BOM])
+      // Match all [Measures].[name] patterns and check if the name needs to be replaced with encoded unique_name
+      const measureRefPattern = /\[Measures\]\.\[([^\]]+)\]/g;
+      newExpression = newExpression.replace(measureRefPattern, (match, referencedName) => {
+        // Skip if this is an __UNRESOLVED__ marker (already handled above)
+        if (referencedName.startsWith("__UNRESOLVED__")) {
+          return match;
+        }
+
+        // Check if we have a mapping for this name to a different unique_name
+        const actualUniqueName = nameToUniqueName.get(referencedName);
+        if (actualUniqueName && actualUniqueName !== referencedName) {
+          resolvedCount++;
+          return `[Measures].[${actualUniqueName}]`;
+        }
+
+        // Also check metricLookup for base metrics by column name
+        for (const [, metricInfo] of attrMaps.metricLookup.entries()) {
+          if (metricInfo.colName === referencedName && metricInfo.uniqueName !== referencedName) {
+            resolvedCount++;
+            return `[Measures].[${metricInfo.uniqueName}]`;
+          }
+        }
+
+        return match; // No change needed
       });
 
       calc.expression = newExpression;

@@ -119,7 +119,9 @@
     "LASTNONBLANK",
     "FIRSTNONBLANK",
     "EDATE",
-    "VALUE"
+    "VALUE",
+    "ROUNDUP",
+    "ROUNDDOWN"
   ],
   "complex_patterns": [
     "CALCULATE",

@@ -158,6 +158,10 @@ export class BimToYamlConverter {
       tableLists,
     );
 
+    // Re-resolve measure references now that base metrics are created
+    // This handles cases where column names have encoded unique_names (e.g., w/o → w_o)
+    measureConverter.resolveUnresolvedReferences(result, attrMaps);
+
     relationshipConverter.addMissingRelationships(result, model);
 
     measureConverter.addUsedColumnsToDimension(bim, result, attrMaps);
