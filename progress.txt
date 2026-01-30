@@ -6,36 +6,12 @@
 
 ---
 
-## BIM Files Status
-
-| File | Conversion | Validation | Deployment |
-|------|------------|------------|------------|
-| finance_bim.json | ✅ Success | ✅ Success | ✅ Success |
-| DataMgt_bim.json | ✅ Success | ✅ Success | ✅ Success |
-| PFM_from_Daniel_bim.json | Pending | Pending | Pending |
-
-## Bugs Fixed
-
-(Track each bug fix with root cause and solution)
-
-## Unfixable Limitations
-
-(Document patterns that cannot be fixed within existing architecture)
-
----
-
-## Iteration 1 - US-001: Deploy finance_bim.json
-- Deployment succeeded on first attempt with no errors
-- Files changed: None (no bugs found)
+## Iteration 1 - US-001: Remove XXX debug statements
+- Removed 4 console.log statements with XXX prefix
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/measure-converter.ts (3 removals)
+  - src/commands/bim-to-sml/bim-converter/dataset-converter.ts (1 removal)
 - Learnings for future iterations:
-  - finance_bim.json is the smallest file (156KB) and deployed cleanly
-  - Larger files may have more complex DAX patterns that trigger bugs
----
-
-## Iteration 2 - US-002: Deploy DataMgt_bim.json
-- Deployment succeeded on first attempt with no errors
-- Files changed: None (no bugs found)
-- Learnings for future iterations:
-  - DataMgt_bim.json (720KB) deployed cleanly despite being larger
-  - Previous bug fixes from US-001 series may have already addressed common issues
+  - Line 282 XXX was inside commented block (lines 224-286) but still removed for cleanliness
+  - Build + test-custom-calcs both pass
 ---

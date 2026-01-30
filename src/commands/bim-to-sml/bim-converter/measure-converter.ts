@@ -279,7 +279,6 @@ export class MeasureConverter {
                     attrMaps,
                     bimMeasTable,
                   );
-                  console.log(`XXX Calc '${calc_unique_name}' from agg only`);
                 }
               }
             }
@@ -361,7 +360,6 @@ export class MeasureConverter {
                   attrMaps,
                   bimMeasTable,
                 );
-                console.log(`XXX Calc '${calc_unique_name}' count rows`);
               } else {
                 this.logger.warn(
                   `Can't find table referenced by bim measure '${meas.name}' so the measure will not be created`,
@@ -493,12 +491,6 @@ export class MeasureConverter {
       column: colToUse,
       unrelated_dimensions_handling: SMLUnrelatedDimensionsHandling.Repeat,
     };
-
-    if (aggFn.toLowerCase() !== "sum") {
-      console.log(
-        `XXX Meas '${measureUniqueName}' for column '${c.name}' using aggFn '${aggFn}'`,
-      );
-    }
 
     incrementNumberMap(attrMaps.metricLabels, c.name);
 

@@ -1,92 +1,60 @@
-# PRD: BIM-to-SML Conversion Bug Fixes
+# PRD: Reduce and Clean Up Logging
 
 ## Introduction
 
-Fix all errors encountered when converting BIM files to SML, validating, and deploying to AtScale. Process the 3 BIM files in `/Users/dianne/Downloads/bim/quickfiles/` sequentially, fixing converter bugs as encountered. Document patterns that cannot be fixed within existing converter architecture.
+Clean up verbose and temporary logging in the BIM converter. Remove debug markers, consolidate repetitive log messages, and truncate long lists to reduce noise.
 
 ## Goals
 
-- All 3 BIM files convert to valid SML without errors
-- All converted SML deploys successfully to AtScale
-- Maximize DAX→MDX conversion rate (minimize TODOs)
-- Fix only bugs in existing converter code (no new templates)
-- Document unfixable limitations
-
-## BIM Files to Process
-
-1. `finance_bim.json` (156KB)
-2. `DataMgt_bim.json` (720KB)
-3. `PFM_from_Daniel_bim.json` (1.1MB)
+- Remove temporary "XXX " debug console.log statements from code
+- Limit perspective warning lists to 5 items max
+- Consolidate template registration into single log message
 
 ## User Stories
 
-### US-001: Deploy finance_bim.json and fix errors
+### US-001: Remove XXX debug statements
 
-**Description:** As a developer, I want finance_bim.json to convert and deploy successfully so I can identify and fix converter bugs.
+**Description:** As a developer, I want temporary debug markers removed so the codebase is clean.
 
 **Acceptance Criteria:**
 
-- [x] Run: `cd /Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter && pnpm pbi-deploy /Users/dianne/Downloads/bim/quickfiles/finance_bim.json`
-- [x] If deployment fails, identify root cause in converter code
-- [x] Fix the bug in sml-converters codebase
-- [x] Rebuild: `npm run build`
-- [x] Re-run deployment until successful
-- [x] Document any unfixable patterns encountered
+- [x] Remove `console.log` on line 282 in measure-converter.ts (`XXX Calc...from agg only`)
+- [x] Remove `console.log` on line 364 in measure-converter.ts (`XXX Calc...count rows`)
+- [x] Remove `console.log` on line 499 in measure-converter.ts (`XXX Meas...`)
+- [x] Remove `console.log` on line 171 in dataset-converter.ts (`XXX...fell out...`)
 - [x] Typecheck passes
+- [x] `npm run test-custom-calcs` passes
 
-### US-002: Deploy DataMgt_bim.json and fix errors
+### US-002: Truncate perspective warning lists to 5 items
 
-**Description:** As a developer, I want DataMgt_bim.json to convert and deploy successfully so I can identify and fix additional converter bugs.
-
-**Acceptance Criteria:**
-
-- [x] Run: `cd /Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter && pnpm pbi-deploy /Users/dianne/Downloads/bim/quickfiles/DataMgt_bim.json`
-- [x] If deployment fails, identify root cause in converter code
-- [x] Fix the bug in sml-converters codebase
-- [x] Rebuild: `npm run build`
-- [x] Re-run deployment until successful
-- [x] Document any unfixable patterns encountered
-- [x] Typecheck passes
-
-### US-003: Deploy PFM_from_Daniel_bim.json and fix errors
-
-**Description:** As a developer, I want PFM_from_Daniel_bim.json to convert and deploy successfully so I can identify and fix remaining converter bugs.
+**Description:** As a user, I want long lists in perspective warnings truncated so logs are readable.
 
 **Acceptance Criteria:**
 
-- [ ] Run: `cd /Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter && pnpm pbi-deploy /Users/dianne/Downloads/bim/quickfiles/PFM_from_Daniel_bim.json`
-- [ ] If deployment fails, identify root cause in converter code
-- [ ] Fix the bug in sml-converters codebase
-- [ ] Rebuild: `npm run build`
-- [ ] Re-run deployment until successful
-- [ ] Document any unfixable patterns encountered
+- [ ] In `warnMissingInPerspective()` in perspective-converter.ts, if list has >5 items, show first 5 plus "... and N more"
+- [ ] Applies to measures, columns, and hierarchies warnings in that method
+- [ ] Example: `will not include: measure1, measure2, measure3, measure4, measure5... and 3 more`
 - [ ] Typecheck passes
 
-### US-004: Verify all fixes and run regression tests
+### US-003: Consolidate template registration logs
 
-**Description:** As a developer, I want to ensure all fixes work together and don't break existing functionality.
+**Description:** As a developer, I want template registration logged as one message instead of many.
 
 **Acceptance Criteria:**
 
-- [ ] Run `npm run test-custom-calcs` - passes
-- [ ] Re-deploy all 3 BIM files successfully
-- [ ] Commit all fixes with descriptive messages
+- [ ] Remove per-template debug log from `registerTemplate()` method
+- [ ] After all templates registered in constructor, log single message: `Registered templates: DivideTemplate (1), IsBlankTemplate (0.95), ...`
+- [ ] List sorted by confidence (highest first)
 - [ ] Typecheck passes
 
 ## Non-Goals
 
-- Adding new conversion templates for unsupported DAX patterns
-- Modifying BIM source files to work around limitations
-- Fixing DAX patterns that require architectural changes
-- Performance optimization of conversion process
+- No changes to log levels or logger infrastructure
+- No changes to other log messages beyond those specified
+- No log file output changes
 
 ## Technical Considerations
 
-- Deploy command: `pnpm pbi-deploy <bim-file-path>`
-- Run from: `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
-- Converter code: `/Users/dianne/go/src/github.com/semanticdatalayer/sml-converters`
-- Common error types:
-  - Hierarchy not found (naming mismatches)
-  - Invalid MDX expressions
-  - Missing dimension/measure references
-  - Timing issues (dimensions not populated during conversion)
+- XXX lines are `console.log`, not logger calls - just delete them
+- Perspective truncation helper could be inline or small utility function
+- Template consolidation requires moving log call to after `registerBuiltInTemplates()` completes

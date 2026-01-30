@@ -166,10 +166,6 @@ export class DatasetConverter {
           }
         }
       }
-      if (fellOut.length > 0)
-        console.log(
-          `XXX ${fellOut.length} measures fell out from table '${bimTable.name}' so are candidates to convert via AI`,
-        );
     }
     if (messagesMap.rawCalcs.size > 0)
       this.logger.info(
