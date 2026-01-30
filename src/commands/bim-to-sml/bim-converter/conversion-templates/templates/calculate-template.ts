@@ -84,12 +84,14 @@ export class CalculateTemplate extends ConversionTemplate {
       return true;
     }
 
-    // If 2+ arguments, check that all filter arguments are simple comparisons or ALL()
+    // If 2+ arguments, check that all filter arguments are simple comparisons
     // Skip first argument (the aggregation)
     for (let i = 1; i < argGroups.length; i++) {
-      // Check if it's an ALL() filter first - these are supported
+      // Reject ALL() filters - AtScale MDX doesn't support tuple syntax in calculations
+      // ALL() modifies filter context in DAX, which has no direct MDX equivalent
       if (this.isAllFilter(argGroups[i])) {
-        continue;
+        this.warn(`CALCULATE with ALL() filter - AtScale MDX doesn't support tuple syntax in calculations`, context);
+        return false;
       }
 
       const filterCheckResult = this.isSimpleComparisonFilter(argGroups[i]);
@@ -246,15 +248,18 @@ export class CalculateTemplate extends ConversionTemplate {
 
       if (allFilters.length > 0 && comparisonFilters.length === 0) {
         // Only ALL() filters: use tuple syntax
-        // CALCULATE(expr, ALL('Dim1'), ALL('Dim2')) → ([dimension_Dim1].[Dim1_Hierarchy].[All], [dimension_Dim2].[Dim2_Hierarchy].[All], expr)
-        const tupleMembers = [...allMemberRefs, aggregationMdx];
+        // CALCULATE(expr, ALL('Dim1'), ALL('Dim2')) → ([dimension_Dim1].[Dim1_Hierarchy].[All], [dimension_Dim2].[Dim2_Hierarchy].[All], (expr))
+        // Wrap the aggregation in parentheses to ensure it's parsed as a single expression
+        const wrappedAgg = `(${aggregationMdx})`;
+        const tupleMembers = [...allMemberRefs, wrappedAgg];
         mdxExpression = `(${tupleMembers.join(", ")})`;
         method = "calculate_template_all";
         note = "CALCULATE with ALL filters - converted to tuple with [All] members";
       } else if (allFilters.length > 0 && comparisonFilters.length > 0) {
         // Mixed: ALL() + comparison filters
-        // CALCULATE(expr, ALL('Dim'), col = val) → IIF(col = val, ([dimension_Dim].[Dim_Hierarchy].[All], expr), NULL)
-        const tupleMembers = [...allMemberRefs, aggregationMdx];
+        // CALCULATE(expr, ALL('Dim'), col = val) → IIF(col = val, ([dimension_Dim].[Dim_Hierarchy].[All], (expr)), NULL)
+        const wrappedAgg = `(${aggregationMdx})`;
+        const tupleMembers = [...allMemberRefs, wrappedAgg];
         const tupleExpr = `(${tupleMembers.join(", ")})`;
         const combinedFilter = filterConditions.join(" AND ");
         mdxExpression = `IIF(${combinedFilter}, ${tupleExpr}, NULL)`;

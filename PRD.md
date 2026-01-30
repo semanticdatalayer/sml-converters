@@ -125,8 +125,32 @@ Error from deployment:
 ```
 
 **Acceptance Criteria:**
-- [ ] Investigate CALCULATE template handling of ALL() filters
-- [ ] Fix tuple syntax or mark ALL filters as unconvertible
+- [x] Investigate CALCULATE template handling of ALL() filters
+- [x] Fix tuple syntax or mark ALL filters as unconvertible
+- [x] Typecheck passes
+- [x] Run `npm run test-custom-calcs` passes
+- [x] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved
+
+**Result:** Rejected ALL() filters in CALCULATE template. Error fixed. New error discovered - see US-007.
+
+### US-007: Handle fact table column references in CALCULATE filters
+
+**Description:** CALCULATE filters referencing fact table columns are incorrectly converted to [Measures].[column] instead of proper handling.
+
+**Background:**
+DAX: `CALCULATE(SUM(fact[col]), fact[SUPPLIER_ID] > 0)`
+Produces: `IIF([Measures].[SUPPLIER_ID] > 0, ...)`
+- SUPPLIER_ID is a fact table column, not a measure
+- Row-level filtering on fact tables has no direct MDX equivalent
+
+Error from deployment:
+```
+Measure SUPPLIER_ID in calculation is not a measure
+```
+
+**Acceptance Criteria:**
+- [ ] Detect when CALCULATE filter references a fact table column
+- [ ] Reject conversion or handle appropriately
 - [ ] Typecheck passes
 - [ ] Run `npm run test-custom-calcs` passes
 - [ ] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved

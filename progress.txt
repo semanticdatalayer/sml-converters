@@ -84,3 +84,17 @@ IfFunction requires both results to be of the same type:
   - function-mappings.json is the central place to mark functions as unconvertible
   - The CALCULATE with ALL filter context conversion has a bug in tuple syntax
 ---
+
+## Iteration 6 - US-006: Reject CALCULATE with ALL() filters
+- Modified calculate-template to reject ALL() filters (AtScale MDX doesn't support tuple syntax in calculations)
+- Conversion rate dropped from 63% to 57% (expected - safer fallback to TODO)
+- Files changed: calculate-template.ts
+- Result: Tuple syntax error FIXED
+- Deploy hit NEW error: `Measure SUPPLIER_ID in calculation is not a measure`
+- Root cause: Fact table column in CALCULATE filter incorrectly referenced as [Measures].[SUPPLIER_ID]
+- DAX: `CALCULATE(SUM(fact[col]), fact[SUPPLIER_ID] > 0)` - filter on fact table column
+- MDX has no direct equivalent for fact table column filters (row-level filtering vs. aggregated data)
+- Learnings:
+  - ALL() filter removal is safest to reject until proper scoping is implemented
+  - Fact table columns in CALCULATE filters need special handling - cannot simply use [Measures].[X]
+---
