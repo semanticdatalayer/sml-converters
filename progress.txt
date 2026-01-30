@@ -26,3 +26,20 @@
   - The unconvertible list in function-mappings.json marks DAX functions for TODO fallback
   - Build step copies JSON to dist/ automatically
 ---
+
+## Iteration 2 - US-002: Deploy and identify next error
+- Ran `npm run deploy-test -- --input mol.bim.json --validate-only`
+- **Result: SML validation SUCCESSFUL - No errors found**
+- Conversion produces valid SML that passes local validation
+- AtScale API credentials not configured (ATSCALE_API_URL, ATSCALE_API_TOKEN)
+- Cannot do actual deploy without credentials
+- Stats from conversion:
+  - 2438 calculations scanned
+  - 507 converted successfully
+  - 1916 marked as TODO (unconvertible)
+  - Only 1 warning: SML version difference (1.4 vs 1.5)
+- Learnings:
+  - Use `--validate-only` flag to test without deploy credentials
+  - Local validation confirms SML structure is valid
+  - Full deploy requires ATSCALE_API_URL and ATSCALE_API_TOKEN env vars
+---
