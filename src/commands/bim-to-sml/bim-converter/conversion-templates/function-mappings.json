@@ -117,7 +117,8 @@
     "OPENINGBALANCEYEAR",
     "DATEADD",
     "LASTNONBLANK",
-    "FIRSTNONBLANK"
+    "FIRSTNONBLANK",
+    "EDATE"
   ],
   "complex_patterns": [
     "CALCULATE",

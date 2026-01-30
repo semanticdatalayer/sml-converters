@@ -2,16 +2,27 @@
 
 ## Learnings
 
-(Patterns discovered during implementation)
+- EDATE DAX function was not in unconvertible list, causing invalid MDX to be generated
+- AtScale MDX does not have an EDATE equivalent for measure expressions
 
 ---
 
-## Iteration 1 - US-001: Remove XXX debug statements
-- Removed 4 console.log statements with XXX prefix
-- Files changed:
-  - src/commands/bim-to-sml/bim-converter/measure-converter.ts (3 removals)
-  - src/commands/bim-to-sml/bim-converter/dataset-converter.ts (1 removal)
-- Learnings for future iterations:
-  - Line 282 XXX was inside commented block (lines 224-286) but still removed for cleanliness
-  - Build + test-custom-calcs both pass
+## Session: Fix mol.bim.json deployment errors
+
+**Initial Error:** "Error getting physical type of flat attribute [Last transaction (base)]: Calculated measure Last transaction (base) is not valid: end of input expected"
+
+**Root cause:** EDATE([Measures].[Last transaction],-12) is invalid MDX - EDATE is not a supported AtScale function
+
+**Fix:** Add EDATE to unconvertible functions list in function-mappings.json
+
+---
+
+## Iteration 1 - US-001: Add EDATE to unconvertible functions list
+- Added "EDATE" to unconvertible array in function-mappings.json
+- Files changed: src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json
+- Verified "Last transaction (base)" now outputs: `0 /* TODO: EDATE ( [Last transaction], -12 ) */`
+- Build/typecheck passed
+- Learnings:
+  - The unconvertible list in function-mappings.json marks DAX functions for TODO fallback
+  - Build step copies JSON to dist/ automatically
 ---
