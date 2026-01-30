@@ -10,7 +10,7 @@ import {
   failedConversion,
 } from "../../conversion-result";
 import { ConversionContext } from "../conversion-context";
-import { resolveDimensionHierarchy } from "../../converter-utils";
+import { resolveDimensionHierarchy, extractDimUniqueName, resolveTimeLevelByUnit } from "../../converter-utils";
 
 /**
  * SamePeriodLastYearTemplate converts DAX SAMEPERIODLASTYEAR function to MDX.
@@ -149,8 +149,14 @@ export class SamePeriodLastYearTemplate extends ConversionTemplate {
             );
           }
 
-          // Build MDX: (ParallelPeriod([dim].[hier].[Year], 1, [dim].[hier].CurrentMember), [Measures].[measure])
-          const mdxExpression = `(ParallelPeriod(${dimensionRef}.[Year], 1, ${dimensionRef}.CurrentMember), ${measureMdx})`;
+          // Resolve the actual year level name from the dimension
+          const dimUniqueName = extractDimUniqueName(dimensionRef);
+          const yearLevel = dimUniqueName
+            ? resolveTimeLevelByUnit(dimUniqueName, "year", context.result, context.bim)
+            : "Year";
+
+          // Build MDX: (ParallelPeriod([dim].[hier].[YearLevel], 1, [dim].[hier].CurrentMember), [Measures].[measure])
+          const mdxExpression = `(ParallelPeriod(${dimensionRef}.[${yearLevel}], 1, ${dimensionRef}.CurrentMember), ${measureMdx})`;
 
           return successfulConversion(
             mdxExpression,
@@ -190,8 +196,14 @@ export class SamePeriodLastYearTemplate extends ConversionTemplate {
       );
     }
 
+    // Resolve the actual year level name from the dimension
+    const dimUniqueName = extractDimUniqueName(dimensionRef);
+    const yearLevel = dimUniqueName
+      ? resolveTimeLevelByUnit(dimUniqueName, "year", context.result, context.bim)
+      : "Year";
+
     // For standalone, return the ParallelPeriod expression
-    const mdxExpression = `ParallelPeriod(${dimensionRef}.[Year], 1, ${dimensionRef}.CurrentMember)`;
+    const mdxExpression = `ParallelPeriod(${dimensionRef}.[${yearLevel}], 1, ${dimensionRef}.CurrentMember)`;
 
     return successfulConversion(
       mdxExpression,
@@ -217,7 +229,7 @@ export class SamePeriodLastYearTemplate extends ConversionTemplate {
       if (token instanceof TableColumnReference) {
         const tableName = token.tableName;
         const columnName = token.columnRef?.columnName || "";
-        return resolveDimensionHierarchy(tableName, columnName, context.result);
+        return resolveDimensionHierarchy(tableName, columnName, context.result, context.bim);
       }
     }
 
@@ -227,7 +239,7 @@ export class SamePeriodLastYearTemplate extends ConversionTemplate {
     if (match) {
       const tableName = match[1];
       const columnName = match[2];
-      return resolveDimensionHierarchy(tableName, columnName, context.result);
+      return resolveDimensionHierarchy(tableName, columnName, context.result, context.bim);
     }
 
     return undefined;

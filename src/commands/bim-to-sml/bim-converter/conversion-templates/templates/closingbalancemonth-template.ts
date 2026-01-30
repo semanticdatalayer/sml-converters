@@ -124,7 +124,7 @@ export class ClosingBalanceMonthTemplate extends ConversionTemplate {
       if (token instanceof TableColumnReference) {
         const tableName = token.tableName;
         const columnName = token.columnRef?.columnName || "";
-        return resolveDimensionHierarchy(tableName, columnName, context.result);
+        return resolveDimensionHierarchy(tableName, columnName, context.result, context.bim);
       }
     }
 
@@ -134,7 +134,7 @@ export class ClosingBalanceMonthTemplate extends ConversionTemplate {
     if (match) {
       const tableName = match[1];
       const columnName = match[2];
-      return resolveDimensionHierarchy(tableName, columnName, context.result);
+      return resolveDimensionHierarchy(tableName, columnName, context.result, context.bim);
     }
 
     return undefined;

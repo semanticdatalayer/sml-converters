@@ -10,7 +10,7 @@ import {
   failedConversion,
 } from "../../conversion-result";
 import { ConversionContext } from "../conversion-context";
-import { resolveDimensionHierarchy } from "../../converter-utils";
+import { resolveDimensionHierarchy, extractDimUniqueName, resolveTimeLevelByUnit } from "../../converter-utils";
 
 /**
  * ParallelPeriodTemplate converts DAX PARALLELPERIOD function to MDX.
@@ -25,12 +25,12 @@ export class ParallelPeriodTemplate extends ConversionTemplate {
   readonly name = "ParallelPeriodTemplate";
   readonly confidence = 0.9;
 
-  // Map DAX interval names to MDX hierarchy level names
-  private readonly intervalToLevel: Record<string, string> = {
-    YEAR: "Year",
-    QUARTER: "Quarter",
-    MONTH: "Month",
-    DAY: "Day",
+  // Map DAX interval names to time unit types
+  private readonly intervalToTimeUnit: Record<string, "year" | "quarter" | "month" | "day"> = {
+    YEAR: "year",
+    QUARTER: "quarter",
+    MONTH: "month",
+    DAY: "day",
   };
 
   canConvert(tokens: DaxToken[], context: ConversionContext): boolean {
@@ -183,13 +183,19 @@ export class ParallelPeriodTemplate extends ConversionTemplate {
             );
           }
 
-          const mdxLevel = this.intervalToLevel[interval];
-          if (!mdxLevel) {
+          const timeUnit = this.intervalToTimeUnit[interval];
+          if (!timeUnit) {
             return failedConversion(
               `PARALLELPERIOD unsupported interval: ${interval}`,
               token.functionAgg,
             );
           }
+
+          // Resolve the actual level name from the dimension
+          const dimUniqueName = extractDimUniqueName(dimensionRef);
+          const mdxLevel = dimUniqueName
+            ? resolveTimeLevelByUnit(dimUniqueName, timeUnit, context.result, context.bim)
+            : interval.charAt(0).toUpperCase() + interval.slice(1).toLowerCase();
 
           // Build MDX: (ParallelPeriod([dim].[hier].[Level], offset, [dim].[hier].CurrentMember), [Measures].[measure])
           const mdxExpression = `(ParallelPeriod(${dimensionRef}.[${mdxLevel}], ${mdxOffset}, ${dimensionRef}.CurrentMember), ${measureMdx})`;
@@ -257,13 +263,19 @@ export class ParallelPeriodTemplate extends ConversionTemplate {
       );
     }
 
-    const mdxLevel = this.intervalToLevel[interval];
-    if (!mdxLevel) {
+    const timeUnit = this.intervalToTimeUnit[interval];
+    if (!timeUnit) {
       return failedConversion(
         `PARALLELPERIOD unsupported interval: ${interval}`,
         token.functionAgg,
       );
     }
+
+    // Resolve the actual level name from the dimension
+    const dimUniqueName = extractDimUniqueName(dimensionRef);
+    const mdxLevel = dimUniqueName
+      ? resolveTimeLevelByUnit(dimUniqueName, timeUnit, context.result, context.bim)
+      : interval.charAt(0).toUpperCase() + interval.slice(1).toLowerCase();
 
     // For standalone, return the ParallelPeriod expression
     const mdxExpression = `ParallelPeriod(${dimensionRef}.[${mdxLevel}], ${mdxOffset}, ${dimensionRef}.CurrentMember)`;
@@ -292,7 +304,7 @@ export class ParallelPeriodTemplate extends ConversionTemplate {
       if (token instanceof TableColumnReference) {
         const tableName = token.tableName;
         const columnName = token.columnRef?.columnName || "";
-        return resolveDimensionHierarchy(tableName, columnName, context.result);
+        return resolveDimensionHierarchy(tableName, columnName, context.result, context.bim);
       }
     }
 
@@ -302,7 +314,7 @@ export class ParallelPeriodTemplate extends ConversionTemplate {
     if (match) {
       const tableName = match[1];
       const columnName = match[2];
-      return resolveDimensionHierarchy(tableName, columnName, context.result);
+      return resolveDimensionHierarchy(tableName, columnName, context.result, context.bim);
     }
 
     return undefined;
@@ -344,7 +356,7 @@ export class ParallelPeriodTemplate extends ConversionTemplate {
     for (const token of tokens) {
       if (token instanceof IdentifierToken) {
         const interval = token.value.toUpperCase();
-        if (this.intervalToLevel[interval]) {
+        if (this.intervalToTimeUnit[interval]) {
           return interval;
         }
       }
@@ -354,7 +366,7 @@ export class ParallelPeriodTemplate extends ConversionTemplate {
     const tokenStr = tokens.map((t) => t.toString()).join("").trim().toUpperCase();
 
     // Check if it's a known interval
-    if (this.intervalToLevel[tokenStr]) {
+    if (this.intervalToTimeUnit[tokenStr]) {
       return tokenStr;
     }
 

@@ -424,6 +424,122 @@ export function shortAggFn(aggFn: string): string {
 }
 
 /**
+ * Extracts the dimension unique_name from an MDX dimension reference.
+ * E.g., "[dimension_DATE_DIM].[DATE_DIM_Hierarchy]" → "dimension_DATE_DIM"
+ *
+ * @param dimRef - The MDX dimension reference string
+ * @returns The dimension unique_name or undefined if not found
+ */
+export function extractDimUniqueName(dimRef: string): string | undefined {
+  const match = dimRef.match(/^\[([^\]]+)\]/);
+  return match ? match[1] : undefined;
+}
+
+/**
+ * Finds the level unique_name for a given time unit in a time dimension.
+ * Used by time intelligence templates to reference the correct level (e.g., Year, Quarter, Month).
+ *
+ * @param dimUniqueName - The dimension unique_name (e.g., "dimension_DATE_DIM")
+ * @param timeUnit - The time unit to find (e.g., "year", "quarter", "month", "day")
+ * @param result - The SmlConverterResult containing converted dimensions
+ * @param bim - Optional BIM model for fallback when dimensions aren't converted yet
+ * @returns The level unique_name (e.g., "D_YEAR") or fallback to capitalized timeUnit (e.g., "Year")
+ */
+export function resolveTimeLevelByUnit(
+  dimUniqueName: string,
+  timeUnit: "year" | "quarter" | "month" | "week" | "day",
+  result: SmlConverterResult,
+  bim?: BimRoot,
+): string {
+  // Try to find from converted dimensions first
+  for (const dim of result.dimensions) {
+    if (dim.unique_name === dimUniqueName) {
+      // Search level_attributes for matching time_unit
+      for (const la of dim.level_attributes) {
+        if ("time_unit" in la && la.time_unit === timeUnit) {
+          return la.unique_name;
+        }
+      }
+    }
+  }
+
+  // Fallback: use BIM model to find column by time unit heuristics
+  // This is needed because dimensions may not be converted yet during DAX conversion
+  if (bim) {
+    // Extract table name from dimension unique_name (e.g., "dimension_DATE_DIM" → "DATE_DIM")
+    const tableName = dimUniqueName.replace(/^dimension[_.]?/i, "");
+    const table = bim.model.tables.find(
+      (t) => t.name.toLowerCase() === tableName.toLowerCase()
+    );
+
+    if (table?.columns) {
+      for (const col of table.columns) {
+        const colTimeUnit = getTimeUnitFromColumnName(col.name);
+        if (colTimeUnit === timeUnit) {
+          return col.name;
+        }
+      }
+    }
+  }
+
+  // Final fallback: use capitalized time unit (e.g., "Year", "Month")
+  return timeUnit.charAt(0).toUpperCase() + timeUnit.slice(1);
+}
+
+/**
+ * Determines the time unit from a column name using heuristics.
+ * Mirrors the logic in DimensionConverter.convertTimeUnit().
+ *
+ * Note: Order matters - check specific patterns (e.g., _moy, _qoy) before
+ * generic patterns (e.g., month, quarter) to avoid false matches like
+ * D_MONTH_SEQ matching "month" when D_MOY is the correct level.
+ */
+function getTimeUnitFromColumnName(
+  columnName: string
+): "year" | "quarter" | "month" | "week" | "day" | undefined {
+  const name = columnName.toLowerCase();
+
+  // Year - check specific patterns first
+  if (name.includes("year")) {
+    return "year";
+  }
+
+  // Quarter - check specific abbreviations first
+  if (
+    name.includes("_qoy") ||
+    name.endsWith("qoy") ||
+    name === "quarter" ||
+    name.endsWith("_quarter") ||
+    name.includes("qtr")
+  ) {
+    return "quarter";
+  }
+
+  // Month - check specific abbreviations first (avoid matching "month_seq")
+  if (
+    name.includes("_moy") ||
+    name.endsWith("moy") ||
+    name === "month" ||
+    name.endsWith("_month") ||
+    name.includes("mth")
+  ) {
+    return "month";
+  }
+
+  // Week
+  if (name.includes("week")) {
+    return "week";
+  }
+
+  // Day
+  if (name.includes("day") || name.includes("date")) {
+    return "day";
+  }
+
+  return undefined;
+}
+
+/**
  * Resolves a BIM table/column reference to an MDX dimension hierarchy reference.
  * Used by time intelligence functions (TOTALYTD, TOTALMTD, etc.) to map
  * DAX dimension column references to SML hierarchy paths.
@@ -431,16 +547,19 @@ export function shortAggFn(aggFn: string): string {
  * @param tableName - The BIM table name (e.g., "DATE_DIM")
  * @param columnName - The BIM column name (e.g., "D_DATE") - currently unused but reserved for future column-specific resolution
  * @param result - The SmlConverterResult containing converted dimensions
+ * @param bim - Optional BIM model for fallback lookup when dimensions aren't yet populated
  * @returns MDX hierarchy reference string like "[dimension.DATE_DIM].[DATE_DIM Hierarchy]" or undefined if not found
  *
  * Resolution strategy:
  * 1. Lookup: search result.dimensions for matching label or dataset table name
- * 2. Fallback: use convention [dimension.{TableName}].[{TableName} Hierarchy]
+ * 2. BIM fallback: search BIM model for hierarchy names
+ * 3. Final fallback: use convention [dimension.{TableName}].[{TableName} Hierarchy]
  */
 export function resolveDimensionHierarchy(
   tableName: string,
   columnName: string,
   result: SmlConverterResult,
+  bim?: BimRoot,
 ): string {
   // Lookup: search dimensions for matching label (table name)
   for (const dim of result.dimensions) {
@@ -464,7 +583,20 @@ export function resolveDimensionHierarchy(
     }
   }
 
-  // Fallback: use convention-based reference
+  // BIM fallback: look up hierarchy name from BIM model when dimensions aren't yet populated
+  if (bim) {
+    const table = bim.model.tables.find(
+      (t) => t.name.toLowerCase() === tableName.toLowerCase(),
+    );
+    if (table?.hierarchies?.length) {
+      // Use the first hierarchy name from BIM
+      const hierarchyName = table.hierarchies[0].name;
+      const dimUniqueName = makeUniqueName(`dimension.${tableName}`);
+      return `[${dimUniqueName}].[${hierarchyName}]`;
+    }
+  }
+
+  // Final fallback: use convention-based reference
   const dimUniqueName = makeUniqueName(`dimension.${tableName}`);
   const hierarchyUniqueName = makeUniqueName(`${tableName} Hierarchy`);
   return `[${dimUniqueName}].[${hierarchyUniqueName}]`;

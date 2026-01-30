@@ -10,16 +10,16 @@ import {
   failedConversion,
 } from "../../conversion-result";
 import { ConversionContext } from "../conversion-context";
-import { resolveDimensionHierarchy } from "../../converter-utils";
+import { resolveDimensionHierarchy, extractDimUniqueName, resolveTimeLevelByUnit } from "../../converter-utils";
 
 /**
  * PreviousMonthTemplate converts DAX PREVIOUSMONTH function to MDX.
  *
  * DAX: CALCULATE([Total Sales], PREVIOUSMONTH(DATE_DIM[D_DATE]))
- * MDX: ([dimension.DATE_DIM].[DATE_DIM Hierarchy].CurrentMember.Lag(1), [Measures].[Total Sales])
+ * MDX: (ParallelPeriod([dimension.DATE_DIM].[DATE_DIM Hierarchy].[Month], 1, [dimension.DATE_DIM].[DATE_DIM Hierarchy].CurrentMember), [Measures].[Total Sales])
  *
  * PREVIOUSMONTH returns a set of dates from the previous month.
- * In MDX, Lag(1) at the month level achieves the same result.
+ * In MDX, ParallelPeriod at the month level achieves the same result.
  */
 export class PreviousMonthTemplate extends ConversionTemplate {
   readonly name = "PreviousMonthTemplate";
@@ -149,8 +149,14 @@ export class PreviousMonthTemplate extends ConversionTemplate {
             );
           }
 
-          // Build MDX: ([dim].[hier].CurrentMember.Lag(1), [Measures].[measure])
-          const mdxExpression = `(${dimensionRef}.CurrentMember.Lag(1), ${measureMdx})`;
+          // Resolve the actual month level name from the dimension
+          const dimUniqueName = extractDimUniqueName(dimensionRef);
+          const monthLevel = dimUniqueName
+            ? resolveTimeLevelByUnit(dimUniqueName, "month", context.result, context.bim)
+            : "Month";
+
+          // Build MDX: (ParallelPeriod([dim].[hier].[Month], 1, [dim].[hier].CurrentMember), [Measures].[measure])
+          const mdxExpression = `(ParallelPeriod(${dimensionRef}.[${monthLevel}], 1, ${dimensionRef}.CurrentMember), ${measureMdx})`;
 
           return successfulConversion(
             mdxExpression,
@@ -159,7 +165,7 @@ export class PreviousMonthTemplate extends ConversionTemplate {
             {
               originalDax: `CALCULATE(..., PREVIOUSMONTH(...))`,
               method: "previousmonth_template",
-              note: "Previous month using Lag(1)",
+              note: "Previous month using ParallelPeriod",
             },
           );
         }
@@ -190,8 +196,14 @@ export class PreviousMonthTemplate extends ConversionTemplate {
       );
     }
 
-    // For standalone, return the Lag expression
-    const mdxExpression = `${dimensionRef}.CurrentMember.Lag(1)`;
+    // Resolve the actual month level name from the dimension
+    const dimUniqueName = extractDimUniqueName(dimensionRef);
+    const monthLevel = dimUniqueName
+      ? resolveTimeLevelByUnit(dimUniqueName, "month", context.result, context.bim)
+      : "Month";
+
+    // For standalone, return the ParallelPeriod expression
+    const mdxExpression = `ParallelPeriod(${dimensionRef}.[${monthLevel}], 1, ${dimensionRef}.CurrentMember)`;
 
     return successfulConversion(
       mdxExpression,
@@ -200,7 +212,7 @@ export class PreviousMonthTemplate extends ConversionTemplate {
       {
         originalDax: `PREVIOUSMONTH(...)`,
         method: "previousmonth_template",
-        note: "Previous month using Lag(1)",
+        note: "Previous month using ParallelPeriod",
       },
     );
   }
@@ -217,7 +229,7 @@ export class PreviousMonthTemplate extends ConversionTemplate {
       if (token instanceof TableColumnReference) {
         const tableName = token.tableName;
         const columnName = token.columnRef?.columnName || "";
-        return resolveDimensionHierarchy(tableName, columnName, context.result);
+        return resolveDimensionHierarchy(tableName, columnName, context.result, context.bim);
       }
     }
 
@@ -227,7 +239,7 @@ export class PreviousMonthTemplate extends ConversionTemplate {
     if (match) {
       const tableName = match[1];
       const columnName = match[2];
-      return resolveDimensionHierarchy(tableName, columnName, context.result);
+      return resolveDimensionHierarchy(tableName, columnName, context.result, context.bim);
     }
 
     return undefined;
@@ -237,20 +249,21 @@ export class PreviousMonthTemplate extends ConversionTemplate {
     return [
       {
         dax: "CALCULATE([Total Sales], PREVIOUSMONTH(DATE_DIM[D_DATE]))",
-        mdx: "([dimension.DATE_DIM].[DATE_DIM Hierarchy].CurrentMember.Lag(1), [Measures].[Total Sales])",
+        mdx: "(ParallelPeriod([dimension.DATE_DIM].[DATE_DIM Hierarchy].[Month], 1, [dimension.DATE_DIM].[DATE_DIM Hierarchy].CurrentMember), [Measures].[Total Sales])",
         description: "Sales from the previous month",
       },
       {
         dax: "PREVIOUSMONTH('Date'[Date])",
-        mdx: "[dimension.Date].[Date Hierarchy].CurrentMember.Lag(1)",
-        description: "Standalone previous month member reference",
+        mdx: "ParallelPeriod([dimension.Date].[Date Hierarchy].[Month], 1, [dimension.Date].[Date Hierarchy].CurrentMember)",
+        description: "Standalone previous month set",
       },
     ];
   }
 
   getDescription(): string {
     return (
-      "Converts DAX PREVIOUSMONTH function to MDX Lag(1) pattern. " +
+      "Converts DAX PREVIOUSMONTH function to MDX ParallelPeriod pattern. " +
+      "Uses month level to shift by one month. " +
       "Handles both standalone and CALCULATE-wrapped usage."
     );
   }

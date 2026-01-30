@@ -117,7 +117,7 @@ export class LastNonBlankTemplate extends ConversionTemplate {
       if (token instanceof TableColumnReference) {
         const tableName = token.tableName;
         const columnName = token.columnRef?.columnName || "";
-        const dimensionRef = resolveDimensionHierarchy(tableName, columnName, context.result);
+        const dimensionRef = resolveDimensionHierarchy(tableName, columnName, context.result, context.bim);
         return { dimensionRef, columnName };
       }
     }
@@ -128,7 +128,7 @@ export class LastNonBlankTemplate extends ConversionTemplate {
     if (match) {
       const tableName = match[1];
       const columnName = match[2];
-      const dimensionRef = resolveDimensionHierarchy(tableName, columnName, context.result);
+      const dimensionRef = resolveDimensionHierarchy(tableName, columnName, context.result, context.bim);
       return { dimensionRef, columnName };
     }
 
