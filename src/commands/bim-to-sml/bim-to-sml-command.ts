@@ -2,6 +2,7 @@ import { Command, Flags } from "@oclif/core";
 import dotenv from "dotenv";
 import { CommandLogger } from "../../shared/command-logger";
 import { convertInput, parseInputFile } from "../../shared/file-system-util";
+import { LogLevel } from "../../shared/logger";
 import { logSmlConverterResult } from "../../shared/sml-convert-result";
 import { SmlResultWriter } from "../../shared/sml-result-writer";
 import { getAiConverter } from "./bim-converter/ai-dax-converter";
@@ -45,6 +46,12 @@ export class BimToSmlCommand extends Command {
       required: false,
       default: undefined,
     }),
+    logLevel: Flags.string({
+      description: "Log level: error, warn, info, http, verbose, debug, silly",
+      required: false,
+      default: "info",
+      options: ["error", "warn", "info", "http", "verbose", "debug", "silly"],
+    }),
   };
 
   static examples = [
@@ -65,6 +72,7 @@ export class BimToSmlCommand extends Command {
       clean: flags.clean,
       atscaleConnectionId: flags.atscaleConnectionId,
       llmName: flags.llmName,
+      logLevel: flags.logLevel as LogLevel,
     });
   }
 
@@ -72,9 +80,10 @@ export class BimToSmlCommand extends Command {
     input: convertInput & {
       atscaleConnectionId: string;
       llmName: string | undefined;
+      logLevel: LogLevel;
     },
   ) {
-    const logger = CommandLogger.for(this);
+    const logger = CommandLogger.for(this, input.logLevel);
     const { absoluteOutputPath, absoluteSourcePath } = await parseInputFile(
       input,
       logger,

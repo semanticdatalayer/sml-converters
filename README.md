@@ -81,7 +81,7 @@ Converts a Power BI Model to SML
 ```
 USAGE
   $ sml-converters bim-to-sml [--source <value>] [--output <value>] [--clean] [--atscaleConnectionId <value>]
-    [--llmName <value>]
+    [--llmName <value>] [--logLevel error|warn|info|http|verbose|debug|silly]
 
 FLAGS
   --atscaleConnectionId=<value>  [default: con1] AtScale connection id. The connection id of the data warehouse in
@@ -90,6 +90,7 @@ FLAGS
   --llmName=<value>              Name of the LLM to use for DAX to MDX conversion (e.g., 'openai', 'anthropic')
                                  Must have the corresponding API key set in environment variables (e.g., OPENAI_API_KEY,
                                  ANTHROPIC_API_KEY)
+  --logLevel=<value>             [default: info] Log level: error, warn, info, http, verbose, debug, silly
   --output=<value>               [default: ./bim_output] Output folder
   --source=<value>               [default: ./] Source folder
 

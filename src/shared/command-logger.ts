@@ -1,13 +1,16 @@
 import { Command } from "@oclif/core";
 import chalk from "chalk";
-import { Logger } from "./logger";
+import { LOG_LEVEL_PRIORITY, Logger, LogLevel } from "./logger";
 
 export class CommandLogger implements Logger {
-  static for(command: Command) {
-    return new CommandLogger(command);
+  static for(command: Command, logLevel: LogLevel = "info") {
+    return new CommandLogger(command, logLevel);
   }
 
-  constructor(private command: Command) {}
+  constructor(
+    private command: Command,
+    private logLevel: LogLevel = "info",
+  ) {}
 
   error(message: string) {
     this.output("error", message);
@@ -36,7 +39,11 @@ export class CommandLogger implements Logger {
     this.output("silly", message);
   }
 
-  private output(severity: keyof Logger, message: string) {
+  private output(severity: LogLevel, message: string) {
+    if (LOG_LEVEL_PRIORITY[severity] > LOG_LEVEL_PRIORITY[this.logLevel]) {
+      return;
+    }
+
     let chalkInstance: chalk.Chalk = chalk;
     if (severity === "error") {
       chalkInstance = chalkInstance.red;
