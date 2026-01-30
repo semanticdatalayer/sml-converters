@@ -14,6 +14,10 @@ import { lookupAttrUniqueName, makeUniqueName } from "./tools";
 
 export class RelationshipConverter {
   private logger: Logger;
+  // Track (fromDataset, toDimension) pairs for role-playing detection
+  private modelRelationshipCounts: Map<string, number> = new Map();
+  private embeddedRelationshipCounts: Map<string, number> = new Map();
+
   constructor(logger: Logger) {
     this.logger = logger;
   }
@@ -37,7 +41,7 @@ export class RelationshipConverter {
             !tableLists.unusedTables.has(bimRelationship.toTable) &&
             !tableLists.unusedTables.has(bimRelationship.fromTable)
           )
-            this.convertRelationship(bimRelationship, model, attrNameMap);
+            this.convertRelationship(bimRelationship, model, attrNameMap, result);
         }
       });
 
@@ -71,6 +75,7 @@ export class RelationshipConverter {
     bimRelationship: BimRelationship,
     model: SMLModel,
     attrNameMap: Map<string, string[]>,
+    result: SmlConverterResult,
   ): void {
     const dataset_unique_name_from = makeUniqueName(
       `dataset.${bimRelationship.fromTable}`,
@@ -95,7 +100,47 @@ export class RelationshipConverter {
       this.logger,
     );
 
-    const relationship = {
+    // Determine the target level, checking for key_columns count match
+    let targetLevel = lookup ?? level_unique_name;
+    const joinColumnsCount = 1; // We always join on single column from BIM
+
+    const dim = result.dimensions.find(
+      (d) => d.unique_name === dimension_unique_name_to,
+    );
+    if (dim) {
+      const levelAttr = dim.level_attributes.find(
+        (la) => la.unique_name === targetLevel,
+      );
+      if (levelAttr && "key_columns" in levelAttr) {
+        const keyColumnsCount = levelAttr.key_columns.length;
+        if (keyColumnsCount !== joinColumnsCount) {
+          // Key columns mismatch - find a leaf level with single key_column
+          const leafLevel = this.findSingleKeyLeafLevel(dim);
+          if (leafLevel) {
+            this.logger.debug(
+              `Relationship to '${targetLevel}' has ${keyColumnsCount} key_columns but only ${joinColumnsCount} join_column. Using leaf level '${leafLevel}' instead.`,
+            );
+            targetLevel = leafLevel;
+          } else {
+            this.logger.warn(
+              `Relationship from '${bimRelationship.fromTable}' to '${bimRelationship.toTable}' has mismatched key_columns (${keyColumnsCount}) vs join_columns (${joinColumnsCount}). No suitable leaf level found.`,
+            );
+          }
+        }
+      }
+    }
+
+    // Track role-playing: multiple relationships from same dataset to same dimension
+    const relationshipKey = `${dataset_unique_name_from}|${dimension_unique_name_to}`;
+    const count = this.modelRelationshipCounts.get(relationshipKey) ?? 0;
+    this.modelRelationshipCounts.set(relationshipKey, count + 1);
+
+    const relationship: {
+      unique_name: string;
+      from: { dataset: string; join_columns: string[] };
+      to: { dimension: string; level: string };
+      role_play?: string;
+    } = {
       unique_name: relationship_unique_name,
       from: {
         dataset: dataset_unique_name_from,
@@ -103,11 +148,44 @@ export class RelationshipConverter {
       },
       to: {
         dimension: dimension_unique_name_to,
-        level: lookup ?? level_unique_name,
+        level: targetLevel,
       },
-    } satisfies SMLModelRelationship;
+    };
+
+    // Add role_play for second and subsequent relationships to same dimension
+    if (count > 0) {
+      relationship.role_play = this.buildRolePlayTemplate(
+        bimRelationship.fromColumn,
+        bimRelationship.toTable,
+      );
+    }
 
     model.relationships.push(relationship);
+  }
+
+  /**
+   * Find a leaf level in the dimension hierarchy that has a single key_column.
+   */
+  private findSingleKeyLeafLevel(
+    dim: SmlConverterResult["dimensions"][0],
+  ): string | null {
+    // Check leaf levels of each hierarchy (last level in each)
+    for (const hier of dim.hierarchies) {
+      const leafLevelName = hier.levels[hier.levels.length - 1]?.unique_name;
+      if (leafLevelName) {
+        const leafAttr = dim.level_attributes.find(
+          (la) => la.unique_name === leafLevelName,
+        );
+        if (
+          leafAttr &&
+          "key_columns" in leafAttr &&
+          leafAttr.key_columns.length === 1
+        ) {
+          return leafLevelName;
+        }
+      }
+    }
+    return null;
   }
   createEmbeddedRelationship(
     bimRelationship: BimRelationship,
@@ -132,8 +210,19 @@ export class RelationshipConverter {
       bimRelationship.toTable,
       bimRelationship.toColumn,
     );
+
+    // Track role-playing: multiple relationships from same dataset to same dimension
+    const relationshipKey = `${dataset_unique_name_from}|${dimension_unique_name_to}`;
+    const count = this.embeddedRelationshipCounts.get(relationshipKey) ?? 0;
+    this.embeddedRelationshipCounts.set(relationshipKey, count + 1);
+
+    // Include join column in unique_name for uniqueness
     const relationship_unique_name = makeUniqueName(
-      dataset_unique_name_from + "." + dimension_unique_name_to,
+      dataset_unique_name_from +
+        "." +
+        bimRelationship.fromColumn +
+        "." +
+        dimension_unique_name_to,
     );
 
     const dimRel: SMLEmbeddedRelationship = {
@@ -150,7 +239,43 @@ export class RelationshipConverter {
       },
       type: SMLDimensionRelationType.Embedded,
     };
+
+    // Add role_play for second and subsequent relationships to same dimension
+    if (count > 0) {
+      dimRel.role_play = this.buildRolePlayTemplate(
+        bimRelationship.fromColumn,
+        bimRelationship.toTable,
+      );
+    }
+
     return dimRel;
+  }
+
+  /**
+   * Build role_play template string with {0} placeholder.
+   * Strips DATE suffix when target is a date/calendar dimension.
+   */
+  private buildRolePlayTemplate(fromColumn: string, toTable: string): string {
+    let rolePrefix = fromColumn;
+
+    // If targeting a date/calendar dimension, strip DATE suffix from column name
+    const toTableLower = toTable.toLowerCase();
+    if (
+      toTableLower.includes("date") ||
+      toTableLower.includes("calendar") ||
+      toTableLower.includes("time")
+    ) {
+      rolePrefix = rolePrefix
+        .replace(/_DATE$/i, "")
+        .replace(/DATE$/i, "")
+        .replace(/_DT$/i, "")
+        .replace(/DT$/i, "");
+    }
+
+    // Clean up trailing underscores/spaces
+    rolePrefix = rolePrefix.replace(/_+$/, "").replace(/\s+$/, "");
+
+    return `${rolePrefix} {0}`;
   }
   addRelationshipsToDim(
     tblName: string,
