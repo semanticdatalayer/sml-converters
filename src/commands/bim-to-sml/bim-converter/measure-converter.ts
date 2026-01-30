@@ -383,6 +383,13 @@ export class MeasureConverter {
                     ),
                   )?.uniqueName;
                 }
+                // Skip if referenced table is unused (referencedMetric will be empty string)
+                if (!referencedMetric) {
+                  this.logger.warn(
+                    `Skipping measure '${meas.name}' - COUNTROWS references unused table '${referencedTable.name}'`,
+                  );
+                  return;
+                }
                 // Create the calculated metric referencing the countrows base measure for the table
                 const calc_unique_name = createUniqueAttrName(
                   attrMaps.attrNameMap,

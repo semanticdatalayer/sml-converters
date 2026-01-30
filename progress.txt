@@ -24,7 +24,7 @@
 | PTM_bim.json | deployed | US-002 |
 | test_bim.json | future work | US-003 |
 | Ulta_bim.json | deployed | US-004 |
-| POC_bim.json | pending | - |
+| POC_bim.json | deployed | US-005 |
 | PFM_from_Daniel_bim.json | pending | - |
 
 ---
@@ -213,5 +213,40 @@
 - Calculation expressions must use the encoded unique_name, not original name
 - resolveUnresolvedReferences() runs twice: once after DAX conversion, once after base metrics created
 - Functions that don't exist in MDX should be in unconvertible list to produce TODO stubs
+
+---
+
+## Iteration 5 - US-005: POC_bim.json
+
+**What was implemented:**
+- Fixed COUNTROWS measures referencing unused tables producing invalid MDX `[Measures].[]`
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/measure-converter.ts`
+
+**Result:** Deploy succeeded after fix
+
+**Analysis:**
+- First error: "Error getting physical type of flat attribute [DocRowCount]: Flat attribute `` not found in model_POC"
+  - Root cause: `DocRowCount` measure uses `COUNTROWS(Documentation)`
+  - `Documentation` table is unused (no relationships) so skipped during conversion
+  - `createAndAddCountRowsMeasure()` returned empty string for unused table
+  - But code still created calculation with expression `[Measures].[]` (empty metric reference)
+  - Fix: Added check to skip creating calculation when `referencedMetric` is empty
+
+**Learnings for future iterations:**
+- When `createAndAddCountRowsMeasure()` returns empty string, skip creating the dependent calculation
+- Check for empty/falsy return values before building expressions that depend on them
+- Tables without relationships are marked as unused and their columns/measures won't exist
+
+---
+
+## Completed Fixes (continued)
+
+### Fix 9: COUNTROWS on unused tables producing invalid MDX
+- **File**: `measure-converter.ts`
+- **Issue**: When COUNTROWS references an unused table, `createAndAddCountRowsMeasure()` returns empty string but caller still created calculation
+- **Error**: "Error getting physical type of flat attribute [DocRowCount]: Flat attribute `` not found"
+- **Fix**: Added check `if (!referencedMetric)` to skip calculation creation and log warning
 
 ---
