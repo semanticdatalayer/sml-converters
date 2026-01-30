@@ -102,7 +102,31 @@ Constructor function not defined at value
 ```
 
 **Acceptance Criteria:**
-- [ ] Add VALUE to unconvertible DAX functions list
+- [x] Add VALUE to unconvertible DAX functions list
+- [x] Typecheck passes
+- [x] Run `npm run test-custom-calcs` passes
+- [x] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved
+
+**Result:** Error fixed. New error discovered - see US-006.
+
+### US-006: Fix malformed MDX tuple syntax in CALCULATE with ALL filter
+
+**Description:** CALCULATE with ALL(Table[Column]) filter produces malformed MDX with incorrect comma syntax.
+
+**Background:**
+DAX: `CALCULATE(DIVIDE([A], [B]), ALL(SES[Area Manager]))`
+Produces: `([dimension].[Hierarchy].[All], (division))`
+- The comma creates an invalid tuple
+- MDX tuple syntax is wrong for this use case
+
+Error from deployment:
+```
+'CloseParen' expected but Comma found
+```
+
+**Acceptance Criteria:**
+- [ ] Investigate CALCULATE template handling of ALL() filters
+- [ ] Fix tuple syntax or mark ALL filters as unconvertible
 - [ ] Typecheck passes
 - [ ] Run `npm run test-custom-calcs` passes
 - [ ] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved

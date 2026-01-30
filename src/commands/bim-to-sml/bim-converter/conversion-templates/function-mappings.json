@@ -118,7 +118,8 @@
     "DATEADD",
     "LASTNONBLANK",
     "FIRSTNONBLANK",
-    "EDATE"
+    "EDATE",
+    "VALUE"
   ],
   "complex_patterns": [
     "CALCULATE",

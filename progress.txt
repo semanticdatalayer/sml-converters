@@ -72,3 +72,15 @@ IfFunction requires both results to be of the same type:
   - MDX requires type consistency; converting ALL string literals to NULL in numeric SWITCH works
   - New issue: DAX VALUE() function needs to be added to unconvertible list or handled specially
 ---
+
+## Iteration 5 - US-005: Add VALUE function to unconvertible DAX functions
+- Added VALUE to unconvertible list in function-mappings.json
+- Files changed: function-mappings.json
+- Result: VALUE error FIXED - measure now falls back to TODO stub
+- Deploy hit NEW error: `'CloseParen' expected but Comma found` on `Write-off in selling price - average per ses wo filter`
+- Root cause: CALCULATE with ALL(Table[Column]) produces malformed MDX tuple syntax
+- Generated MDX: `([dimension].[Hierarchy].[All], (division))` - comma is wrong
+- Learnings:
+  - function-mappings.json is the central place to mark functions as unconvertible
+  - The CALCULATE with ALL filter context conversion has a bug in tuple syntax
+---
