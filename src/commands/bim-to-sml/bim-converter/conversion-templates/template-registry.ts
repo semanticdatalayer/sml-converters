@@ -51,6 +51,7 @@ export class TemplateRegistry {
   private constructor(private logger: Logger) {
     this.registerDefaultTemplates();
     this.sortTemplatesByConfidence();
+    this.logRegisteredTemplates();
   }
 
   /**
@@ -96,9 +97,16 @@ export class TemplateRegistry {
    */
   public registerTemplate(template: ConversionTemplate): void {
     this.templates.push(template);
-    this.logger.debug(
-      `Registered template: ${template.name} (confidence: ${template.confidence})`,
-    );
+  }
+
+  /**
+   * Log all registered templates in a single consolidated message
+   */
+  private logRegisteredTemplates(): void {
+    const templateList = this.templates
+      .map((t) => `${t.name} (${t.confidence})`)
+      .join(", ");
+    this.logger.debug(`Registered templates: ${templateList}`);
   }
 
   /**

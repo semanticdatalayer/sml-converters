@@ -42,10 +42,10 @@ Clean up verbose and temporary logging in the BIM converter. Remove debug marker
 
 **Acceptance Criteria:**
 
-- [ ] Remove per-template debug log from `registerTemplate()` method
-- [ ] After all templates registered in constructor, log single message: `Registered templates: DivideTemplate (1), IsBlankTemplate (0.95), ...`
-- [ ] List sorted by confidence (highest first)
-- [ ] Typecheck passes
+- [x] Remove per-template debug log from `registerTemplate()` method
+- [x] After all templates registered in constructor, log single message: `Registered templates: DivideTemplate (1), IsBlankTemplate (0.95), ...`
+- [x] List sorted by confidence (highest first)
+- [x] Typecheck passes
 
 ## Non-Goals
 
