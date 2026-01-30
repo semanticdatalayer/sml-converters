@@ -11,6 +11,10 @@ import {
 } from "../../conversion-result";
 import { ConversionContext } from "../conversion-context";
 
+// String literals that represent null/invalid values in DAX and should be
+// converted to NULL in MDX to maintain type consistency
+const NULL_PLACEHOLDER_STRINGS = new Set(["N/A", "n/a", "NA", "na", "-", ""]);
+
 /**
  * SwitchTemplate converts DAX SWITCH function to nested MDX IIF expressions.
  *
@@ -95,15 +99,35 @@ export class SwitchTemplate extends ConversionTemplate {
       const pairCount = Math.floor((argGroups.length - 1) / 2);
       const hasDefault = (argGroups.length - 1) % 2 === 1;
 
+      // Collect all result values first to check for type consistency
+      const resultMdxValues: string[] = [];
+      for (let i = 0; i < pairCount; i++) {
+        const resultIdx = 1 + i * 2 + 1;
+        resultMdxValues.push(this.convertSubExpression(argGroups[resultIdx], context));
+      }
+
+      // Check if any result looks numeric and any is a string literal
+      const hasNumericResult = resultMdxValues.some(v => this.looksNumeric(v));
+      const hasStringLiteral = resultMdxValues.some(v => this.isStringLiteral(v));
+
+      // If we have mixed types (numeric + strings), convert ALL strings to NULL
+      // This handles both null placeholders ("N/A") and UI labels ("CAPEX UTILISATION")
+      const normalizeType = hasNumericResult && hasStringLiteral;
+
       // Build nested IIF expressions from innermost to outermost
       let mdxExpression: string;
 
       if (hasDefault) {
         // Start with default value
-        mdxExpression = this.convertSubExpression(
+        let defaultMdx = this.convertSubExpression(
           argGroups[argGroups.length - 1],
           context,
         );
+        // Normalize type if needed - convert ANY string literal to NULL in numeric context
+        if (normalizeType && this.isStringLiteral(defaultMdx)) {
+          defaultMdx = "NULL";
+        }
+        mdxExpression = defaultMdx;
       } else {
         // No default, use NULL
         mdxExpression = "NULL";
@@ -115,10 +139,15 @@ export class SwitchTemplate extends ConversionTemplate {
         const resultIdx = valueIdx + 1;
 
         const valueMdx = this.convertSubExpression(argGroups[valueIdx], context);
-        const resultMdx = this.convertSubExpression(
+        let resultMdx = this.convertSubExpression(
           argGroups[resultIdx],
           context,
         );
+
+        // Normalize type if needed - convert ANY string literal to NULL in numeric context
+        if (normalizeType && this.isStringLiteral(resultMdx)) {
+          resultMdx = "NULL";
+        }
 
         // IIF(expr = value, result, previousExpression)
         mdxExpression = `IIF(${exprMdx} = ${valueMdx}, ${resultMdx}, ${mdxExpression})`;
@@ -210,5 +239,44 @@ export class SwitchTemplate extends ConversionTemplate {
     }
 
     return groups;
+  }
+
+  /**
+   * Check if a converted MDX value is a string placeholder that represents null.
+   * DAX often uses strings like "N/A" as null placeholders in numeric contexts.
+   */
+  private isNullPlaceholderString(mdxValue: string): boolean {
+    // Check for double-quoted string literals
+    const match = mdxValue.match(/^"([^"]*)"$/);
+    if (match) {
+      return NULL_PLACEHOLDER_STRINGS.has(match[1]);
+    }
+    return false;
+  }
+
+  /**
+   * Check if a converted MDX value is any string literal (quoted).
+   * In numeric contexts, ALL string literals must become NULL for type consistency.
+   */
+  private isStringLiteral(mdxValue: string): boolean {
+    // Check for double-quoted string literals
+    return /^"[^"]*"$/.test(mdxValue);
+  }
+
+  /**
+   * Check if a converted MDX value looks numeric (contains measures, math ops, numbers, or NULL).
+   */
+  private looksNumeric(mdxValue: string): boolean {
+    // NULL is compatible with numeric
+    if (mdxValue === "NULL") return true;
+    // Contains measure reference
+    if (mdxValue.includes("[Measures].")) return true;
+    // Contains MDX functions that return numbers
+    if (/\b(IIF|DIVIDE|Sum|Avg|Max|Min|Count)\s*\(/i.test(mdxValue)) return true;
+    // Contains arithmetic operators (but not in strings)
+    if (/[+\-*/]/.test(mdxValue) && !mdxValue.startsWith('"')) return true;
+    // Is a number
+    if (/^\d+(\.\d+)?$/.test(mdxValue.trim())) return true;
+    return false;
   }
 }

@@ -59,3 +59,16 @@ IfFunction requires both results to be of the same type:
   - MDX/AtScale requires type consistency across all branches
   - Need follow-up story to handle UI label strings in SWITCH statements
 ---
+
+## Iteration 4 - US-004: Handle mixed-type SWITCH with UI label strings
+- Added `isStringLiteral()` method to SwitchTemplate
+- Updated type normalization to convert ANY string literal to NULL in numeric context
+- Changed from `isNullPlaceholderString` to `isStringLiteral` for type normalization
+- Files changed: switch-template.ts
+- Result: CAPEX utilisation error FIXED - now uses NULL instead of "CAPEX UTILISATION"
+- Deploy hit NEW error: `Constructor function not defined at value` on `Number of special transactions for PL interim - actual`
+- Root cause: DAX `VALUE()` function incorrectly converted - MDX doesn't have VALUE equivalent
+- Learnings:
+  - MDX requires type consistency; converting ALL string literals to NULL in numeric SWITCH works
+  - New issue: DAX VALUE() function needs to be added to unconvertible list or handled specially
+---

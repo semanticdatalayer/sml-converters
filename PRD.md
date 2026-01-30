@@ -77,8 +77,32 @@ IfFunction requires both results to be of the same type:
 ```
 
 **Acceptance Criteria:**
-- [ ] Detect when SWITCH has mixed string label + numeric results
-- [ ] Convert non-null-placeholder strings (like "CAPEX UTILISATION") to NULL in numeric contexts
+- [x] Detect when SWITCH has mixed string label + numeric results
+- [x] Convert non-null-placeholder strings (like "CAPEX UTILISATION") to NULL in numeric contexts
+- [x] Typecheck passes
+- [x] Run `npm run test-custom-calcs` passes
+- [x] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved
+
+**Result:** Error fixed. New error discovered - see US-005.
+
+### US-005: Add VALUE function to unconvertible DAX functions
+
+**Description:** DAX VALUE() function converts text to numbers but has no MDX equivalent. It should be added to the unconvertible functions list.
+
+**Background:**
+DAX: `CALCULATE(SUM(...), VALUE('Table'[Column]) <> -1)`
+Incorrectly converts to: `IIF(VALUE([Measures].[Column])<>-1, ...)`
+- VALUE is not an MDX function
+- The column reference is also wrong (using [Measures] for a dimension column)
+
+Error from deployment:
+```
+Calculated measure Number of special transactions for PL interim - actual is not valid:
+Constructor function not defined at value
+```
+
+**Acceptance Criteria:**
+- [ ] Add VALUE to unconvertible DAX functions list
 - [ ] Typecheck passes
 - [ ] Run `npm run test-custom-calcs` passes
 - [ ] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved
