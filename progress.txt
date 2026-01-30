@@ -98,3 +98,34 @@ IfFunction requires both results to be of the same type:
   - ALL() filter removal is safest to reject until proper scoping is implemented
   - Fact table columns in CALCULATE filters need special handling - cannot simply use [Measures].[X]
 ---
+
+## Iteration 7 - US-007: Handle fact table column references in CALCULATE filters
+- Added check in `isSimpleComparisonFilter()` to detect fact table column references
+- Fact tables are identified as tables on left side of relationships but not right side
+- Modified method to accept ConversionContext for BIM model access
+- Files changed: calculate-template.ts
+- Result: **DEPLOYMENT SUCCEEDED!** 🎉
+- All errors fixed, mol.bim.json deploys successfully
+- Final conversion rate: 57% (tradeoff for correctness over coverage)
+- Learnings:
+  - Fact table columns cannot be used in MDX calculation filters
+  - MDX works on aggregated data, not row-level filtering
+  - Better to fallback to TODO than produce invalid MDX
+---
+
+## SESSION COMPLETE
+
+**Summary of fixes applied:**
+1. US-001/002: Transform N/A comparisons to ISEMPTY in IF conditions
+2. US-003: Validated original fix works
+3. US-004: Convert ALL string literals to NULL in mixed-type SWITCH
+4. US-005: Add VALUE to unconvertible functions
+5. US-006: Reject CALCULATE with ALL() filters
+6. US-007: Reject CALCULATE with fact table column filters
+
+**Key learnings for future work:**
+- AtScale MDX is stricter than standard MDX - test deployments early
+- DAX filter context modifications (ALL, column filters) don't translate to MDX
+- Type consistency is critical - MDX IIF requires same type in both branches
+- Fallback to TODO stub is safer than producing invalid MDX
+---

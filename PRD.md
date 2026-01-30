@@ -54,10 +54,10 @@ IfFunction requires both results to be of the same type:
 - [x] Verify calculation uses `ISEMPTY()` instead of `= "N/A"` comparison
 - [x] Run `pnpm pbi-deploy /Users/dianne/Downloads/bim/currenttest/mol.bim.json` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
 - [x] If new error occurs, create follow-up story and repeat
-- [ ] Continue until deploy succeeds or 20 iterations reached
+- [x] Continue until deploy succeeds or 20 iterations reached (succeeded in 7 iterations)
 - [x] Typecheck passes
 
-**Result:** Deploy failed with NEW error - see US-004 for follow-up.
+**Result:** ✅ DEPLOYMENT SUCCEEDED after fixing 6 additional issues (US-004 through US-007).
 
 ### US-004: Handle mixed-type SWITCH with UI label strings
 
@@ -149,11 +149,13 @@ Measure SUPPLIER_ID in calculation is not a measure
 ```
 
 **Acceptance Criteria:**
-- [ ] Detect when CALCULATE filter references a fact table column
-- [ ] Reject conversion or handle appropriately
-- [ ] Typecheck passes
-- [ ] Run `npm run test-custom-calcs` passes
-- [ ] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved
+- [x] Detect when CALCULATE filter references a fact table column
+- [x] Reject conversion or handle appropriately
+- [x] Typecheck passes
+- [x] Run `npm run test-custom-calcs` passes
+- [x] Run `pnpm pbi-deploy` on mol.bim.json and verify error is resolved
+
+**Result:** ✅ DEPLOYMENT SUCCEEDED! All errors fixed.
 
 ## Non-Goals
 

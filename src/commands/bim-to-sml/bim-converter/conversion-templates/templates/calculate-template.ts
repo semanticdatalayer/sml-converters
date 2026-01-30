@@ -94,7 +94,7 @@ export class CalculateTemplate extends ConversionTemplate {
         return false;
       }
 
-      const filterCheckResult = this.isSimpleComparisonFilter(argGroups[i]);
+      const filterCheckResult = this.isSimpleComparisonFilter(argGroups[i], context);
       if (!filterCheckResult.isSimple) {
         this.log(`Rejected: ${filterCheckResult.reason}`, context);
         return false;
@@ -327,7 +327,27 @@ export class CalculateTemplate extends ConversionTemplate {
    *
    * Returns object with isSimple flag and reason for rejection
    */
-  private isSimpleComparisonFilter(tokens: DaxToken[]): { isSimple: boolean; reason?: string } {
+  private isSimpleComparisonFilter(tokens: DaxToken[], context: ConversionContext): { isSimple: boolean; reason?: string } {
+    // Check for fact table column references - these can't be converted to MDX
+    // MDX works on aggregated data, not row-level filtering on fact table columns
+    for (const token of tokens) {
+      if (token instanceof TableColumnReference) {
+        const tableName = token.tableName;
+        // Check if this table is a fact table (on left side of relationships but not on right)
+        const isFactTable = context.bim.model.relationships?.some(
+          (rel) => rel.fromTable === tableName
+        ) && !context.bim.model.relationships?.some(
+          (rel) => rel.toTable === tableName
+        );
+
+        if (isFactTable) {
+          return {
+            isSimple: false,
+            reason: `Cannot convert dimension column reference '${tableName}'[${token.columnRef?.columnName || '?'}] - dimension table columns in calculations require the column to be exposed in the dimension hierarchy`
+          };
+        }
+      }
+    }
     // Check for NOT IN pattern first
     const notInPattern = this.detectNotInPattern(tokens);
     if (notInPattern) {
