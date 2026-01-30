@@ -57,6 +57,20 @@ export class LogicalTemplate extends ConversionTemplate {
         this.warn(`NOT requires exactly 1 argument, got ${argCount}`, context);
         return false;
       }
+
+      // Check if NOT argument is a measure reference - MDX NOT requires boolean, not numeric
+      // In DAX, NOT(numeric) works (0 → TRUE, non-zero → FALSE), but MDX doesn't support this
+      const argGroups = this.splitArguments(token.args);
+      if (argGroups.length > 0) {
+        const argMdx = this.convertSubExpression(argGroups[0], context);
+        if (argMdx.includes("[Measures].")) {
+          this.warn(
+            `NOT with measure reference ([Measures]...) is not supported in MDX - NOT requires boolean argument`,
+            context,
+          );
+          return false;
+        }
+      }
     } else {
       // AND/OR require at least 2 arguments
       if (argCount < 2) {

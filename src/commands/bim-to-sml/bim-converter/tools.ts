@@ -481,3 +481,56 @@ export function firstChars(expression: string, arg1: number) {
 export function escapeForComment(str: string): string {
   return str.replace(/\*\//g, "* /");
 }
+
+/**
+ * DAX functions that return boolean values. Used to determine fallback value type.
+ */
+const BOOLEAN_RETURNING_FUNCTIONS = new Set([
+  "ISFILTERED",
+  "ISCROSSFILTERED",
+  "HASONEVALUE",
+  "HASONEFILTER",
+  "ISBLANK",
+  "ISERROR",
+  "ISLOGICAL",
+  "ISNONTEXT",
+  "ISNUMBER",
+  "ISTEXT",
+  "CONTAINS",
+  "CONTAINSROW",
+  "CONTAINSSTRING",
+  "CONTAINSSTRINGEXACT",
+]);
+
+/**
+ * Check if a DAX expression returns a boolean value.
+ * Detects boolean-returning functions and comparison expressions.
+ */
+export function isBooleanReturningExpression(daxExpression: string): boolean {
+  const trimmed = daxExpression.trim().toUpperCase();
+
+  // Check for boolean-returning functions at the start
+  for (const func of BOOLEAN_RETURNING_FUNCTIONS) {
+    if (trimmed.startsWith(func + "(") || trimmed.startsWith(func + " (")) {
+      return true;
+    }
+  }
+
+  // Check for comparison operators at the end (e.g., "CALCULATE(...) > 0")
+  // These patterns indicate a boolean result
+  if (/[<>=!]+\s*\d+\s*$/.test(trimmed) ||        // ends with >0, <0, >=0, <=0, <>0, =0
+      /[<>=!]+\s*TRUE\s*$/.test(trimmed) ||       // ends with =TRUE, <>TRUE
+      /[<>=!]+\s*FALSE\s*$/.test(trimmed)) {      // ends with =FALSE, <>FALSE
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Creates the appropriate fallback value for a DAX expression.
+ * Returns "FALSE" for boolean-returning functions, "0" for numeric functions.
+ */
+export function getFallbackValue(daxExpression: string): string {
+  return isBooleanReturningExpression(daxExpression) ? "FALSE" : "0";
+}

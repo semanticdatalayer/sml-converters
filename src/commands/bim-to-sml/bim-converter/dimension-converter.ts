@@ -497,23 +497,28 @@ export class DimensionConverter {
   }
 
   convertTimeUnit(levelName: string): SMLDimensionTimeUnit {
-    if (levelName.toLowerCase().includes("day"))
+    const name = levelName.toLowerCase();
+    if (name.includes("day"))
       return SMLDimensionTimeUnit.Day;
-    else if (levelName.toLowerCase().includes("date"))
+    else if (name.includes("date"))
       return SMLDimensionTimeUnit.Day;
-    else if (levelName.toLowerCase().includes("week"))
+    else if (name.includes("week"))
       return SMLDimensionTimeUnit.Week;
     else if (
-      levelName.toLowerCase().includes("month") ||
-      levelName.toLowerCase().includes("mth")
+      name.includes("month") ||
+      name.includes("mth") ||
+      name.includes("_moy") ||  // Month of Year (e.g., D_MOY)
+      name.endsWith("moy")
     )
       return SMLDimensionTimeUnit.Month;
     else if (
-      levelName.toLowerCase().includes("quarter") ||
-      levelName.toLowerCase().includes("qtr")
+      name.includes("quarter") ||
+      name.includes("qtr") ||
+      name.includes("_qoy") ||  // Quarter of Year (e.g., D_QOY)
+      name.endsWith("qoy")
     )
       return SMLDimensionTimeUnit.Quarter;
-    else if (levelName.toLowerCase().includes("year"))
+    else if (name.includes("year"))
       return SMLDimensionTimeUnit.Year;
     else throw new Error("Unknown time field in field: " + levelName);
   }

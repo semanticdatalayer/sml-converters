@@ -2,7 +2,7 @@ import {
   ConversionTemplate,
   ConversionExample,
 } from "../template-base";
-import { DaxToken, FunctionToken, CommaToken } from "../../dax-converter";
+import { DaxToken, FunctionToken, CommaToken, OperatorToken } from "../../dax-converter";
 import {
   ConversionResult,
   ConversionCategory,
@@ -12,9 +12,58 @@ import {
 import { ConversionContext } from "../conversion-context";
 
 /**
+ * DAX functions that return boolean values.
+ */
+const BOOLEAN_RETURNING_FUNCTIONS = new Set([
+  "ISFILTERED",
+  "ISCROSSFILTERED",
+  "HASONEVALUE",
+  "HASONEFILTER",
+  "ISBLANK",
+  "ISERROR",
+  "ISLOGICAL",
+  "ISNONTEXT",
+  "ISNUMBER",
+  "ISTEXT",
+  "CONTAINS",
+  "CONTAINSROW",
+  "CONTAINSSTRING",
+  "CONTAINSSTRINGEXACT",
+  "NOT",
+]);
+
+/**
+ * Check if tokens represent a boolean expression.
+ * Detects NOT() functions, boolean operators (&&, ||), and boolean-returning functions.
+ */
+function isBooleanExpression(tokens: DaxToken[]): boolean {
+  for (const token of tokens) {
+    // Check for boolean operators
+    if (token instanceof OperatorToken) {
+      const op = token.value.toUpperCase();
+      if (op === "&&" || op === "||" || op === "AND" || op === "OR") {
+        return true;
+      }
+    }
+    // Check for boolean-returning functions
+    if (token instanceof FunctionToken) {
+      const funcName = token.functionAgg.toUpperCase();
+      if (BOOLEAN_RETURNING_FUNCTIONS.has(funcName)) {
+        return true;
+      }
+      // Recursively check function arguments
+      if (isBooleanExpression(token.args)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * DivideTemplate converts DAX DIVIDE function to MDX division.
  *
- * Handles two forms:
+ * Handles three forms:
  * 1. DIVIDE(numerator, denominator)
  *    → (numerator) / (denominator)
  *    Confidence: 1.0 (semantically equivalent)
@@ -22,6 +71,10 @@ import { ConversionContext } from "../conversion-context";
  * 2. DIVIDE(numerator, denominator, alternate_result)
  *    → IIF(denominator = 0, alternate_result, (numerator) / (denominator))
  *    Confidence: 1.0 (semantically equivalent)
+ *
+ * 3. DIVIDE(numerator, boolean_expression) - DAX idiom for conditional display
+ *    → IIF(boolean_expression, numerator, NULL)
+ *    Confidence: 0.9 (DAX idiom where TRUE passes through, FALSE returns BLANK)
  *
  * DAX DIVIDE returns alternate_result when denominator is 0 or BLANK.
  * MDX IIF with zero check provides equivalent behavior.
@@ -106,6 +159,24 @@ export class DivideTemplate extends ConversionTemplate {
       }
 
       if (argGroups.length === 2) {
+        // Check if denominator is a boolean expression (DAX idiom for conditional display)
+        // DIVIDE(value, boolean) in DAX means: if boolean is TRUE, return value; if FALSE, return BLANK
+        if (isBooleanExpression(argGroups[1])) {
+          // Convert to: IIF(boolean, numerator, NULL)
+          const mdxExpression = `IIF(${denominatorMdx}, ${numeratorMdx}, NULL)`;
+
+          return successfulConversion(
+            mdxExpression,
+            0.9, // Slightly lower confidence for idiom conversion
+            ConversionCategory.TEMPLATE_CONVERSION,
+            {
+              originalDax: `DIVIDE(${numeratorMdx}, ${denominatorMdx})`,
+              method: "divide_template_boolean_denom",
+              note: "DAX idiom: DIVIDE by boolean converted to IIF conditional",
+            },
+          );
+        }
+
         // 2-arg form: DIVIDE(num, denom) → (num) / (denom)
         const mdxExpression = `(${numeratorMdx}) / (${denominatorMdx})`;
 

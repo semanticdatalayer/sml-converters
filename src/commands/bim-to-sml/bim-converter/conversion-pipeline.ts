@@ -11,7 +11,7 @@ import { TemplateRegistry } from "./conversion-templates/template-registry";
 import { ConversionContext } from "./conversion-templates/conversion-context";
 import { VarInliner } from "./var-analysis/var-inliner";
 import { Logger } from "../../../shared/logger";
-import { escapeForComment } from "./tools";
+import { escapeForComment, isBooleanReturningExpression } from "./tools";
 
 /**
  * Configuration for conversion pipeline
@@ -503,11 +503,14 @@ export class ConversionPipeline {
 
   /**
    * Stage 6: Create fallback TODO stub
+   * Uses FALSE for boolean-returning functions, 0 for numeric functions
    */
   private createFallback(daxExpression: string): PipelineResult {
+    // Use FALSE for boolean-returning functions to avoid "NOT operator requires Boolean" errors
+    const fallbackValue = isBooleanReturningExpression(daxExpression) ? "FALSE" : "0";
     return {
       success: true,
-      expression: `0 /* TODO: ${escapeForComment(daxExpression)} */`,
+      expression: `${fallbackValue} /* TODO: ${escapeForComment(daxExpression)} */`,
       confidence: 0.0,
       category: ConversionCategory.UNCONVERTIBLE,
       stage: 6,

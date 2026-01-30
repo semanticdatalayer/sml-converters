@@ -1,3 +1,5 @@
+import * as fs from "fs";
+import * as path from "path";
 import { Constants } from "../bim-models/constants";
 import { isSimpleCountRowsFunction } from "./expression-parser";
 import { lowerNoSpace, noQuotes, makeUniqueName } from "./tools";
@@ -8,6 +10,34 @@ import {
   ExtractedMeasure,
 } from "../bim-models/types-and-interfaces";
 import { MeasureConverter } from "./measure-converter";
+
+// Load function mappings once at module initialization
+let functionMappings: Map<string, string> | null = null;
+
+function getFunctionMappings(): Map<string, string> {
+  if (functionMappings) return functionMappings;
+
+  functionMappings = new Map<string, string>();
+  try {
+    const mappingsPath = path.join(
+      __dirname,
+      "conversion-templates/function-mappings.json",
+    );
+    const data = fs.readFileSync(mappingsPath, "utf-8");
+    const parsed = JSON.parse(data);
+
+    for (const [daxFunc, mdxFunc] of Object.entries(parsed.direct_mappings || {})) {
+      if (typeof mdxFunc === "string") {
+        functionMappings.set(daxFunc.toUpperCase(), mdxFunc);
+      } else if (typeof mdxFunc === "object" && mdxFunc !== null && "mdx" in mdxFunc) {
+        functionMappings.set(daxFunc.toUpperCase(), (mdxFunc as { mdx: string }).mdx);
+      }
+    }
+  } catch {
+    // Silently fall back to identity mapping if file not found
+  }
+  return functionMappings;
+}
 
 export enum TokenType {
   FUNCTION = "FUNCTION",
@@ -68,11 +98,23 @@ export class FunctionToken extends DaxToken {
         return `ROUND(${this.args[0].toMdx(info)}, ${this.args[2].toMdx(
           info,
         )})`;
-      default:
+      case "mod": {
+        // AtScale MDX doesn't have MOD function, convert to: a - (b * Truncate(a / b))
+        // args[0] is the dividend, args[2] is the divisor (args[1] is CommaToken)
+        const dividend = this.args[0].toMdx(info);
+        const divisor = this.args[2].toMdx(info);
+        return `(${dividend} - (${divisor} * Truncate(${dividend} / ${divisor})))`;
+      }
+      default: {
+        // Apply function name mapping from function-mappings.json
+        const daxFuncUpper = this.functionAgg.toUpperCase();
+        const mappings = getFunctionMappings();
+        const mdxFuncName = mappings.get(daxFuncUpper) || daxFuncUpper;
         // args array includes CommaTokens, so join with "" not ", "
-        return `${this.functionAgg.toUpperCase()}(${this.args
+        return `${mdxFuncName}(${this.args
           .map((arg) => arg.toMdx(info))
           .join("")})`;
+      }
     }
   }
 

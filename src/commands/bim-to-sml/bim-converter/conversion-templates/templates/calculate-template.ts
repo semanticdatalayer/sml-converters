@@ -11,6 +11,7 @@ import {
 } from "../../conversion-result";
 import { ConversionContext } from "../conversion-context";
 import { makeUniqueName } from "../../tools";
+import { resolveDimensionHierarchy } from "../../converter-utils";
 
 /**
  * CalculateTemplate converts simple DAX CALCULATE patterns to MDX.
@@ -22,8 +23,9 @@ import { makeUniqueName } from "../../tools";
  * - CALCULATE(SUM(col), dim1 = val1, dim2 = val2) → IIF(dim1 = val1 AND dim2 = val2, SUM(col), NULL)
  * - CALCULATE(SUM(col), Date > X, Date <= Y) → IIF(Date > X AND Date <= Y, SUM(col), NULL)
  * - CALCULATE(SUM(col), dim IN {val1, val2}) → IIF((dim = val1 OR dim = val2), SUM(col), NULL)
- * - CALCULATE(expr, ALL('Dim1'), ALL('Dim2')) → ([dimension_Dim1].[Dim1_Hierarchy].[All], [dimension_Dim2].[Dim2_Hierarchy].[All], expr)
- * - CALCULATE(expr, ALL('Dim'), col = val) → IIF(col = val, ([dimension_Dim].[Dim_Hierarchy].[All], expr), NULL)
+ * - CALCULATE(expr, ALL('Dim1'), ALL('Dim2')) → ([dimension_Dim1].[Hierarchy].[All], [dimension_Dim2].[Hierarchy].[All], expr)
+ * - CALCULATE(expr, ALL('Dim'[Column])) → ([dimension_Dim].[Hierarchy].[All], expr)  (MDX doesn't have column-specific ALL)
+ * - CALCULATE(expr, ALL('Dim'), col = val) → IIF(col = val, ([dimension_Dim].[Hierarchy].[All], expr), NULL)
  *
  * Supports simple comparison filters: =, <>, >, <, >=, <=, IN
  * Supports ALL() filters for removing dimension filters
@@ -119,12 +121,12 @@ export class CalculateTemplate extends ConversionTemplate {
 
   /**
    * Convert ALL() filter to MDX [All] member reference
-   * ALL('Table') → [dimension_Table].[Table_Hierarchy].[All]
-   * ALL('Table'[Column]) → [dimension_Table].[Column].[All]
+   * ALL('Table') → [dimension_Table].[Hierarchy].[All]
+   * ALL('Table'[Column]) → [dimension_Table].[Hierarchy].[All]
+   *   (Note: MDX doesn't have column-specific ALL; we use hierarchy [All] member)
    *
-   * Uses SML unique_name convention:
-   * - Dimension: makeUniqueName('dimension.' + tableName)
-   * - Hierarchy: makeUniqueName(tableName + ' Hierarchy')
+   * Uses resolveDimensionHierarchy to look up the actual hierarchy name from
+   * converted dimensions or BIM model, avoiding hardcoded naming conventions.
    */
   private convertAllFilter(tokens: DaxToken[], context: ConversionContext): string {
     const funcToken = tokens[0] as FunctionToken;
@@ -139,25 +141,18 @@ export class CalculateTemplate extends ConversionTemplate {
 
     if (firstArg instanceof TableColumnReference) {
       const tableName = firstArg.tableName;
-      const columnName = firstArg.columnRef?.columnName;
+      const columnName = firstArg.columnRef?.columnName || "";
 
-      // Generate SML unique_names
-      const dimensionUniqueName = makeUniqueName(`dimension.${tableName}`);
-      const hierarchyUniqueName = makeUniqueName(`${tableName} Hierarchy`);
-
-      if (columnName && columnName.trim() !== "") {
-        // ALL('Table'[Column]) → [dimension_Table].[Column].[All]
-        return `[${dimensionUniqueName}].[${columnName}].[All]`;
-      } else {
-        // ALL('Table') → [dimension_Table].[Table_Hierarchy].[All]
-        return `[${dimensionUniqueName}].[${hierarchyUniqueName}].[All]`;
-      }
+      // Use resolveDimensionHierarchy to get actual hierarchy reference
+      const hierarchyRef = resolveDimensionHierarchy(tableName, columnName, context.result, context.bim);
+      return `${hierarchyRef}.[All]`;
     } else if (firstArg instanceof IdentifierToken) {
-      // ALL(Table) without quotes → [dimension_Table].[Table_Hierarchy].[All]
+      // ALL(Table) without quotes
       const tableName = firstArg.value;
-      const dimensionUniqueName = makeUniqueName(`dimension.${tableName}`);
-      const hierarchyUniqueName = makeUniqueName(`${tableName} Hierarchy`);
-      return `[${dimensionUniqueName}].[${hierarchyUniqueName}].[All]`;
+
+      // Use resolveDimensionHierarchy to get actual hierarchy reference
+      const hierarchyRef = resolveDimensionHierarchy(tableName, "", context.result, context.bim);
+      return `${hierarchyRef}.[All]`;
     }
 
     // Fallback: try to extract name from converted expression
@@ -575,8 +570,8 @@ export class CalculateTemplate extends ConversionTemplate {
       },
       {
         dax: "CALCULATE([Measure], ALL('Dim1'), ALL('Dim2'))",
-        mdx: "([dimension_Dim1].[Dim1_Hierarchy].[All], [dimension_Dim2].[Dim2_Hierarchy].[All], [Measure])",
-        description: "Multiple ALL filters - tuple with multiple [All] members",
+        mdx: "([dimension_Dim1].[Hierarchy].[All], [dimension_Dim2].[Hierarchy].[All], [Measure])",
+        description: "Multiple ALL filters - tuple with multiple [All] members (hierarchy names resolved dynamically)",
       },
       {
         dax: 'CALCULATE([Measure], ALL(\'Dimension\'), [Status] = "Active")',
@@ -602,7 +597,7 @@ export class CalculateTemplate extends ConversionTemplate {
       "Supports comparison operators: =, <>, >, <, >=, <=. " +
       "Supports IN operator: column IN {val1, val2} → (column = val1 OR column = val2). " +
       "Supports NOT IN: NOT (column IN {val1, val2}) → (column <> val1 AND column <> val2). " +
-      "Supports ALL(): ALL('Table') → tuple with [dimension_Table].[Table_Hierarchy].[All] member. " +
+      "Supports ALL(): ALL('Table') → tuple with [dimension_Table].[Hierarchy].[All] member (hierarchy resolved dynamically). " +
       "Does not handle: FILTER(), ALLEXCEPT, TREATAS, time intelligence, or relationship functions. " +
       "Requires manual review for context semantics."
     );

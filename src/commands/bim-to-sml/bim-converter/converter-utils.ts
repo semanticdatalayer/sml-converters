@@ -460,6 +460,15 @@ export function resolveTimeLevelByUnit(
           return la.unique_name;
         }
       }
+      // If no matching time_unit level, use first available level from hierarchy
+      // This handles flat dimensions with single level (e.g., Date with Month as attribute)
+      if (dim.hierarchies?.[0]?.levels?.[0]) {
+        return dim.hierarchies[0].levels[0].unique_name;
+      }
+      // Fallback to first level_attribute if no hierarchy levels
+      if (dim.level_attributes?.[0]) {
+        return dim.level_attributes[0].unique_name;
+      }
     }
   }
 
@@ -589,10 +598,10 @@ export function resolveDimensionHierarchy(
       (t) => t.name.toLowerCase() === tableName.toLowerCase(),
     );
     if (table?.hierarchies?.length) {
-      // Use the first hierarchy name from BIM
-      const hierarchyName = table.hierarchies[0].name;
+      // Use the first hierarchy name from BIM (converted to unique_name format)
+      const hierarchyUniqueName = makeUniqueName(table.hierarchies[0].name);
       const dimUniqueName = makeUniqueName(`dimension.${tableName}`);
-      return `[${dimUniqueName}].[${hierarchyName}]`;
+      return `[${dimUniqueName}].[${hierarchyUniqueName}]`;
     }
   }
 
