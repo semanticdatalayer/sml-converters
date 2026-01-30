@@ -11,6 +11,10 @@ import {
 } from "../../conversion-result";
 import { ConversionContext } from "../conversion-context";
 
+// String literals that represent null/invalid values in DAX and should be
+// converted to NULL in MDX to maintain type consistency
+const NULL_PLACEHOLDER_STRINGS = new Set(["N/A", "n/a", "NA", "na", "-", ""]);
+
 /**
  * IfErrorTemplate converts DAX IFERROR function to MDX error handling.
  *
@@ -87,7 +91,14 @@ export class IfErrorTemplate extends ConversionTemplate {
     try {
       // Convert argument tokens to MDX
       const valueMdx = this.convertSubExpression(argGroups[0], context);
-      const fallbackMdx = this.convertSubExpression(argGroups[1], context);
+      let fallbackMdx = this.convertSubExpression(argGroups[1], context);
+
+      // CRITICAL: AtScale IIF requires both branches to have the same type.
+      // DAX allows IFERROR(numeric, "N/A"), but MDX does not support mixed types.
+      // Convert string placeholders like "N/A" to NULL when the value is numeric.
+      if (this.isNullPlaceholderString(fallbackMdx) && this.looksNumeric(valueMdx)) {
+        fallbackMdx = "NULL";
+      }
 
       // IFERROR(value, fallback) → IIF(ISEMPTY(value), fallback, value)
       // Note: AtScale doesn't support IsError, so we use ISEMPTY as approximation
@@ -177,5 +188,35 @@ export class IfErrorTemplate extends ConversionTemplate {
     }
 
     return groups;
+  }
+
+  /**
+   * Check if a converted MDX value is a string placeholder that represents null.
+   * DAX often uses strings like "N/A" as null placeholders in numeric contexts.
+   */
+  private isNullPlaceholderString(mdxValue: string): boolean {
+    // Check for double-quoted string literals
+    const match = mdxValue.match(/^"([^"]*)"$/);
+    if (match) {
+      return NULL_PLACEHOLDER_STRINGS.has(match[1]);
+    }
+    return false;
+  }
+
+  /**
+   * Check if a converted MDX value looks numeric (contains measures, math ops, numbers, or NULL).
+   */
+  private looksNumeric(mdxValue: string): boolean {
+    // NULL is compatible with numeric
+    if (mdxValue === "NULL") return true;
+    // Contains measure reference
+    if (mdxValue.includes("[Measures].")) return true;
+    // Contains MDX functions that return numbers
+    if (/\b(IIF|DIVIDE|Sum|Avg|Max|Min|Count)\s*\(/i.test(mdxValue)) return true;
+    // Contains arithmetic operators (but not in strings)
+    if (/[+\-*/]/.test(mdxValue) && !mdxValue.startsWith('"')) return true;
+    // Is a number
+    if (/^\d+(\.\d+)?$/.test(mdxValue.trim())) return true;
+    return false;
   }
 }
