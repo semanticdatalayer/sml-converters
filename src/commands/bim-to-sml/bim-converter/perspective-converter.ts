@@ -292,7 +292,7 @@ export class PerspectiveConverter {
       this.logger.warn(
         `Perspective '${perspectiveName}' will not include the following measures from table '${
           pTable.name
-        }' because the table is unused: ${warnObjects.join(", ")}`,
+        }' because the table is unused: ${this.truncateList(warnObjects)}`,
       );
     }
     warnObjects.length = 0;
@@ -301,7 +301,7 @@ export class PerspectiveConverter {
       this.logger.warn(
         `Perspective '${perspectiveName}' will not include the following columns from table '${
           pTable.name
-        }' because the table is unused: ${warnObjects.join(", ")}`,
+        }' because the table is unused: ${this.truncateList(warnObjects)}`,
       );
     }
     warnObjects.length = 0;
@@ -310,9 +310,17 @@ export class PerspectiveConverter {
       this.logger.warn(
         `Perspective '${perspectiveName}' will not include the following hierarchies from table '${
           pTable.name
-        }' because the table is unused: ${warnObjects.join(", ")}`,
+        }' because the table is unused: ${this.truncateList(warnObjects)}`,
       );
     }
+  }
+
+  private truncateList(items: string[], maxItems = 5): string {
+    if (items.length <= maxItems) {
+      return items.join(", ");
+    }
+    const shown = items.slice(0, maxItems).join(", ");
+    return `${shown}... and ${items.length - maxItems} more`;
   }
 
   checkForBimMeasAsMetric(

@@ -31,10 +31,10 @@ Clean up verbose and temporary logging in the BIM converter. Remove debug marker
 
 **Acceptance Criteria:**
 
-- [ ] In `warnMissingInPerspective()` in perspective-converter.ts, if list has >5 items, show first 5 plus "... and N more"
-- [ ] Applies to measures, columns, and hierarchies warnings in that method
-- [ ] Example: `will not include: measure1, measure2, measure3, measure4, measure5... and 3 more`
-- [ ] Typecheck passes
+- [x] In `warnMissingInPerspective()` in perspective-converter.ts, if list has >5 items, show first 5 plus "... and N more"
+- [x] Applies to measures, columns, and hierarchies warnings in that method
+- [x] Example: `will not include: measure1, measure2, measure3, measure4, measure5... and 3 more`
+- [x] Typecheck passes
 
 ### US-003: Consolidate template registration logs
 
