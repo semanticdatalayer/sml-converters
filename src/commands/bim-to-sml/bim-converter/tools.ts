@@ -529,8 +529,11 @@ export function isBooleanReturningExpression(daxExpression: string): boolean {
 
 /**
  * Creates the appropriate fallback value for a DAX expression.
- * Returns "FALSE" for boolean-returning functions, "0" for numeric functions.
+ * Returns "1" for boolean-returning functions (since TRUE=1 in numeric contexts),
+ * "0" for numeric functions.
+ * Using "1" instead of "FALSE" avoids type errors when boolean results are used
+ * in arithmetic operations (e.g., division by boolean).
  */
 export function getFallbackValue(daxExpression: string): string {
-  return isBooleanReturningExpression(daxExpression) ? "FALSE" : "0";
+  return isBooleanReturningExpression(daxExpression) ? "1" : "0";
 }

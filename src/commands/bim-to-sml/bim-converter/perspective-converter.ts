@@ -228,7 +228,10 @@ export class PerspectiveConverter {
       lookupAttrUniqueName(attrNameMap, defaultAttrName, false, this.logger) ||
       defaultAttrName;
     const val = dims.get(pTable.name);
-    const found = findAttrUse(actualAttrName, result);
+    // Search only in the dimension corresponding to this table to avoid
+    // matching attributes with the same name in different dimensions
+    const dimensionName = makeUniqueName(`dimension.${pTable.name}`);
+    const found = findAttrUse(actualAttrName, result, dimensionName);
 
     if (found === "level") {
       if (val) {

@@ -22,7 +22,7 @@
 |------|--------|-------------------|
 | Trek_bim.json | future work | US-001 |
 | PTM_bim.json | deployed | US-002 |
-| test_bim.json | pending | - |
+| test_bim.json | future work | US-003 |
 | Ulta_bim.json | pending | - |
 | POC_bim.json | pending | - |
 | PFM_from_Daniel_bim.json | pending | - |
@@ -40,6 +40,15 @@
 - **Required work**: New functionality to handle BIM files without relationships
   - Need heuristics to classify standalone tables as fact vs dimension
   - Or treat all standalone tables as facts with their columns as degenerate dimensions
+- **Status**: Documented as future work, out of scope for bug-fix PRD
+
+### test_bim.json - Dimension key columns used as fact measures
+- **Issue**: `TopTaskID` column is used as dimension level key AND in DAX arithmetic expressions
+- **Converter behavior**: Creates TopTaskID metric with `average` aggregation (from dimension key creation), but DAX `Sum('POC Values'['TopTaskID'])` needs `sum` aggregation
+- **Error**: "Measure TopTaskID in calculation is not a measure"
+- **Required work**: Architectural changes to handle columns that serve dual purposes
+  - Need to create separate metrics for different aggregation contexts
+  - Or detect when DAX expressions need different aggregation than dimension key
 - **Status**: Documented as future work, out of scope for bug-fix PRD
 
 ---
@@ -83,6 +92,30 @@
 - **Error**: "Comma expected but Amp found"
 - **Fix**: Added case for "&" in OperatorToken.toMdx() switch statement to return " + "
 
+### Fix 3: Single-quoted column names in DAX brackets
+- **File**: `dax-converter.ts`
+- **Issue**: DAX allows `['ColumnName']` with single quotes inside brackets
+- **Error**: Generated MDX like `[Measures].['TopTaskID']` which is invalid
+- **Fix**: Strip single quotes in `parseColumnReference()` when column name is wrapped in quotes
+
+### Fix 4: Perspective searching wrong dimension for attributes
+- **File**: `converter-utils.ts`, `perspective-converter.ts`
+- **Issue**: `findAttrUse()` searched ALL dimensions, so if `ProjectID` existed as secondary_attribute in dimension_RevBillReceipt, it was used instead of the level_attribute in dimension_Projects
+- **Error**: "references secondary attribute that does not exist in dimension"
+- **Fix**: Added `dimensionName` parameter to `findAttrUse()` to search only within the correct dimension
+
+### Fix 5: Unquoted table names with spaces in DAX
+- **File**: `dax-converter.ts`
+- **Issue**: `SUM(Business Plans and Adjustments[Net Income])` was parsed as separate identifiers
+- **Error**: Generated `Sum(Business, Plans, and, [Measures].[Net Income])` which is invalid
+- **Fix**: Added `mergeUnquotedTableNames()` post-processing to merge consecutive IdentifierTokens before TableColumnReference
+
+### Fix 6: Boolean TODO stubs causing type errors
+- **File**: `tools.ts`, `conversion-pipeline.ts`
+- **Issue**: HASONEVALUE and similar boolean functions used `FALSE` as TODO stub, causing type errors when used in arithmetic
+- **Error**: "Function DividedBy requires arguments of type NumericType, has type BooleanType"
+- **Fix**: Changed boolean function fallback to `1` instead of `FALSE` (TRUE=1 in DAX numeric context)
+
 ---
 
 ## Iteration 2 - US-002: PTM_bim.json
@@ -100,5 +133,39 @@
 - When DAX functions appear nested in expressions, they need to be handled in toMdx() not just in templates
 - Templates only match when the function is the top-level token
 - Operator conversion needs to handle DAX-specific operators like & for string concat
+
+---
+
+## Iteration 3 - US-003: test_bim.json
+
+**What was implemented:**
+- Fixed single-quoted column names in DAX brackets (`['ColumnName']` → `ColumnName`)
+- Fixed perspective attribute lookup to search only correct dimension
+- Fixed unquoted table names with spaces (merged identifiers before TableColumnReference)
+- Fixed boolean TODO stubs to use `1` instead of `FALSE` for numeric compatibility
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/dax-converter.ts`
+- `src/commands/bim-to-sml/bim-converter/converter-utils.ts`
+- `src/commands/bim-to-sml/bim-converter/perspective-converter.ts`
+- `src/commands/bim-to-sml/bim-converter/tools.ts`
+- `src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts`
+
+**Result:** Future work (skipped)
+
+**Analysis:**
+- Multiple validation errors fixed: single-quoted columns, perspective attributes, unquoted table names
+- Compilation now succeeds (validation passes)
+- Deploy fails with: "Measure TopTaskID in calculation is not a measure"
+- Root cause: TopTaskID is created as dimension key metric with `average` aggregation
+- But DAX `Sum('POC Values'['TopTaskID'])` expects `sum` aggregation
+- This requires architectural changes beyond bug-fix scope
+
+**Learnings for future iterations:**
+- DAX column names can have single quotes inside brackets - strip them
+- Perspective attribute lookup must be dimension-specific to avoid collisions
+- DAX allows unquoted table names with spaces when followed by `[column]`
+- Boolean TODO stubs (`FALSE`) cause type errors in arithmetic - use `1` instead
+- Columns used as dimension keys AND in fact measure expressions need special handling
 
 ---

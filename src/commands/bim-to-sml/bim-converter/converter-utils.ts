@@ -230,8 +230,13 @@ export function checkForTimeDim(result: SmlConverterResult, logger: Logger) {
 export function findAttrUse(
   bimAttrName: string,
   result: SmlConverterResult,
+  dimensionName?: string,
 ): string {
   for (const d of result.dimensions) {
+    // If dimensionName is provided, only search in that dimension
+    if (dimensionName && d.unique_name !== dimensionName) {
+      continue;
+    }
     for (const l of d.level_attributes) {
       if (l.unique_name === bimAttrName) return "level";
     }

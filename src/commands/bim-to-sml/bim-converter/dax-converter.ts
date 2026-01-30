@@ -540,7 +540,79 @@ export class DaxTokenizer {
       }
     }
 
+    // Post-process: merge consecutive IdentifierTokens before TableColumnReference
+    // This handles DAX table names with spaces like "Business Plans and Adjustments[Column]"
+    this.tokens = this.mergeUnquotedTableNames(this.tokens);
+
     return this.tokens;
+  }
+
+  /**
+   * Merge consecutive IdentifierTokens followed by TableColumnReference into a single
+   * TableColumnReference with the combined table name.
+   * Example: "Business", "Plans", "and", TableColumnRef("Adjustments", col)
+   *       → TableColumnRef("Business Plans and Adjustments", col)
+   */
+  private mergeUnquotedTableNames(tokens: DaxToken[]): DaxToken[] {
+    const result: DaxToken[] = [];
+    let i = 0;
+
+    while (i < tokens.length) {
+      // Check if we have consecutive IdentifierTokens followed by TableColumnReference
+      if (tokens[i] instanceof IdentifierToken) {
+        // Collect all consecutive IdentifierTokens
+        const identifiers: string[] = [];
+        const startIndex = i;
+
+        while (i < tokens.length && tokens[i] instanceof IdentifierToken) {
+          identifiers.push((tokens[i] as IdentifierToken).value);
+          i++;
+        }
+
+        // Check if followed by TableColumnReference
+        if (i < tokens.length && tokens[i] instanceof TableColumnReference) {
+          // Merge: prepend identifiers to the table name
+          const tableRef = tokens[i] as TableColumnReference;
+          const fullTableName = [...identifiers, tableRef.tableName].join(" ");
+          result.push(
+            new TableColumnReference(
+              fullTableName,
+              tableRef.columnRef,
+              tokens[startIndex].position,
+            ),
+          );
+          i++;
+        } else {
+          // Not followed by TableColumnReference - keep identifiers as-is
+          for (let j = startIndex; j < i; j++) {
+            result.push(tokens[j]);
+          }
+        }
+      } else if (tokens[i] instanceof FunctionToken) {
+        // Recursively process function arguments
+        const funcToken = tokens[i] as FunctionToken;
+        funcToken.args = this.mergeUnquotedTableNames(funcToken.args);
+        result.push(funcToken);
+        i++;
+      } else if (tokens[i] instanceof ParenToken) {
+        // Recursively process parenthesis arguments
+        const parenToken = tokens[i] as ParenToken;
+        parenToken.args = this.mergeUnquotedTableNames(parenToken.args);
+        result.push(parenToken);
+        i++;
+      } else if (tokens[i] instanceof BraceToken) {
+        // Recursively process brace arguments
+        const braceToken = tokens[i] as BraceToken;
+        braceToken.args = this.mergeUnquotedTableNames(braceToken.args);
+        result.push(braceToken);
+        i++;
+      } else {
+        result.push(tokens[i]);
+        i++;
+      }
+    }
+
+    return result;
   }
 
   private parseIdentifierOrFunction(expression: string): void {
@@ -790,7 +862,12 @@ export class DaxTokenizer {
       this.position++; // Skip ]
     }
 
-    const columnName = expression.substring(start + 1, this.position - 1);
+    let columnName = expression.substring(start + 1, this.position - 1);
+    // DAX allows single quotes inside brackets for column names: ['Column Name']
+    // Strip the single quotes to get the actual column name
+    if (columnName.startsWith("'") && columnName.endsWith("'")) {
+      columnName = columnName.slice(1, -1);
+    }
     return new ColumnReference(columnName, start);
   }
 

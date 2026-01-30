@@ -72,11 +72,13 @@ For each BIM file:
 **Description:** As a developer, I want to convert and deploy test_bim.json to discover any converter bugs.
 
 **Acceptance Criteria:**
-- [ ] Run conversion: `node bin/run.js bim-to-sml --source /Users/dianne/Downloads/bim/fails/test_bim.json --output /tmp/sml-out --clean`
-- [ ] Run deploy from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`: `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/test_bim.json`
+- [x] Run conversion: `node bin/run.js bim-to-sml --source /Users/dianne/Downloads/bim/fails/test_bim.json --output /tmp/sml-out --clean`
+- [x] Run deploy from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`: `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/test_bim.json`
 - [ ] If deploy succeeds (exit 0): document in progress.txt and mark complete
 - [ ] If deploy fails: document error details in progress.txt, create US-003-A for the fix
-- [ ] If error requires significant work: document as "future work" in progress.txt, mark complete, proceed to US-004
+- [x] If error requires significant work: document as "future work" in progress.txt, mark complete, proceed to US-004
+
+**Result:** Future work - Multiple bugs fixed (single-quoted column names, perspective dimension lookup, unquoted table names, boolean TODO stubs) but final deploy fails with "Measure TopTaskID in calculation is not a measure" - requires architectural changes to handle dimension key columns used as fact measures in calculations.
 
 ---
 

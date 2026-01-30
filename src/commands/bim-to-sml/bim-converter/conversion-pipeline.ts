@@ -116,18 +116,25 @@ export class ConversionPipeline {
     } else {
       // Stage 1: Direct conversion
       const stage1Result = this.tryDirectConversion(tokens, context);
-      if (stage1Result.success && stage1Result.confidence >= 0.95) {
-        this.logger.debug(`Stage 1 (Direct) succeeded: ${stage1Result.expression}`);
-        return {
-          ...stage1Result,
-          stage: 1,
-          stageName: "direct_conversion",
-        };
+      if (stage1Result.success && stage1Result.confidence >= 0.95 && stage1Result.expression) {
+        // Validate the MDX output
+        const validationError = this.validateMdxOutput(stage1Result.expression, daxExpression);
+        if (validationError) {
+          this.logger.debug(`Stage 1 validation failed: ${validationError}`);
+        } else {
+          this.logger.debug(`Stage 1 (Direct) succeeded: ${stage1Result.expression}`);
+          return {
+            ...stage1Result,
+            stage: 1,
+            stageName: "direct_conversion",
+          };
+        }
       }
 
       // Stage 2: Simple expression conversion
       const stage2Result = this.trySimpleExpression(daxExpression, tokens, context);
       if (stage2Result.success) {
+        // Validation already done in trySimpleExpression
         this.logger.debug(`Stage 2 (Simple) succeeded: ${stage2Result.expression}`);
         return {
           ...stage2Result,
@@ -138,13 +145,19 @@ export class ConversionPipeline {
 
       // Stage 3: Template conversion
       const stage3Result = this.tryTemplateConversion(tokens, context);
-      if (stage3Result.success && stage3Result.confidence >= 0.85) {
-        this.logger.debug(`Stage 3 (Template) succeeded: ${stage3Result.expression}`);
-        return {
-          ...stage3Result,
-          stage: 3,
-          stageName: "template_conversion",
-        };
+      if (stage3Result.success && stage3Result.confidence >= 0.85 && stage3Result.expression) {
+        // Validate the MDX output
+        const validationError = this.validateMdxOutput(stage3Result.expression, daxExpression);
+        if (validationError) {
+          this.logger.debug(`Stage 3 validation failed: ${validationError}`);
+        } else {
+          this.logger.debug(`Stage 3 (Template) succeeded: ${stage3Result.expression}`);
+          return {
+            ...stage3Result,
+            stage: 3,
+            stageName: "template_conversion",
+          };
+        }
       }
     }
 
@@ -154,11 +167,17 @@ export class ConversionPipeline {
       tokens,
       context,
     );
-    if (stage4Result.success) {
-      this.logger.debug(
-        `Stage 4 (VAR inline) succeeded: ${stage4Result.expression}`,
-      );
-      return stage4Result;
+    if (stage4Result.success && stage4Result.expression) {
+      // Validate the MDX output
+      const validationError = this.validateMdxOutput(stage4Result.expression, daxExpression);
+      if (validationError) {
+        this.logger.debug(`Stage 4 validation failed: ${validationError}`);
+      } else {
+        this.logger.debug(
+          `Stage 4 (VAR inline) succeeded: ${stage4Result.expression}`,
+        );
+        return stage4Result;
+      }
     }
 
     // Stage 5: AI conversion (if enabled)
@@ -168,13 +187,19 @@ export class ConversionPipeline {
         tokens,
         context,
       );
-      if (stage5Result.success && stage5Result.confidence >= this.config.aiMinConfidence) {
-        this.logger.debug(`Stage 5 (AI) succeeded: ${stage5Result.expression}`);
-        return {
-          ...stage5Result,
-          stage: 5,
-          stageName: "ai_conversion",
-        };
+      if (stage5Result.success && stage5Result.confidence >= this.config.aiMinConfidence && stage5Result.expression) {
+        // Validate the MDX output
+        const validationError = this.validateMdxOutput(stage5Result.expression, daxExpression);
+        if (validationError) {
+          this.logger.debug(`Stage 5 validation failed: ${validationError}`);
+        } else {
+          this.logger.debug(`Stage 5 (AI) succeeded: ${stage5Result.expression}`);
+          return {
+            ...stage5Result,
+            stage: 5,
+            stageName: "ai_conversion",
+          };
+        }
       }
     }
 
@@ -274,6 +299,12 @@ export class ConversionPipeline {
     try {
       const mdxParts = this.convertTokensToMdx(tokens, context);
       const mdxExpression = mdxParts.join("");
+
+      // Validate the MDX output using the common validation function
+      const validationError = this.validateMdxOutput(mdxExpression, daxExpression);
+      if (validationError) {
+        return failedConversion(validationError, daxExpression);
+      }
 
       return successfulConversion(
         mdxExpression,
@@ -503,11 +534,12 @@ export class ConversionPipeline {
 
   /**
    * Stage 6: Create fallback TODO stub
-   * Uses FALSE for boolean-returning functions, 0 for numeric functions
+   * Uses 1 for boolean-returning functions (TRUE=1 in numeric context), 0 for others
    */
   private createFallback(daxExpression: string): PipelineResult {
-    // Use FALSE for boolean-returning functions to avoid "NOT operator requires Boolean" errors
-    const fallbackValue = isBooleanReturningExpression(daxExpression) ? "FALSE" : "0";
+    // Use 1 for boolean-returning functions to avoid type errors when used in arithmetic
+    // (e.g., DIVIDE by boolean). TRUE=1 in DAX numeric context.
+    const fallbackValue = isBooleanReturningExpression(daxExpression) ? "1" : "0";
     return {
       success: true,
       expression: `${fallbackValue} /* TODO: ${escapeForComment(daxExpression)} */`,
@@ -583,6 +615,36 @@ export class ConversionPipeline {
       // If parsing fails, assume no VARs (will fail later in pipeline anyway)
       return false;
     }
+  }
+
+  /**
+   * Validate MDX output for patterns that are not valid in AtScale MDX.
+   * Returns an error message if invalid, or undefined if valid.
+   */
+  private validateMdxOutput(mdxExpression: string, originalDax: string): string | undefined {
+    // Check for ISEMPTY with bare identifiers (table names)
+    // DAX ISEMPTY(TableName) checks if table has data - not convertible to MDX
+    // Valid: ISEMPTY([Measures].[X]) or ISEMPTY([Something])
+    // Invalid: ISEMPTY(TableName) where TableName is a bare identifier
+    const invalidIsEmptyBarePattern = /ISEMPTY\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)/gi;
+    let match;
+    while ((match = invalidIsEmptyBarePattern.exec(mdxExpression)) !== null) {
+      const arg = match[1];
+      // If the argument is a bare identifier (not wrapped in brackets), it's invalid
+      if (arg && !arg.startsWith("[")) {
+        return `ISEMPTY(${arg}) uses bare table name - not convertible to MDX`;
+      }
+    }
+
+    // Also check for ISEMPTY with single-quoted table names like 'TableName'
+    // DAX allows 'TableName' syntax for table references with special characters
+    const invalidIsEmptyQuotedPattern = /ISEMPTY\s*\(\s*'([^']+)'\s*\)/gi;
+    while ((match = invalidIsEmptyQuotedPattern.exec(mdxExpression)) !== null) {
+      const tableName = match[1];
+      return `ISEMPTY('${tableName}') uses table reference - not convertible to MDX`;
+    }
+
+    return undefined;
   }
 
   /**
