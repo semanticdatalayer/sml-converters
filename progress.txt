@@ -12,6 +12,10 @@
 - DAX BLANK() in nested expressions needs toMdx() handling → NULL
 - DAX & operator for string concat → MDX + operator
 - BIM measures with sourceColumn but no DAX expression need to be created as base metrics when referenced
+- NOW() and TODAY() in DAX often used with date arithmetic - no MDX equivalent, must produce TODO stub
+- BIM source files can have bugs (references to non-existent columns/measures) - converter should detect and produce TODO stubs
+- Time intelligence conversions (SAMEPERIODLASTYEAR, etc.) depend on dimensions existing - must validate before generating MDX
+- resolveDimensionHierarchy() should return undefined when table doesn't exist to trigger TODO fallback
 
 ---
 
@@ -31,6 +35,34 @@
   - FactPolicyLine_bim.json now shows "Fact Policy Line" in factTables
   - Marketing_-_Advertising_bim.json conversion works
   - RetailPolicyLine_bim.json conversion works
+  - npm run test-custom-calcs passes
+  - Typecheck passes
+---
+
+## Iteration 2 - US-001: Fix deployment errors for three test files
+- **Problem**: FactPolicyLine, RetailPolicyLine, and Marketing_-_Advertising failed to deploy
+- **Root causes**:
+  1. `NOW()` DAX function with date arithmetic produces invalid MDX (timestamp - number fails)
+  2. Column/measure references to non-existent objects fell back to invalid MDX
+  3. Time intelligence functions (SAMEPERIODLASTYEAR) for non-existent tables created invalid dimension references
+- **Fixes**:
+  1. Added NOW and TODAY to unconvertible list in function-mappings.json
+  2. Changed ColumnReference.toMdx() to throw error for unresolved references instead of fallback
+  3. Changed TableColumnReference.toMdx() to throw when column doesn't exist
+  4. Updated resolveDimensionHierarchy() to return undefined when table doesn't exist
+- **Files changed**:
+  - `src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json` - Added NOW, TODAY to unconvertible
+  - `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - Fixed fallback to throw errors
+  - `src/commands/bim-to-sml/bim-converter/converter-utils.ts` - Updated resolveDimensionHierarchy signature
+- **Learnings for future iterations**:
+  - NOW() in DAX commonly used with date arithmetic - no MDX equivalent, must produce TODO stub
+  - Source BIM files can have bugs (referencing non-existent columns/measures) - converter should detect and produce TODO stubs
+  - Time intelligence functions depend on dimensions existing - must validate before generating MDX
+  - "Failing safe" with TODO stubs is better than generating invalid MDX
+- **Verified**:
+  - FactPolicyLine_bim.json deploys successfully
+  - RetailPolicyLine_bim.json deploys successfully
+  - Marketing_-_Advertising_bim.json deploys successfully
   - npm run test-custom-calcs passes
   - Typecheck passes
 ---

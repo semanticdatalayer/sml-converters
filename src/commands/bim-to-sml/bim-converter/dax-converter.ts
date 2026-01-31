@@ -308,6 +308,13 @@ export class TableColumnReference extends DaxToken {
           return `[Measures].[${measureUniqueName}]`;
         }
       }
+
+      // Column not found in this table - throw error to trigger TODO fallback
+      if (!bimColumn) {
+        throw new Error(
+          `Cannot resolve reference '${this.tableName}'[${columnName}] - column does not exist in table`
+        );
+      }
     }
 
     // Check if this table is unused (selector table, etc.) - if so, throw to trigger TODO fallback
@@ -317,8 +324,10 @@ export class TableColumnReference extends DaxToken {
       );
     }
 
-    // Fallback: use column name as-is (may cause validation error)
-    return this.columnRef.toMdx(info);
+    // No info context available - throw to trigger TODO fallback for safety
+    throw new Error(
+      `Cannot resolve reference '${this.tableName}'[${columnName}] - conversion context not available`
+    );
   }
 
   toString(): string {
@@ -410,8 +419,11 @@ export class ColumnReference extends DaxToken {
       }
     }
 
-    // Fallback: use column name as-is
-    return `[Measures].[${this.columnName}]`;
+    // No BIM measure or column found with this name - this is a source file bug
+    // Throw an error to trigger the TODO fallback
+    throw new Error(
+      `Cannot resolve reference [${this.columnName}] - no measure or column found with this name in any table`
+    );
   }
 
   toString(): string {

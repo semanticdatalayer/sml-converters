@@ -574,7 +574,7 @@ export function resolveDimensionHierarchy(
   columnName: string,
   result: SmlConverterResult,
   bim?: BimRoot,
-): string {
+): string | undefined {
   // Lookup: search dimensions for matching label (table name)
   for (const dim of result.dimensions) {
     if (dim.label === tableName) {
@@ -608,10 +608,15 @@ export function resolveDimensionHierarchy(
       const dimUniqueName = makeUniqueName(`dimension.${tableName}`);
       return `[${dimUniqueName}].[${hierarchyUniqueName}]`;
     }
+    // Table exists but has no hierarchies - use convention-based reference
+    if (table) {
+      const dimUniqueName = makeUniqueName(`dimension.${tableName}`);
+      const hierarchyUniqueName = makeUniqueName(`${tableName}_Hierarchy`);
+      return `[${dimUniqueName}].[${hierarchyUniqueName}]`;
+    }
   }
 
-  // Final fallback: use convention-based reference
-  const dimUniqueName = makeUniqueName(`dimension.${tableName}`);
-  const hierarchyUniqueName = makeUniqueName(`${tableName} Hierarchy`);
-  return `[${dimUniqueName}].[${hierarchyUniqueName}]`;
+  // No dimension found and table doesn't exist - return undefined
+  // The calling code should handle this and produce a TODO stub
+  return undefined;
 }

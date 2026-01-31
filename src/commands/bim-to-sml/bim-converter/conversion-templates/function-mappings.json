@@ -40,12 +40,13 @@
     "HOUR": "Hour",
     "MINUTE": "Minute",
     "SECOND": "Second",
-    "NOW": "Now",
     "INT": "Truncate",
     "TRUE": "TRUE",
     "FALSE": "FALSE"
   },
   "unconvertible": [
+    "NOW",
+    "TODAY",
     "DATEDIFF",
     "CALCULATE",
     "CALCULATETABLE",

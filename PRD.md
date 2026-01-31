@@ -31,7 +31,7 @@ Fix BIM-to-SML conversion and deployment errors identified in `/Users/dianne/Dow
 - [x] Test RetailPolicyLine_bim.json - same pattern resolves correctly
 - [x] Run `npm run test-custom-calcs` - no regressions
 - [x] Typecheck passes
-- [ ] Deploy all three files via `pnpm pbi-deploy` - fix errors until successful
+- [x] Deploy all three files via `pnpm pbi-deploy` - fix errors until successful
 
 ### US-002: Re-verify and fix array handling for tests1 files
 
