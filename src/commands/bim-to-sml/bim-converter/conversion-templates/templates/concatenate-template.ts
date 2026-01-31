@@ -15,9 +15,11 @@ import { ConversionContext } from "../conversion-context";
  * ConcatenateTemplate converts DAX CONCATENATE function to MDX string concatenation.
  *
  * DAX: CONCATENATE(text1, text2)
- * MDX: (text1) + (text2)
+ * MDX: CSTR(text1) + CSTR(text2)
  *
  * MDX uses the + operator for string concatenation.
+ * We wrap operands with CSTR() to handle type conversion (e.g., DateTime → String)
+ * since DAX CONCATENATE auto-converts but MDX + does not.
  */
 export class ConcatenateTemplate extends ConversionTemplate {
   readonly name = "ConcatenateTemplate";
@@ -87,8 +89,13 @@ export class ConcatenateTemplate extends ConversionTemplate {
         );
       }
 
+      // Wrap operands with CSTR() to handle type conversion
+      // DAX CONCATENATE auto-converts types (e.g., DateTime → String), but MDX + does not
+      const wrappedText1 = this.wrapWithCstr(text1Mdx);
+      const wrappedText2 = this.wrapWithCstr(text2Mdx);
+
       // MDX uses + for string concatenation
-      const mdxExpression = `(${text1Mdx}) + (${text2Mdx})`;
+      const mdxExpression = `${wrappedText1} + ${wrappedText2}`;
 
       return successfulConversion(
         mdxExpression,
@@ -111,12 +118,12 @@ export class ConcatenateTemplate extends ConversionTemplate {
     return [
       {
         dax: 'CONCATENATE("Total: ", [Sales])',
-        mdx: '("Total: ") + ([Measures].[Sales])',
+        mdx: '"Total: " + CSTR([Measures].[Sales])',
         description: "String concatenation with measure",
       },
       {
         dax: 'CONCATENATE([First Name], [Last Name])',
-        mdx: '([Measures].[First Name]) + ([Measures].[Last Name])',
+        mdx: 'CSTR([Measures].[First Name]) + CSTR([Measures].[Last Name])',
         description: "Concatenating two measures",
       },
     ];
@@ -124,7 +131,8 @@ export class ConcatenateTemplate extends ConversionTemplate {
 
   getDescription(): string {
     return (
-      "Converts DAX CONCATENATE function to MDX string concatenation using + operator."
+      "Converts DAX CONCATENATE function to MDX string concatenation using + operator. " +
+      "Wraps non-string values with CSTR() for type conversion."
     );
   }
 
@@ -158,5 +166,22 @@ export class ConcatenateTemplate extends ConversionTemplate {
     }
 
     return groups;
+  }
+
+  /**
+   * Wrap an MDX expression with CSTR() for type conversion, unless it's already a string literal.
+   * String literals are double-quoted in MDX.
+   */
+  private wrapWithCstr(mdxValue: string): string {
+    const trimmed = mdxValue.trim();
+    // If it's already a string literal (starts and ends with double quotes), don't wrap
+    if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+      return mdxValue;
+    }
+    // If it's already wrapped with CSTR, don't double-wrap
+    if (trimmed.toUpperCase().startsWith("CSTR(")) {
+      return mdxValue;
+    }
+    return `CSTR(${mdxValue})`;
   }
 }

@@ -155,6 +155,14 @@ export class PreviousMonthTemplate extends ConversionTemplate {
             ? resolveTimeLevelByUnit(dimUniqueName, "month", context.result, context.bim)
             : "Month";
 
+          // Validate that the month level exists in the dimension hierarchy
+          if (!this.levelExistsInDimension(dimUniqueName, monthLevel, context)) {
+            return failedConversion(
+              `PREVIOUSMONTH requires hierarchy level '${monthLevel}' but dimension has flat structure - time intelligence patterns require multi-level hierarchies`,
+              token.functionAgg,
+            );
+          }
+
           // Build MDX: (ParallelPeriod([dim].[hier].[Month], 1, [dim].[hier].CurrentMember), [Measures].[measure])
           const mdxExpression = `(ParallelPeriod(${dimensionRef}.[${monthLevel}], 1, ${dimensionRef}.CurrentMember), ${measureMdx})`;
 
@@ -201,6 +209,14 @@ export class PreviousMonthTemplate extends ConversionTemplate {
     const monthLevel = dimUniqueName
       ? resolveTimeLevelByUnit(dimUniqueName, "month", context.result, context.bim)
       : "Month";
+
+    // Validate that the month level exists in the dimension hierarchy
+    if (!this.levelExistsInDimension(dimUniqueName, monthLevel, context)) {
+      return failedConversion(
+        `PREVIOUSMONTH requires hierarchy level '${monthLevel}' but dimension has flat structure - time intelligence patterns require multi-level hierarchies`,
+        token.functionAgg,
+      );
+    }
 
     // For standalone, return the ParallelPeriod expression
     const mdxExpression = `ParallelPeriod(${dimensionRef}.[${monthLevel}], 1, ${dimensionRef}.CurrentMember)`;
@@ -298,5 +314,44 @@ export class PreviousMonthTemplate extends ConversionTemplate {
     }
 
     return groups;
+  }
+
+  /**
+   * Check if a level actually exists in the dimension hierarchy.
+   * Returns false for flat dimensions where the "level" is actually a secondary attribute.
+   */
+  private levelExistsInDimension(
+    dimUniqueName: string | undefined,
+    levelName: string,
+    context: ConversionContext,
+  ): boolean {
+    if (!dimUniqueName) {
+      return false;
+    }
+
+    // Find the dimension in converted results
+    for (const dim of context.result.dimensions) {
+      if (dim.unique_name === dimUniqueName) {
+        // Check if level exists in any hierarchy
+        for (const hier of dim.hierarchies || []) {
+          for (const level of hier.levels || []) {
+            if (level.unique_name === levelName) {
+              return true;
+            }
+          }
+        }
+        // Also check level_attributes
+        for (const la of dim.level_attributes || []) {
+          if (la.unique_name === levelName) {
+            return true;
+          }
+        }
+        // Level not found
+        return false;
+      }
+    }
+
+    // Dimension not found
+    return false;
   }
 }

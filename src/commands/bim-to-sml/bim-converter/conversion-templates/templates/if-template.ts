@@ -107,6 +107,16 @@ export class IfTemplate extends ConversionTemplate {
       // e.g., [Measures].[X] = "N/A" → ISEMPTY([Measures].[X])
       conditionMdx = this.transformNullPlaceholderComparison(conditionMdx);
 
+      // CRITICAL: Check if condition contains bare measure references in boolean context
+      // MDX AND/OR require BooleanType, but measure stubs are IntType
+      // Pattern: [Measures].[X] AND or AND [Measures].[X] without comparison operator
+      if (this.hasBooleanTypeMismatch(conditionMdx)) {
+        return failedConversion(
+          `${funcName} condition contains measure references in AND/OR context without comparison - MDX AND/OR requires BooleanType but measures are IntType`,
+          token.functionAgg,
+        );
+      }
+
       let trueValueMdx = this.convertSubExpression(argGroups[1], context);
 
       // DAX IF supports 2 or 3 arguments
@@ -294,5 +304,41 @@ export class IfTemplate extends ConversionTemplate {
     }
 
     return conditionMdx;
+  }
+
+  /**
+   * Check if a converted MDX boolean expression has type mismatch issues.
+   * Detects bare measure references used in AND/OR context without comparison operators.
+   * MDX AND/OR require BooleanType, but measure stubs are IntType (1 or 0).
+   *
+   * Valid patterns (measure in comparison):
+   * - [Measures].[X] > 0
+   * - [Measures].[X] = 1
+   * - NOT([Measures].[X]) - handled separately with TODO stub
+   * - (1 = 0) comment - our placeholder for NOT on measure
+   *
+   * Invalid patterns (bare measure in boolean context):
+   * - ... AND [Measures].[X]
+   * - [Measures].[X] AND ...
+   * - ... OR [Measures].[X]
+   */
+  private hasBooleanTypeMismatch(mdxExpression: string): boolean {
+    // First, remove our TODO stubs from consideration - they're valid booleans
+    const withoutTodoStubs = mdxExpression.replace(/\(1 = 0\)\s*\/\*[^*]*\*\//g, "TRUE");
+
+    // Look for measure references followed by AND/OR (not preceded by comparison)
+    // Pattern: [Measures].[...]] followed by AND or OR
+    const measureBeforeAndOr = /\[Measures\]\.\[[^\]]+\]\s*(AND|OR)\s/i;
+    if (measureBeforeAndOr.test(withoutTodoStubs)) {
+      return true;
+    }
+
+    // Check for pattern: AND or OR immediately followed by [Measures]
+    const andOrBeforeMeasure = /\b(AND|OR)\s+\[Measures\]\./i;
+    if (andOrBeforeMeasure.test(withoutTodoStubs)) {
+      return true;
+    }
+
+    return false;
   }
 }

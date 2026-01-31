@@ -197,6 +197,16 @@ export class ParallelPeriodTemplate extends ConversionTemplate {
             ? resolveTimeLevelByUnit(dimUniqueName, timeUnit, context.result, context.bim)
             : interval.charAt(0).toUpperCase() + interval.slice(1).toLowerCase();
 
+          // Validate that the resolved level actually exists in the dimension hierarchy
+          // Time intelligence functions require multi-level hierarchies (Year > Quarter > Month > Day)
+          // Flat dimensions (single Date level with Month as attribute) don't support this pattern
+          if (!this.levelExistsInDimension(dimUniqueName, mdxLevel, context)) {
+            return failedConversion(
+              `PARALLELPERIOD requires hierarchy level '${mdxLevel}' but dimension '${dimUniqueName}' has flat structure - time intelligence patterns require multi-level hierarchies`,
+              token.functionAgg,
+            );
+          }
+
           // Build MDX: (ParallelPeriod([dim].[hier].[Level], offset, [dim].[hier].CurrentMember), [Measures].[measure])
           const mdxExpression = `(ParallelPeriod(${dimensionRef}.[${mdxLevel}], ${mdxOffset}, ${dimensionRef}.CurrentMember), ${measureMdx})`;
 
@@ -276,6 +286,14 @@ export class ParallelPeriodTemplate extends ConversionTemplate {
     const mdxLevel = dimUniqueName
       ? resolveTimeLevelByUnit(dimUniqueName, timeUnit, context.result, context.bim)
       : interval.charAt(0).toUpperCase() + interval.slice(1).toLowerCase();
+
+    // Validate that the resolved level actually exists in the dimension hierarchy
+    if (!this.levelExistsInDimension(dimUniqueName, mdxLevel, context)) {
+      return failedConversion(
+        `PARALLELPERIOD requires hierarchy level '${mdxLevel}' but dimension '${dimUniqueName}' has flat structure - time intelligence patterns require multi-level hierarchies`,
+        token.functionAgg,
+      );
+    }
 
     // For standalone, return the ParallelPeriod expression
     const mdxExpression = `ParallelPeriod(${dimensionRef}.[${mdxLevel}], ${mdxOffset}, ${dimensionRef}.CurrentMember)`;
@@ -426,5 +444,44 @@ export class ParallelPeriodTemplate extends ConversionTemplate {
     }
 
     return groups;
+  }
+
+  /**
+   * Check if a level actually exists in the dimension hierarchy.
+   * Returns false for flat dimensions where the "level" is actually a secondary attribute.
+   */
+  private levelExistsInDimension(
+    dimUniqueName: string | undefined,
+    levelName: string,
+    context: ConversionContext,
+  ): boolean {
+    if (!dimUniqueName) {
+      return false;
+    }
+
+    // Find the dimension in converted results
+    for (const dim of context.result.dimensions) {
+      if (dim.unique_name === dimUniqueName) {
+        // Check if level exists in any hierarchy
+        for (const hier of dim.hierarchies || []) {
+          for (const level of hier.levels || []) {
+            if (level.unique_name === levelName) {
+              return true;
+            }
+          }
+        }
+        // Also check level_attributes for dimensions with proper levels
+        for (const la of dim.level_attributes || []) {
+          if (la.unique_name === levelName) {
+            return true;
+          }
+        }
+        // Level not found in this dimension
+        return false;
+      }
+    }
+
+    // Dimension not found - can't validate, assume invalid
+    return false;
   }
 }

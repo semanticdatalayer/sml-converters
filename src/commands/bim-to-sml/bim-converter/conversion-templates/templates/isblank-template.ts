@@ -16,8 +16,10 @@ import { ConversionContext } from "../conversion-context";
  *
  * Handles two forms:
  * 1. ISBLANK(value) - Tests if value is blank/null
- *    → value IS NULL
+ *    → ISEMPTY(value)
  *    Confidence: 0.95 (semantically equivalent, minor edge cases)
+ *    Note: Using ISEMPTY() instead of "value IS NULL" because IS NULL
+ *    is not valid for function results in AtScale MDX.
  *
  * 2. BLANK() - Returns a blank/null value
  *    → NULL
@@ -101,7 +103,9 @@ export class IsBlankTemplate extends ConversionTemplate {
           },
         );
       } else {
-        // ISBLANK(value) → value IS NULL
+        // ISBLANK(value) → ISEMPTY(value)
+        // Note: Using ISEMPTY() instead of "value IS NULL" because IS NULL
+        // is not valid for function results in AtScale MDX (e.g., Year([Measure]) IS NULL is invalid)
         const argGroups = this.splitArguments(args);
 
         if (argGroups.length !== 1) {
@@ -112,7 +116,7 @@ export class IsBlankTemplate extends ConversionTemplate {
         }
 
         const valueMdx = this.convertSubExpression(argGroups[0], context);
-        const mdxExpression = `${valueMdx} IS NULL`;
+        const mdxExpression = `ISEMPTY(${valueMdx})`;
 
         return successfulConversion(
           mdxExpression,
@@ -136,12 +140,12 @@ export class IsBlankTemplate extends ConversionTemplate {
     return [
       {
         dax: "ISBLANK([Customer])",
-        mdx: "[Customer] IS NULL",
+        mdx: "ISEMPTY([Customer])",
         description: "Check if customer field is blank",
       },
       {
         dax: "ISBLANK([SalesAmount])",
-        mdx: "[SalesAmount] IS NULL",
+        mdx: "ISEMPTY([SalesAmount])",
         description: "Check if sales amount is null",
       },
       {
@@ -151,7 +155,7 @@ export class IsBlankTemplate extends ConversionTemplate {
       },
       {
         dax: "IF(ISBLANK([Discount]), 0, [Discount])",
-        mdx: "IIF([Discount] IS NULL, 0, [Discount])",
+        mdx: "IIF(ISEMPTY([Discount]), 0, [Discount])",
         description: "Replace blank discount with zero",
       },
     ];
@@ -159,8 +163,8 @@ export class IsBlankTemplate extends ConversionTemplate {
 
   getDescription(): string {
     return (
-      "Converts DAX ISBLANK/BLANK functions to MDX NULL operations. " +
-      "ISBLANK(value) becomes 'value IS NULL'. " +
+      "Converts DAX ISBLANK/BLANK functions to MDX operations. " +
+      "ISBLANK(value) becomes 'ISEMPTY(value)'. " +
       "BLANK() becomes 'NULL'."
     );
   }
