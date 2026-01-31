@@ -55,6 +55,7 @@ import {
   removeComments,
 } from "./tools";
 import { MeasureDependencyTracker } from "./measure-dependency-tracker";
+import { UsageContext, createUsageContext, getUsageTypes, MdxType } from "./type-inference";
 // import { Tools } from "../../../shared/tools";
 
 export class MeasureConverter {
@@ -63,10 +64,30 @@ export class MeasureConverter {
   private usedColumnsInDax: Set<string> = new Set();
   private tableLists?: TableLists;
   private dependencyTracker?: MeasureDependencyTracker;
+  /** Tracks measure usage types (boolean vs numeric) across all expressions */
+  private usageContext: UsageContext;
 
   constructor(logger: Logger, llmName?: string) {
     this.logger = logger;
     this.llmName = llmName;
+    this.usageContext = createUsageContext();
+  }
+
+  /**
+   * Get the usage context for type inference.
+   * Used to determine if a measure is used in boolean vs numeric contexts.
+   */
+  getUsageContext(): UsageContext {
+    return this.usageContext;
+  }
+
+  /**
+   * Get the usage types for a specific measure.
+   * @param measureName - Name of the measure
+   * @returns Array of MdxType values the measure is used in
+   */
+  getMeasureUsageTypes(measureName: string): MdxType[] {
+    return getUsageTypes(this.usageContext, measureName);
   }
 
   setTableLists(tableLists: TableLists) {
@@ -775,10 +796,12 @@ export class MeasureConverter {
     }
 
     // Create pipeline first (needed for templateRegistry in context)
+    // Pass usageContext to track measure usage types (boolean vs numeric) during type inference
     const pipeline = new ConversionPipeline(this.logger, {
       aiEnabled: !!this.llmName,
       llmName: this.llmName,
       aiMinConfidence: 0.3,
+      usageContext: this.usageContext,
     });
 
     // Create conversion context with templateRegistry for recursive template conversion

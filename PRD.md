@@ -61,10 +61,10 @@ This feature adds expression tree type inference to detect usage context and gen
 **Description:** As a developer, I need the conversion pipeline to track measure usage across all expressions so dual-context measures can be identified.
 
 **Acceptance Criteria:**
-- [ ] Modify `ConversionPipeline` to accept and pass `UsageContext`
-- [ ] First pass: collect all measure usages with their expected types
-- [ ] Store context in `MeasureConverter` for use during stub generation
-- [ ] Typecheck passes
+- [x] Modify `ConversionPipeline` to accept and pass `UsageContext`
+- [x] First pass: collect all measure usages with their expected types
+- [x] Store context in `MeasureConverter` for use during stub generation
+- [x] Typecheck passes
 
 ---
 

@@ -12,6 +12,7 @@ import { ConversionContext } from "./conversion-templates/conversion-context";
 import { VarInliner } from "./var-analysis/var-inliner";
 import { Logger } from "../../../shared/logger";
 import { escapeForComment, isBooleanReturningExpression } from "./tools";
+import { UsageContext, inferTypes } from "./type-inference";
 
 /**
  * Configuration for conversion pipeline
@@ -25,6 +26,9 @@ export interface PipelineConfig {
 
   /** LLM name for AI conversion (e.g., "openai", "anthropic") */
   llmName?: string;
+
+  /** Optional UsageContext for type inference - tracks measure usage types across expressions */
+  usageContext?: UsageContext;
 }
 
 /**
@@ -103,6 +107,12 @@ export class ConversionPipeline {
     context: ConversionContext,
   ): Promise<PipelineResult> {
     this.logger.debug(`Pipeline converting: ${daxExpression}`);
+
+    // Run type inference to collect measure usage contexts (if usageContext provided)
+    // This tracks whether measures are used in boolean vs numeric contexts
+    if (this.config.usageContext) {
+      inferTypes(daxExpression, this.config.usageContext);
+    }
 
     // Tokenize expression
     const tokenizer = new DaxTokenizer();
