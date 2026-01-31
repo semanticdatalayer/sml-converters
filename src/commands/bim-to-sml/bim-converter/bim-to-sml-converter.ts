@@ -1,4 +1,10 @@
-import { SMLCatalog, SMLModel, SMLObjectType } from "sml-sdk";
+import {
+  SMLCatalog,
+  SMLMetricCalculated,
+  SMLModel,
+  SMLModelMetricsAndCalc,
+  SMLObjectType,
+} from "sml-sdk";
 import { Logger } from "../../../shared/logger";
 import { SmlConverterResult } from "../../../shared/sml-convert-result";
 import { BimRoot, BimTable } from "../bim-models/bim-model";
@@ -161,6 +167,27 @@ export class BimToYamlConverter {
     // Re-resolve measure references now that base metrics are created
     // This handles cases where column names have encoded unique_names (e.g., w/o → w_o)
     measureConverter.resolveUnresolvedReferences(result, attrMaps);
+
+    // Add placeholder metric if model has no metrics (SML requires at least one)
+    if (model.metrics.length === 0) {
+      this.logger.info(
+        "Model has no metrics - adding hidden placeholder metric",
+      );
+      const placeholderUniqueName = "__placeholder_metric__";
+      const placeholderCalc: SMLMetricCalculated = {
+        object_type: SMLObjectType.MetricCalc,
+        unique_name: placeholderUniqueName,
+        label: "Placeholder Metric",
+        description: "Auto-generated placeholder - model had no measures",
+        is_hidden: true,
+        expression: "1",
+      };
+      const modelMetric: SMLModelMetricsAndCalc = {
+        unique_name: placeholderUniqueName,
+      };
+      result.measuresCalculated.push(placeholderCalc);
+      model.metrics.push(modelMetric);
+    }
 
     relationshipConverter.addMissingRelationships(result, model);
 
