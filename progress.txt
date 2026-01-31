@@ -808,8 +808,36 @@ This PRD addresses the PFM_from_Daniel_bim.json scenario - boolean-returning fun
 
 ---
 
+## Iteration 23 - US-008: Verify with PFM_from_Daniel_bim.json
+
+**What was verified:**
+1. Ran conversion on PFM_from_Daniel_bim.json
+2. No "AndOperator requires BooleanType" errors - SML validation PASSED
+3. Split measures correctly generated: HasOneCurrency_num.yml, HasOneCurrency_bool.yml
+4. Boolean stub (1 = 1) used for boolean contexts, numeric stub 1 used for numeric contexts
+5. npm run test-custom-calcs passes
+6. Typecheck passes
+
+**Results:**
+- HasOneCurrency detected as dual-context measure (used in both `[HasOneCurrency] AND ...` and `2088 * [HasOneCurrency]`)
+- Split into HasOneCurrency_num (stub: `1`) and HasOneCurrency_bool (stub: `(1 = 1)`)
+- 4 expressions had references rewritten (though all are TODO stubs due to unconvertible CALCULATE/FILTER)
+- SML validation: SUCCESSFUL with only warnings about connection duplicates
+
+**Note on reference rewriting:**
+- The rewrite logic works correctly
+- However, in PFM_from_Daniel_bim.json, ALL expressions referencing HasOneCurrency also contain unconvertible functions
+- These expressions become TODO stubs with `(1 = 1)` or `0` values
+- The TODO comment preserves the original DAX for manual fix, still referencing original measure name
+- No actual `[Measures].[HasOneCurrency]` MDX references exist in converted expressions to rewrite
+
+**PRD Status:** ALL USER STORIES COMPLETE ✅
+
+---
+
 ## NEW PRD: Dual-Purpose Column Metrics
 
+**File:** PRD-dual-purpose-columns.md
 **Started:** 2026-01-30
 
 This PRD addresses the test_bim.json and PFM_from_Daniel_bim.json scenarios where columns are used as both dimension level keys AND in DAX aggregation expressions.
@@ -823,6 +851,7 @@ This PRD addresses the test_bim.json and PFM_from_Daniel_bim.json scenarios wher
 - Scan DAX expressions to detect aggregation functions on columns
 - Track which columns are dimension keys
 - Create metrics with `{column}_{aggregation}` naming for dual-purpose columns
+- Keep dimension attributes intact (don't remove them)
 - Update DAX-to-MDX resolution to find aggregation-specific metrics
 
 ### User Stories
@@ -833,5 +862,6 @@ This PRD addresses the test_bim.json and PFM_from_Daniel_bim.json scenarios wher
 - US-005: Update DAX-to-MDX resolution
 - US-006: Test with test_bim.json
 - US-007: Test with PFM_from_Daniel_bim.json
+- US-008: Handle COUNTROWS on dimension tables (if encountered in test files)
 
 ---

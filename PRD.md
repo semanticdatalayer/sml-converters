@@ -113,12 +113,12 @@ This feature adds expression tree type inference to detect usage context and gen
 **Description:** As a developer, I need to verify the fix works with the known problematic file.
 
 **Acceptance Criteria:**
-- [ ] Run conversion on PFM_from_Daniel_bim.json
-- [ ] No "AndOperator requires BooleanType" errors in output
-- [ ] Split measures are correctly generated for dual-context cases
-- [ ] Numeric contexts still evaluate correctly (stub * value = value)
-- [ ] Run `npm run test-custom-calcs` - all tests pass
-- [ ] Typecheck passes
+- [x] Run conversion on PFM_from_Daniel_bim.json
+- [x] No "AndOperator requires BooleanType" errors in output
+- [x] Split measures are correctly generated for dual-context cases
+- [x] Numeric contexts still evaluate correctly (stub * value = value)
+- [x] Run `npm run test-custom-calcs` - all tests pass
+- [x] Typecheck passes
 
 ## Non-Goals
 
