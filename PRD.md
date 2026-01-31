@@ -1,176 +1,127 @@
-# PRD: Fix BIM-to-SML Converter Deployment Failures (Round 2)
+# PRD: Handle BIM Files with No Relationships
 
 ## Introduction
 
-Fix remaining bugs in the BIM-to-SML converter that cause deployment failures. Three BIM files in `/Users/dianne/Downloads/bim/fails` still fail to deploy after previous fixes. The goal is to fix pattern-based converter bugs so these files deploy successfully. Unconvertible patterns should be skipped with TODO comments rather than generating invalid MDX.
+When a Power BI BIM file has NO relationships defined between tables, the current converter marks all tables as "unused" and excludes them. This PRD addresses the scenario where standalone tables should instead be treated as fact tables, with aggregatable columns becoming metrics and non-aggregatable columns becoming degenerate dimensions.
 
-## Current Failure Analysis (Updated 2026-01-30)
-
-| BIM File | Error | Root Cause |
-|----------|-------|------------|
-| Trek_bim.json | `Cannot read properties of undefined (reading 'map')` | Model/dimension structure issue - possibly empty hierarchy or missing level |
-| test_bim.json | `TestInvalidCalc is not valid: end of input expected` | Invalid MDX expression generated for calculation - incomplete/malformed syntax |
-| PFM_from_Daniel_bim.json | `NOT operator requires a Boolean argument, found IntType` | ISBLANK conversion produces integer (0/1) instead of boolean for NOT() |
+**Context:** This follows from previous PRD where Trek_bim.json was identified as needing new functionality because it has 4 tables but no relationships.
 
 ## Goals
 
-- Fix converter bugs causing deployment failures for Trek_bim, test_bim, and PFM_from_Daniel_bim
-- Implement pattern-based fixes that help other BIM files with similar patterns
-- Unconvertible patterns generate valid placeholder MDX (value 0 with TODO comment) rather than invalid syntax
-- All 3 BIM files deploy successfully to AtScale after fixes
+- Detect when a BIM model has no relationships (empty or missing `relationships` array)
+- Convert standalone tables as fact tables instead of excluding them
+- Create implicit metrics from columns with `summarizeBy` aggregation hints
+- Create degenerate dimensions from non-aggregatable columns
+- Validate generated SML and deploy Trek_bim.json successfully
 
 ## User Stories
 
-### US-001: Investigate Trek_bim "map undefined" error
+### US-001: Detect No-Relationships Scenario
 
-**Description:** As a converter developer, I need to identify why Trek_bim generates invalid SML that causes "Cannot read properties of undefined (reading 'map')" during deploy.
+**Description:** As a converter, I need to detect when a BIM model has no relationships so I can apply standalone table handling.
 
 **Acceptance Criteria:**
-- [x] Examine generated SML in `/Users/dianne/Downloads/bim/fails/0-output-sml-Trek_bim`
-- [x] Check dimension files for empty hierarchies or missing levels
-- [x] Check model files for references to undefined objects
-- [x] Identify which SML structure causes the "map undefined" error
-- [x] Document root cause
+- [x] Add `hasNoRelationships(bim: BimRoot): boolean` method to TableConverter
+- [x] Returns true when `relationships` array is missing, undefined, or empty
+- [x] When no relationships exist, skip the `listUnusedNoRelationships()` logic that marks tables as unused
+- [x] Tables excluded via `isPrivate: true` or `isHidden: true` (DateTableTemplate) remain excluded
+- [x] Add info log: "No relationships found in model - treating tables as standalone facts"
 - [x] Typecheck passes
+- [x] Run `npm run test-custom-calcs` passes
 
-**Root Cause (documented):**
-- BIM file has 4 tables but NO relationships defined
-- Converter requires relationships to classify tables as fact vs dimension
-- All 4 tables skipped → Model with 0 datasets, 0 dimensions, only 1 calc metric
-- AtScale backend fails with "map undefined" when deploying model without datasets
-- **Resolution:** Requires new functionality to handle relationship-less BIM files (out of scope)
+---
 
-### US-002: Fix Trek_bim deployment failure
+### US-002: Classify Standalone Tables as Facts
 
-**Description:** As a converter user, I want Trek_bim.json to deploy successfully so I can use the converted model.
-
-**Status: SKIPPED** - Requires new functionality (relationship-less BIM file support), out of scope per US-001 investigation.
+**Description:** As a converter, I need to classify all non-excluded tables as fact tables when no relationships exist.
 
 **Acceptance Criteria:**
-- [x] Fix identified issue in converter code (pattern-based fix) - N/A, requires new functionality
-- [x] Re-convert Trek_bim.json - N/A
-- [x] Deploy using `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/Trek_bim.json --keep` - N/A
-- [x] Deployment succeeds (or reveals next error to fix) - N/A
-- [x] Run `npm run test-custom-calcs` - tests pass - N/A
-- [x] Typecheck passes - N/A
-
-### US-003: Investigate test_bim "end of input expected" error
-
-**Description:** As a converter developer, I need to identify why test_bim generates invalid MDX for TestInvalidCalc.
-
-**Acceptance Criteria:**
-- [x] Find TestInvalidCalc in generated SML (`0-output-sml-test_bim/calculations/`)
-- [x] Examine the invalid MDX expression
-- [x] Trace back to BIM source to understand original DAX
-- [x] Document why current conversion produces invalid syntax
-- [x] Typecheck passes
-
-**Root Cause (documented):**
-- DAX: `[TestSimpleMinMeas] - Sum('POC Values'['TopTaskID'] + [TestSimpleMinMeas])`
-- Converted MDX: `[Measures].[TestSimpleMinMeas]-Sum([Measures].[TopTaskID]+[Measures].[TestSimpleMinMeas])`
-- MDX `Sum(expression)` is invalid - MDX Sum requires `Sum(Set, NumericExpression)`
-- DAX `SUM(expression)` iterates over context - no MDX equivalent
-
-### US-004: Fix test_bim invalid calculation expression
-
-**Description:** As a converter user, I want test_bim.json to deploy with valid calculation expressions.
-
-**Acceptance Criteria:**
-- [x] Fix converter to produce valid MDX or TODO placeholder
-- [x] Re-convert test_bim.json
-- [x] Deploy using `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/test_bim.json --keep`
-- [x] Deployment succeeds (or reveals next error to fix) - **Revealed next error: "Measure TopTaskID in calculation is not a measure"**
-- [x] Run `npm run test-custom-calcs` - tests pass
-- [x] Typecheck passes
-
-**Fix Applied:**
-- Modified `FunctionToken.toMdx()` in `dax-converter.ts`
-- When aggregate functions (SUM, MIN, MAX, etc.) have non-measure arguments, return TODO stub
-- `Sum(expr)` → `0 /* TODO: Sum(expr) - DAX aggregate over expression has no MDX equivalent */`
-
-**New Error (test_bim):** "Measure TopTaskID in calculation is not a measure"
-- This is documented in progress.txt as "future work" - requires architectural changes
-- TopTaskID used as dimension key (average) AND in DAX arithmetic (needs sum)
-
-### US-005: Investigate PFM_from_Daniel "NOT operator" error
-
-**Description:** As a converter developer, I need to identify why the NOT/ISBLANK conversion produces incorrect type handling.
-
-**Acceptance Criteria:**
-- [x] Find "ETC Pre-Discretionary Net Income" calculation in generated SML
-- [x] Examine the MDX expression containing NOT operator
-- [x] Trace back to original DAX to understand the pattern
-- [x] Document why NOT is receiving IntType instead of Boolean
-- [x] Typecheck passes
-
-**Root Cause (documented):**
-- DAX: `NOT([IsTaskLevelFiltered]) && NOT([IsResourceFiltered]) && [HasOneCurrency]`
-- `IsTaskLevelFiltered`, `IsResourceFiltered`, `HasOneCurrency` are TODO stubs with value `1` (IntType)
-- MDX `NOT` requires BooleanType but receives IntType from measure stub
-- MDX `AND` requires BooleanType operands but bare measure refs are IntType
-
-### US-006: Fix ISBLANK/NOT conversion for PFM_from_Daniel
-
-**Description:** As a converter user, I want PFM_from_Daniel_bim.json to deploy with correct boolean handling.
-
-**Acceptance Criteria:**
-- [x] Fix ISBLANK template to produce boolean-compatible output
-- [x] Or: skip unconvertible pattern with TODO placeholder
-- [x] Re-convert PFM_from_Daniel_bim.json
-- [x] Deploy using `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/PFM_from_Daniel_bim.json --keep`
-- [x] Deployment succeeds (or reveals next error to fix) - **Revealed: "Level Month not found in dimension_Dates"**
-- [x] Run `npm run test-custom-calcs` - tests pass
-- [x] Typecheck passes
-
-**Fixes Applied:**
-1. `NOT(measure)` → `(1 = 0) /* TODO: NOT(measure) */` (false boolean stub)
-2. DIVIDE with boolean denom containing bare measures → TODO stub fallback
-
-### US-007: Iterate on remaining errors
-
-**Description:** As a converter developer, I need to continue fixing errors until all 3 BIM files deploy successfully.
-
-**Acceptance Criteria:**
-- [ ] After each fix, re-deploy the affected BIM file
-- [ ] If new error appears, investigate and fix
-- [ ] Repeat until deployment succeeds
-- [ ] All 3 BIM files deploy successfully
-- [ ] Run `npm run test-custom-calcs` after all fixes - tests pass
+- [ ] Modify `populateTableLists()` to check for no-relationships scenario
+- [ ] When no relationships, add all non-excluded tables to `factTables` array
+- [ ] Leave `dimTables` empty when no relationships (dimensions come from degenerate dims later)
+- [ ] Existing table exclusion logic (calcGroupTables, isPrivate, isHidden, variationsOnly) still applies
 - [ ] Typecheck passes
+- [ ] Run `npm run test-custom-calcs` passes
 
-### US-008: Final verification - deploy all 3 BIM files
+---
 
-**Description:** As a converter user, I want to verify all 3 failing BIM files now deploy successfully.
+### US-003: Create Implicit Metrics from Aggregatable Columns
+
+**Description:** As a converter, I need to create metrics from columns that have `summarizeBy` aggregation hints.
 
 **Acceptance Criteria:**
-- [ ] Run `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails --keep` from snowflake-converter directory
-- [ ] All 3 deployments succeed
-- [ ] Document any remaining warnings/TODOs
+- [ ] In MeasureConverter, add method to create metrics from columns with `summarizeBy` in ["sum", "count", "average", "min", "max", "distinctcount"]
+- [ ] Call this method for standalone fact tables after dataset creation
+- [ ] Metric `unique_name` uses existing naming conventions (e.g., `m_<table>.<column>`)
+- [ ] Metric expression uses appropriate MDX aggregation: `Sum([dataset.Table].[Column])` etc.
+- [ ] Skip columns with `summarizeBy: "none"` - these become degenerate dimension attributes
+- [ ] Typecheck passes
+- [ ] Run `npm run test-custom-calcs` passes
+
+---
+
+### US-004: Create Degenerate Dimensions from Non-Aggregatable Columns
+
+**Description:** As a converter, I need to create degenerate dimensions from columns that don't have aggregation hints.
+
+**Acceptance Criteria:**
+- [ ] In standalone fact scenario, identify columns with `summarizeBy: "none"` or missing summarizeBy
+- [ ] For each standalone fact table with such columns, create a degenerate dimension
+- [ ] Degenerate dimension contains level attributes from non-aggregatable columns
+- [ ] Add to `tableLists.degenDims` set so existing `createDegenDimensions()` flow handles them
+- [ ] Link degenerate dimension to fact dataset via self-relationship in model
+- [ ] Typecheck passes
+- [ ] Run `npm run test-custom-calcs` passes
+
+---
+
+### US-005: Test Trek_bim.json Conversion and Deploy
+
+**Description:** As a developer, I need to validate Trek_bim.json conversion produces valid SML and deploys.
+
+**Acceptance Criteria:**
+- [ ] Run bim-to-sml conversion on `/Users/dianne/Downloads/bim/testfiles/Trek_bim.json`
+- [ ] Conversion completes without errors
+- [ ] Output contains datasets for: SSRS, "Cubes & Users", "Total Number Cube Users"
+- [ ] DateTableTemplate is excluded (isPrivate: true)
+- [ ] Deploy using `pnpm pbi-deploy /Users/dianne/Downloads/bim/testfiles/Trek_bim.json` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
+- [ ] If deployment fails, fix errors and retry until successful
 - [ ] Typecheck passes
 
 ## Non-Goals
 
-- Not fixing DAX patterns that are fundamentally incompatible with MDX (use TODO placeholders)
-- Not improving conversion quality for patterns that already work
-- Not adding new conversion templates beyond what's needed for these failures
-- Not changing the overall architecture of the converter
-- Not fixing warnings (only errors that block deployment)
+- Do not change behavior for BIM files that HAVE relationships (existing logic unchanged)
+- Do not convert hidden/private DateTableTemplate tables
+- Do not create relationships between standalone tables (they remain independent facts)
+- Do not handle partial relationship scenarios (some tables with relationships, some without) - this is all-or-nothing
 
 ## Technical Considerations
 
-- Converter code is in `src/commands/bim-to-sml/bim-converter/`
-- Calculation templates are in `conversion-templates/templates/`
-- ISBLANK template: `isblank-template.ts`
-- Run `npm run test-custom-calcs` after each code change
-- Deploy command: `pnpm pbi-deploy <file> --keep` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
-- Invalid/unconvertible expressions should become `0 /* TODO: <original DAX> */`
+**Key Files to Modify:**
+- `src/commands/bim-to-sml/bim-converter/table-converter.ts` - Detection and classification
+- `src/commands/bim-to-sml/bim-converter/measure-converter.ts` - Implicit metrics from columns
+- `src/commands/bim-to-sml/bim-converter/dimension-converter.ts` - Degenerate dimensions
+- `src/commands/bim-to-sml/bim-converter/bim-to-sml-converter.ts` - Orchestration
 
-## Previous Work (for reference)
+**Existing Patterns to Reuse:**
+- `createDegenDimensions()` in DimensionConverter for degenerate dimension creation
+- `tableLists.degenDims` set tracks which tables need degenerate dimensions
+- `SmlConvertResultBuilder` for adding new objects
+- `makeUniqueName()` for unique name generation
 
-Prior iteration fixed several bugs:
-1. BLANK() nested in expressions not converting to NULL
-2. DAX & (string concat) operator not converting to MDX + operator
-3. Encoded metric unique_names not resolving
-4. ROUNDUP/ROUNDDOWN DAX functions added to unconvertible list
-5. COUNTROWS measures referencing unused tables
-6. Self-referential cycle in calc expressions
+**Trek_bim.json Structure:**
+- 4 tables total, 1 excluded (DateTableTemplate via isPrivate/isHidden)
+- 3 convertible tables: SSRS, "Cubes & Users", "Total Number Cube Users"
+- "Cubes & Users" has one explicit measure (`Today = NOW()`)
+- Columns have `summarizeBy: "sum"` (aggregatable) or `summarizeBy: "none"` (degenerate dim)
+
+**summarizeBy Mapping:**
+| BIM summarizeBy | SML Aggregation |
+|-----------------|-----------------|
+| sum | Sum |
+| count | Count |
+| average | Avg |
+| min | Min |
+| max | Max |
+| distinctcount | DistinctCount |
+| none | (degenerate dimension attribute) |

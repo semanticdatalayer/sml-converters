@@ -18,6 +18,18 @@ export class TableConverter {
   }
 
   /**
+   * Check if the BIM model has no relationships defined.
+   * Returns true when `relationships` array is missing, undefined, or empty.
+   */
+  hasNoRelationships(bim: BimRoot): boolean {
+    return (
+      !bim.model.relationships ||
+      !Array.isArray(bim.model.relationships) ||
+      bim.model.relationships.length === 0
+    );
+  }
+
+  /**
    * Identify and collect calculation group tables.
    * These tables should be skipped during dimension/dataset conversion.
    */
@@ -56,6 +68,17 @@ export class TableConverter {
         )}`,
       );
       tablesVariationsOnly.forEach((tbl) => tableLists.unusedTables.add(tbl));
+    }
+
+    // When no relationships exist, skip marking tables as unused based on relationships
+    // Tables will be treated as standalone facts instead
+    if (this.hasNoRelationships(bim)) {
+      logger.info(
+        "No relationships found in model - treating tables as standalone facts",
+      );
+      // Still run hidden column checks - tables excluded via isPrivate/isHidden remain excluded
+      this.listTablesAllColsHidden(bim, tableLists, logger);
+      return;
     }
 
     // These checks are run multiple times. There are cases where the listing of tables with all hidden objects
