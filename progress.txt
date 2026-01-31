@@ -553,3 +553,33 @@ This PRD addresses the Trek_bim.json scenario - BIM files with no relationships 
 - US-004 needs to create degenerate dimensions for columns with `summarizeBy: "none"` (like "Cube" column in Cubes & Users table)
 
 ---
+
+## Iteration 14 - US-004: Create Degenerate Dimensions from Non-Aggregatable Columns
+
+**What was implemented:**
+1. Added `populateDegenDimsForStandaloneFacts()` method to TableConverter
+   - Scans standalone fact tables for columns with `summarizeBy: "none"` or missing
+   - Adds `table:column` pairs to `tableLists.degenDims` set
+   - Logs detected columns: "Degenerate dimension columns (non-aggregatable):: ..."
+2. Called new method from orchestrator after metrics creation, before `createDegenDimensions()`
+3. Fixed `createDegenDimensions()` to find datasets by `label` (not just `table` property)
+   - SQL-based datasets don't have `table` property, only `label`
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/table-converter.ts` - Added `populateDegenDimsForStandaloneFacts()`
+- `src/commands/bim-to-sml/bim-converter/bim-to-sml-converter.ts` - Call new method
+- `src/commands/bim-to-sml/bim-converter/dimension-converter.ts` - Fix dataset lookup to use `label`
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Verification:**
+- Trek_bim.json conversion: 1 degenerate dimension created (dimension_Cube)
+- "Cube" column from "Cubes & Users" table now appears as degenerate dimension
+- Dimension has `is_degenerate: true` and level_attribute references dataset
+
+**Learnings for future iterations:**
+- Degenerate dimensions use `is_degenerate: true` - no explicit relationship needed
+- Dataset lookup should use `label` field, not `table` (SQL-based datasets have no `table`)
+- `createDegenDimensions()` adds dimension reference to model automatically via `addDegenerateDim()`
+
+---

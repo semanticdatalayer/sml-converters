@@ -534,8 +534,9 @@ export class DimensionConverter {
       const bimTable = bim.model.tables.find((t) => t.name === tbl);
       // If the table is already a dimension table, skip it
       if (bimTable && !tableLists.dimTables.includes(bimTable)) {
+        // Find dataset by label (table name) or unique_name pattern
         const dataset_unique_name = result.datasets.find(
-          (d) => d.table === bimTable.name,
+          (d) => d.label === bimTable.name || d.table === bimTable.name,
         )?.unique_name;
         const bimColumn = bimTable.columns.find((c) => c.name === col);
         if (bimColumn && dataset_unique_name) {

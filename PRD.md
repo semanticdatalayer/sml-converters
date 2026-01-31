@@ -65,13 +65,13 @@ When a Power BI BIM file has NO relationships defined between tables, the curren
 **Description:** As a converter, I need to create degenerate dimensions from columns that don't have aggregation hints.
 
 **Acceptance Criteria:**
-- [ ] In standalone fact scenario, identify columns with `summarizeBy: "none"` or missing summarizeBy
-- [ ] For each standalone fact table with such columns, create a degenerate dimension
-- [ ] Degenerate dimension contains level attributes from non-aggregatable columns
-- [ ] Add to `tableLists.degenDims` set so existing `createDegenDimensions()` flow handles them
-- [ ] Link degenerate dimension to fact dataset via self-relationship in model
-- [ ] Typecheck passes
-- [ ] Run `npm run test-custom-calcs` passes
+- [x] In standalone fact scenario, identify columns with `summarizeBy: "none"` or missing summarizeBy
+- [x] For each standalone fact table with such columns, create a degenerate dimension
+- [x] Degenerate dimension contains level attributes from non-aggregatable columns
+- [x] Add to `tableLists.degenDims` set so existing `createDegenDimensions()` flow handles them
+- [x] Link degenerate dimension to fact dataset via `is_degenerate: true` (level_attribute references same dataset)
+- [x] Typecheck passes
+- [x] Run `npm run test-custom-calcs` passes
 
 ---
 

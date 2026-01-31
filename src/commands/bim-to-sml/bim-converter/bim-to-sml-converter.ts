@@ -165,6 +165,10 @@ export class BimToYamlConverter {
     relationshipConverter.addMissingRelationships(result, model);
 
     measureConverter.addUsedColumnsToDimension(bim, result, attrMaps);
+
+    // For standalone fact scenario, populate degenerate dimensions from non-aggregatable columns
+    tableConverter.populateDegenDimsForStandaloneFacts(bim, tableLists);
+
     dimensionConverter.createDegenDimensions(tableLists, bim, attrMaps, result);
 
     const perspectiveConverter = new PerspectiveConverter(this.logger);

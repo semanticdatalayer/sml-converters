@@ -299,4 +299,43 @@ export class TableConverter {
     factTables.forEach((f) => factTablesList.push(f.name));
     return factTablesList;
   }
+
+  /**
+   * Populate degenerate dimensions for standalone fact tables (no-relationships scenario).
+   * Columns with summarizeBy: "none" or missing summarizeBy become degenerate dimension attributes.
+   * This method should be called after datasets are created but before createDegenDimensions().
+   */
+  populateDegenDimsForStandaloneFacts(bim: BimRoot, tableLists: TableLists): void {
+    // Only applies to no-relationships scenario
+    if (!this.hasNoRelationships(bim)) {
+      return;
+    }
+
+    const degenCols: string[] = [];
+
+    for (const factTable of tableLists.factTables) {
+      for (const column of factTable.columns || []) {
+        // Skip hidden columns
+        if (column.isHidden) continue;
+
+        // Column is a degenerate dimension candidate if:
+        // - summarizeBy is "none" (explicitly non-aggregatable)
+        // - summarizeBy is missing/undefined (default to non-aggregatable for categorical data)
+        const summarize = column.summarizeBy?.toLowerCase();
+        if (!summarize || summarize === "none") {
+          const degenKey = `${factTable.name}:${column.name}`;
+          if (!tableLists.degenDims.has(degenKey)) {
+            tableLists.degenDims.add(degenKey);
+            degenCols.push(`${factTable.name}.${column.name}`);
+          }
+        }
+      }
+    }
+
+    if (degenCols.length > 0) {
+      this.logger.info(
+        `Degenerate dimension columns (non-aggregatable):: ${degenCols.join(", ")}`,
+      );
+    }
+  }
 }
