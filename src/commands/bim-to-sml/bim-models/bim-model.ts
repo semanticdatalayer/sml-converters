@@ -102,6 +102,7 @@ export interface BimTable {
   name: string;
   description?: string | string[];
   isHidden: boolean;
+  isPrivate?: boolean;
   showAsVariationsOnly?: boolean;
   lineageTag: string;
   dataCategory?: string;

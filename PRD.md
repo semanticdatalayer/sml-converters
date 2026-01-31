@@ -80,13 +80,13 @@ When a Power BI BIM file has NO relationships defined between tables, the curren
 **Description:** As a developer, I need to validate Trek_bim.json conversion produces valid SML and deploys.
 
 **Acceptance Criteria:**
-- [ ] Run bim-to-sml conversion on `/Users/dianne/Downloads/bim/testfiles/Trek_bim.json`
-- [ ] Conversion completes without errors
-- [ ] Output contains datasets for: SSRS, "Cubes & Users", "Total Number Cube Users"
-- [ ] DateTableTemplate is excluded (isPrivate: true)
-- [ ] Deploy using `pnpm pbi-deploy /Users/dianne/Downloads/bim/testfiles/Trek_bim.json` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
-- [ ] If deployment fails, fix errors and retry until successful
-- [ ] Typecheck passes
+- [x] Run bim-to-sml conversion on `/Users/dianne/Downloads/bim/testfiles/Trek_bim.json`
+- [x] Conversion completes without errors
+- [x] Output contains datasets for: SSRS, "Cubes & Users", "Total Number Cube Users"
+- [x] DateTableTemplate is excluded (isPrivate: true)
+- [x] Deploy using `pnpm pbi-deploy /Users/dianne/Downloads/bim/testfiles/Trek_bim.json` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
+- [x] Deployment successful: Trek_bim_30becb81
+- [x] Typecheck passes
 
 ## Non-Goals
 

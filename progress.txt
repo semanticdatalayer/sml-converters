@@ -583,3 +583,29 @@ This PRD addresses the Trek_bim.json scenario - BIM files with no relationships 
 - `createDegenDimensions()` adds dimension reference to model automatically via `addDegenerateDim()`
 
 ---
+
+## Iteration 15 - US-005: Test Trek_bim.json Conversion and Deploy
+
+**What was implemented:**
+1. Added `isPrivate` property to BimTable interface
+2. Added `listPrivateTables()` method to exclude tables with `isPrivate: true`
+3. Called from `listUnusedBimTables()` at the start before other checks
+4. DateTableTemplate now correctly excluded from conversion
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-models/bim-model.ts` - Added `isPrivate?: boolean` to BimTable
+- `src/commands/bim-to-sml/bim-converter/table-converter.ts` - Added `listPrivateTables()` method
+
+**Result:** PASS - Trek_bim.json conversion and deployment successful
+
+**Deployment verification:**
+- Conversion: 3 datasets (SSRS, Cubes & Users, Total Number Cube Users)
+- DateTableTemplate excluded via `isPrivate: true`
+- 1 degenerate dimension (Cube)
+- 6 metrics from aggregatable columns
+- 1 calculated metric (Today = NOW())
+- Deployed as: Trek_bim_30becb81
+
+**Final PRD Status:** ALL USER STORIES COMPLETE ✅
+
+---

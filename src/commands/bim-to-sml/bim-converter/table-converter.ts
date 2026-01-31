@@ -56,6 +56,9 @@ export class TableConverter {
     tableLists: TableLists,
     logger: Logger,
   ): void {
+    // First, exclude tables with isPrivate: true (Power BI system tables like DateTableTemplate)
+    this.listPrivateTables(bim, tableLists, logger);
+
     const tablesVariationsOnly: Array<string> = this.listTablesVariationsOnly(
       bim,
       tableLists.unusedTables,
@@ -88,6 +91,31 @@ export class TableConverter {
     this.listUnusedNoRelationships(bim, tableLists, logger);
     this.listTablesAllColsHidden(bim, tableLists, logger);
     this.listUnusedNoRelationships(bim, tableLists, logger);
+  }
+
+  /**
+   * Exclude tables that are marked as private (isPrivate: true).
+   * These are typically Power BI system tables like DateTableTemplate.
+   */
+  listPrivateTables(
+    bim: BimRoot,
+    tableLists: TableLists,
+    logger: Logger,
+  ): void {
+    const privateTables: string[] = [];
+
+    bim.model.tables.forEach((tbl) => {
+      if (tbl.isPrivate && !tableLists.unusedTables.has(tbl.name)) {
+        tableLists.unusedTables.add(tbl.name);
+        privateTables.push(tbl.name);
+      }
+    });
+
+    if (privateTables.length > 0) {
+      logger.info(
+        `Excluding private tables (isPrivate: true):: ${arrayToStringAlphabetical(privateTables, ", ")}`,
+      );
+    }
   }
 
   listTablesVariationsOnly(
