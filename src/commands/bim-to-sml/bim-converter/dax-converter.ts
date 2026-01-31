@@ -133,6 +133,11 @@ export class FunctionToken extends DaxToken {
             // Return just the measure reference - aggregation is in the metric definition
             return actualArgs[0];
           }
+          // If argument is NOT a single measure reference, this is an expression aggregation
+          // DAX: SUM(expr) iterates over context - no MDX equivalent, return TODO stub
+          // Example: SUM(col1 + col2) or SUM([Measure1] + [Measure2])
+          const originalDax = this.toString();
+          return `0 /* TODO: ${originalDax.replace(/\*\//g, "* /")} - DAX aggregate over expression has no MDX equivalent */`;
         }
 
         // args array includes CommaTokens, so join with "" not ", "
