@@ -125,7 +125,7 @@ export class DimensionConverter {
       if ("name_column" in la) levelCols.add(la.name_column);
     });
     // Add secondary attributes
-    bimTable.columns.forEach((bimColumn) => {
+    (bimTable.columns || []).forEach((bimColumn) => {
       if (!levelCols.has(bimColumn.name) && !isHidden(bimColumn)) {
         this.convertSecondaryAttribute(
           bimTable,

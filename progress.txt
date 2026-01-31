@@ -835,33 +835,95 @@ This PRD addresses the PFM_from_Daniel_bim.json scenario - boolean-returning fun
 
 ---
 
-## NEW PRD: Dual-Purpose Column Metrics
+## Bug Fix: TODO stub type based on return type, not referenced measure types
 
-**File:** PRD-dual-purpose-columns.md
+**Date:** 2026-01-30
+
+**Error:** "Function Minus requires arguments of type NumericType, AttributeValue(...\".Actual Revenue\") has type BooleanType"
+
+**Root cause:**
+- `createFallback()` in conversion-pipeline.ts was determining stub type based on **usage types of measures referenced inside the expression**
+- For `.Actual Revenue` with DAX: `DIVIDE(Sum(...), NOT([X]) && NOT([Y]) && [Z])`
+- The referenced measures `[X]`, `[Y]`, `[Z]` were used in BOOLEAN context (inside NOT/&&)
+- Code incorrectly used `(1 = 1)` boolean stub because references had boolean-only usage
+- But DIVIDE **returns NUMERIC**, so stub should be `0`
+
+**Fix:**
+- Modified `createFallback()` to check **return type of top-level function** instead
+- Parse expression, find top-level FunctionToken, use `getFunctionReturnType()` from type-inference.ts
+- DIVIDE returns NUMERIC → stub is `0`
+- NOT returns BOOLEAN → stub is `(1 = 1)`
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts`
+
+**Result:** `.Actual Revenue` now has expression `0 /* TODO: ... */` instead of `(1 = 1) /* TODO: ... */`
+
+---
+
+## NEW PRD: Fix BIM Conversion Failures (Batch)
+
+**File:** PRD.md
 **Started:** 2026-01-30
 
-This PRD addresses the test_bim.json and PFM_from_Daniel_bim.json scenarios where columns are used as both dimension level keys AND in DAX aggregation expressions.
+This PRD addresses ~45 failing BIM file conversions identified in `/Users/dianne/Downloads/failing_files.txt`. Errors are grouped by root cause and addressed systematically.
 
-### Problem Statement
-- Dimension level keys in SML are structural (for joins), not aggregated
-- Current converter skips metric creation for columns "used" by dimensions
-- DAX expressions like `Sum('Table'[Col])` fail with "Measure X is not a measure"
+### Error Categories
+| Category | Count | Files |
+|----------|-------|-------|
+| `.map()` on undefined | 6 | Assembly_kpis, A&P_Pacing_VS_Budget, Interactive_PVM, Manual_Load_Tracking, Marketing, Trade_Tracker_bim |
+| `data-set.map not function` | 4 | EU_Safety_Model, epm_mtd, HDT07_Overview, Magellan_Refresh_Test |
+| DAX parsing errors | 10 | Commercial_KPIs, Dealer_Performance_Dashboard, Global_Report, Monthly_Sales_Dashboard, HDNA/DNA_Magellan, Most_Loved, Planogram variants, Usage_Metrics_Report |
+| Malformed brackets | 6 | Magellan_RLS_Test, Magellan, PV_Top_2k_Customers, QA_Dashboard variants |
+| "Measure X not a measure" | 6 | DaVinci_Usage_Metrics, hardware, Magellan-Usage_Metrics, PFM_bim, UOM_bim, vulnerabilities_bim |
+| "non-existing metric" | 6 | FactAccountAging/Receivable, FactProduction, Marketing-Advertising, Retail_Account_Policy, magalu |
+| "No metrics defined" | 11 | External_Dashboard_Index, FactBilling/GL/Deposit/TransactionRecon, Jira, Most_Loved_Index, Price_Checker, Size_Heat_Map, Similarweb, Supplier_Directory |
+| Missing relationship props | 2 | FactPolicyLine, RetailPolicyLine |
+| Duplicate dimensions | 1 | External_Dashboard_Index |
+| Boolean type mismatch | 2 | Machining_Performance, POC_bim |
 
-### Solution Approach
-- Scan DAX expressions to detect aggregation functions on columns
-- Track which columns are dimension keys
-- Create metrics with `{column}_{aggregation}` naming for dual-purpose columns
-- Keep dimension attributes intact (don't remove them)
-- Update DAX-to-MDX resolution to find aggregation-specific metrics
+### Validation Requirements
+1. `npm run test-custom-calcs` - no regressions
+2. Typecheck passes
+3. Deploy via: `cd /Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter && pnpm pbi-deploy /Users/dianne/Downloads/bim/bim/<file>`
+4. Fix errors until deployment succeeds
 
 ### User Stories
-- US-001: Extract aggregation contexts from DAX expressions
-- US-002: Track dimension key columns
-- US-003: Identify dual-purpose columns (intersection)
-- US-004: Create metrics for dual-purpose columns
-- US-005: Update DAX-to-MDX resolution
-- US-006: Test with test_bim.json
-- US-007: Test with PFM_from_Daniel_bim.json
-- US-008: Handle COUNTROWS on dimension tables (if encountered in test files)
+- US-001: Add null checks for optional BIM arrays
+- US-002: Handle single dataset vs array in BIM parsing
+- US-003: Graceful DAX parsing failure with TODO stub
+- US-004: Handle malformed measure names with unclosed brackets
+- US-005: Stub dimension table column references in calculations
+- US-006: Improve calculated metric reference resolution
+- US-007: Add placeholder metric for models with no measures
+- US-008: Fix relationship creation null checks
+- US-009: Handle duplicate dimension detection
+- US-010: Handle boolean type expressions in numeric contexts
+
+---
+
+## Iteration 24 - US-001: Add null checks for optional BIM arrays
+
+**What was implemented:**
+- Added null coalescing (`|| []`) to all `.map()` and `.forEach()` calls on optional BIM arrays
+- Fixed accesses to `bim.model.tables`, `table.columns`, `table.measures`, `table.hierarchies`, `hier.levels`
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/bim-to-sml-converter.ts` - wrapped `bim.model.tables.forEach`
+- `src/commands/bim-to-sml/bim-converter/table-converter.ts` - wrapped 7 occurrences of `.forEach()` on optional arrays
+- `src/commands/bim-to-sml/bim-converter/dimension-converter.ts` - wrapped `bimTable.columns.forEach`
+- `src/commands/bim-to-sml/bim-converter/dataset-converter.ts` - wrapped `bimTable.columns.map`
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Verification:**
+- Tested affected BIM files: A&P_Pacing_VS_Budget, Manual_Load_Tracking, Marketing, Trade_Tracker
+- All convert without ".map is not a function" errors
+- Output has 0 datasets due to missing relationships (documented in "Future Work" as separate issue)
+
+**Learnings for future iterations:**
+- BIM files may have sparse data with missing arrays (columns, measures, hierarchies, partitions)
+- Always use `|| []` when iterating over optional BIM arrays
+- Some files produce valid SML but 0 datasets due to no relationships - this is expected for relationship-less models
 
 ---

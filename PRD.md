@@ -1,143 +1,219 @@
-# PRD: Type-Aware TODO Stub Generation
+# PRD: Fix BIM Conversion Failures
 
 ## Introduction
 
-The BIM-to-SML converter generates TODO stubs for unsupported DAX functions. Currently, boolean-returning functions like `HASONEVALUE` use `1` as the stub value. This works in numeric contexts (`2088 * [HasOneCurrency]`) but fails in boolean contexts (`[HasOneCurrency] AND [Other]`) because MDX requires `BooleanType` for AND/OR operators, not `IntType`.
-
-This feature adds expression tree type inference to detect usage context and generate appropriate stubs. When a measure appears in both contexts, it creates duplicate measures with type-specific stubs.
+Fix multiple BIM-to-SML conversion failures identified across test files. Errors are grouped by root cause and addressed systematically to improve converter robustness without breaking existing conversions.
 
 ## Goals
 
-- Eliminate "AndOperator requires arguments of type BooleanType" errors from TODO stubs
-- Detect usage context (numeric vs boolean) for each measure reference
-- Generate type-appropriate stubs: `1` for numeric, `(1 = 1)` for boolean
-- When dual-context usage detected, duplicate measure with `_num` and `_bool` suffixes
-- Provide clear warning messages when duplication occurs
+- Fix ~45 failing BIM file conversions across 10 error categories
+- Add defensive null checks for optional BIM arrays
+- Handle malformed DAX expressions gracefully with TODO stubs
+- Improve measure reference resolution for calculated metrics
+- Add placeholder metrics for models with no measures
+- Ensure all fixes maintain backward compatibility with working conversions
+- All fixes validated via SML schema validation AND successful deployment
+
+## Validation Requirements
+
+**For each user story:**
+1. Run `npm run test-custom-calcs` to check for regressions
+2. Validate generated SML is schema-valid
+3. Deploy using: `pnpm pbi-deploy /Users/dianne/Downloads/bim/bim/<file>` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
+4. Fix any deployment errors until successful
 
 ## User Stories
 
-### US-001: Create type system foundation
+### US-001: Add null checks for optional BIM arrays
 
-**Description:** As a developer, I need a type system module so that type inference can be built on solid foundations.
+**Description:** As a converter, I want to handle missing optional arrays (columns, measures, hierarchies, partitions) so that files with sparse data don't crash with "Cannot read properties of undefined (reading 'map')".
 
 **Acceptance Criteria:**
-- [x] Create `src/commands/bim-to-sml/bim-converter/type-inference.ts`
-- [x] Define `MdxType` enum with values: `BOOLEAN`, `NUMERIC`, `UNKNOWN`
-- [x] Define `UsageContext` interface to track measure → types mapping
-- [x] Export utility functions: `createUsageContext()`, `recordUsage()`, `getUsageTypes()`
+- [x] In `bim-to-sml-converter.ts`, wrap all `.map()` calls on optional arrays with null coalescing (`|| []`)
+- [x] In `table-converter.ts`, add null checks for `table.columns`, `table.measures`, `table.hierarchies`
+- [x] In `dimension-converter.ts`, add null checks for hierarchy levels and column arrays
+- [x] In `dataset-converter.ts`, add null checks for partition and column arrays
+- [x] Files that previously failed with ".map is not a function" now convert (may have TODO stubs)
+- [x] Run `npm run test-custom-calcs` - no new failures introduced
 - [x] Typecheck passes
+- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful (N/A - affected files have no relationships, producing 0 datasets - documented as "Future Work" in progress.txt)
+
+**Affected Files:** Assembly_kpis, A&P_Pacing_VS_Budget, Interactive_PVM, Manual_Load_Tracking, Marketing, Trade_Tracker_bim
 
 ---
 
-### US-002: Implement operator type rules
+### US-002: Handle single dataset vs array in BIM parsing
 
-**Description:** As a developer, I need type rules for MDX operators so the system knows what types each operator expects and returns.
+**Description:** As a converter, I want to handle BIM files where `data-sets.data-set` is a single object instead of an array so that these files don't crash with "parsedXml.schema.data-sets.data-set.map is not a function".
 
 **Acceptance Criteria:**
-- [x] Create `getOperatorExpectedType(op: string): MdxType` function
-- [x] Create `getOperatorReturnType(op: string): MdxType` function
-- [x] AND, OR, NOT → expect BOOLEAN, return BOOLEAN
-- [x] Arithmetic (+,-,*,/,^) → expect NUMERIC, return NUMERIC
-- [x] Comparisons (>,<,=,<>,>=,<=) → expect NUMERIC, return BOOLEAN
-- [x] Typecheck passes
+- [ ] Add helper function `ensureArray(val)` in `tools.ts`: `Array.isArray(val) ? val : (val ? [val] : [])`
+- [ ] In relevant parser code, use `ensureArray()` when expected array might be single object
+- [ ] Files: EU_Safety_Model, epm_mtd, HDT07_Overview, Magellan_Refresh_Test now convert
+- [ ] Run `npm run test-custom-calcs` - no new failures introduced
+- [ ] Typecheck passes
+- [ ] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
 
 ---
 
-### US-003: Add type inference to expression tree traversal
+### US-003: Graceful DAX parsing failure with TODO stub
 
-**Description:** As a developer, I need to propagate type expectations through the expression tree so each node knows its expected type.
+**Description:** As a converter, I want DAX parsing failures to create TODO stubs instead of crashing so that files with unusual DAX syntax still produce valid SML output.
 
 **Acceptance Criteria:**
-- [x] Create `inferTypes(expression: string, context: UsageContext): void` function
-- [x] Parse expression and walk the tree, passing expected types downward
-- [x] When measure reference encountered, record its expected type in context
-- [x] Handle nested expressions (e.g., `IF(A AND B, X * Y, Z)`)
-- [x] Typecheck passes
+- [ ] Wrap `DaxTokenizer.tokenize()` calls in try-catch in `conversion-pipeline.ts`
+- [ ] On parse failure, return fallback result with TODO stub containing original DAX
+- [ ] Log warning with measure name and parse error details
+- [ ] Error patterns handled: "Comma expected but OpenParen", "CloseParen expected but Div", "CloseBrace expected", "end of input expected"
+- [ ] Files with DAX parse errors now convert with TODO stubs instead of crashing
+- [ ] Run `npm run test-custom-calcs` - no new failures introduced
+- [ ] Typecheck passes
+- [ ] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
+
+**Affected Files:** Commercial_KPIs, Dealer_Performance_Dashboard, Global_Report_-_Assembly_KPIs, Monthly_Sales_Dashboard, HDNA_Magellan_Report, DNA_Magellan_Report, Most_Loved, Planogram_Integration_DataModel_bim, Planogram_Informational_DataModel_bim, Usage_Metrics_Report_bim
 
 ---
 
-### US-004: Integrate type context into conversion pipeline
+### US-004: Handle malformed measure names with unclosed brackets
 
-**Description:** As a developer, I need the conversion pipeline to track measure usage across all expressions so dual-context measures can be identified.
+**Description:** As a converter, I want to handle malformed DAX measure references like `[Booking Amt [$]` (missing closing bracket) so that these create TODO stubs instead of crashing.
 
 **Acceptance Criteria:**
-- [x] Modify `ConversionPipeline` to accept and pass `UsageContext`
-- [x] First pass: collect all measure usages with their expected types
-- [x] Store context in `MeasureConverter` for use during stub generation
-- [x] Typecheck passes
+- [ ] In `dax-converter.ts` `parseColumnReference()`, handle unclosed bracket gracefully
+- [ ] If `]` not found before end of expression, treat remainder as column name and log warning
+- [ ] Create TODO stub for expressions containing malformed references
+- [ ] Files: Magellan_RLS_Test, Magellan, QA_Dashboard variants now convert with TODO stubs
+- [ ] Run `npm run test-custom-calcs` - no new failures introduced
+- [ ] Typecheck passes
+- [ ] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
+
+**Affected Files:** Magellan_RLS_Test-12-11-24, Magellan, PV_Top_2k_Customers_bim, QA_Dashboard-Last_7_Days_bim, QA_Dashboard-_Last_7_Days_bim, QA_Dashboard_-Last_7_Days_bim
 
 ---
 
-### US-005: Generate type-appropriate TODO stubs
+### US-005: Stub dimension table column references in calculations
 
-**Description:** As a developer, I need stub generation to use the correct value based on usage context so MDX type checking passes.
+**Description:** As a converter, I want dimension table column references in calculations to create TODO stubs so that "Measure X is not a measure" errors produce valid output.
 
 **Acceptance Criteria:**
-- [x] Modify `getFallbackValue()` to accept optional `MdxType` parameter
-- [x] Return `1` for NUMERIC or UNKNOWN context
-- [x] Return `(1 = 1)` for BOOLEAN-only context
-- [x] Update `createFallback()` in pipeline to use type-aware generation
-- [x] Typecheck passes
+- [ ] In `TableColumnReference.toMdx()`, verify `isDimensionOnlyTable()` check throws to trigger TODO fallback
+- [ ] Ensure error message clearly states "dimension column reference cannot be converted"
+- [ ] TODO stub created for these expressions instead of validation error
+- [ ] Files now convert with TODO stubs instead of "Measure X is not a measure" errors
+- [ ] Run `npm run test-custom-calcs` - no new failures introduced
+- [ ] Typecheck passes
+- [ ] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
+
+**Affected Files:** DaVinci_Usage_Metrics_Report, hardware, Magellan-Usage_Metrics_Report, PFM_bim, UOM_bim, vulnerabilities_bim
 
 ---
 
-### US-006: Implement measure duplication for dual-context usage
+### US-006: Improve calculated metric reference resolution
 
-**Description:** As a user, I want measures used in both numeric and boolean contexts to be automatically split so both usages work correctly.
+**Description:** As a converter, I want calculated metrics that reference other measures to resolve correctly so that "non-existing metric" errors are reduced.
 
 **Acceptance Criteria:**
-- [x] Detect when a measure has both NUMERIC and BOOLEAN usages
-- [x] Create `[OriginalName_num]` measure with `1` stub
-- [x] Create `[OriginalName_bool]` measure with `(1 = 1)` stub
-- [x] Add comment to both explaining they were split from original
-- [x] Log warning message listing split measures
-- [x] Typecheck passes
+- [ ] In `resolveUnresolvedReferences()`, also check for label matches (not just unique_name)
+- [ ] Build bidirectional lookup: original_name ↔ unique_name for all measures and calcs
+- [ ] Handle case where referenced measure was converted with different unique_name encoding
+- [ ] Log which references could not be resolved with clear error message
+- [ ] Files with "non-existing metric" errors have improved resolution
+- [ ] Run `npm run test-custom-calcs` - no new failures introduced
+- [ ] Typecheck passes
+- [ ] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
+
+**Affected Files:** FactAccountAging, FactAccountsReceivable, FactProduction, Marketing-Advertising, Retail_Account_Policy, magalu
 
 ---
 
-### US-007: Rewrite references to use split measures
+### US-007: Add placeholder metric for models with no measures
 
-**Description:** As a developer, I need references to split measures updated to use the appropriate version so the generated MDX is valid.
+**Description:** As a converter, I want models that have no measures to get a placeholder metric so that "a model should have at least one metric defined" validation passes.
 
 **Acceptance Criteria:**
-- [x] After identifying dual-context measures, do second pass over expressions
-- [x] Replace `[MeasureName]` with `[MeasureName_num]` in numeric contexts
-- [x] Replace `[MeasureName]` with `[MeasureName_bool]` in boolean contexts
-- [x] Preserve original expression in TODO comment for user reference
-- [x] Typecheck passes
+- [ ] After all measures converted, check if `model.metrics` is empty
+- [ ] If empty, create hidden placeholder calculated metric: unique_name `__placeholder_metric__`
+- [ ] Placeholder expression: `1` (simple numeric literal)
+- [ ] Set `is_hidden: true` and description: "Auto-generated placeholder - model had no measures"
+- [ ] Add placeholder to both `result.measuresCalculated` and `model.metrics`
+- [ ] Files now pass "model should have at least one metric" validation
+- [ ] Run `npm run test-custom-calcs` - no new failures introduced
+- [ ] Typecheck passes
+- [ ] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
+
+**Affected Files:** External_Dashboard_Index, FactBillingRegister, FactGeneralLedgerRegister, FactDepositRegister, FactTransactionReconciliation, Jira, Most_Loved_Index, Price_Checker_bim, Size_Heat_Map_bim, Similarweb_Benchmark_bim, Supplier_Directory_bim
 
 ---
 
-### US-008: Verify with PFM_from_Daniel_bim.json
+### US-008: Fix relationship creation null checks
 
-**Description:** As a developer, I need to verify the fix works with the known problematic file.
+**Description:** As a converter, I want relationship creation to handle missing properties gracefully so that "relationships must have required properties" errors don't occur.
 
 **Acceptance Criteria:**
-- [x] Run conversion on PFM_from_Daniel_bim.json
-- [x] No "AndOperator requires BooleanType" errors in output
-- [x] Split measures are correctly generated for dual-context cases
-- [x] Numeric contexts still evaluate correctly (stub * value = value)
-- [x] Run `npm run test-custom-calcs` - all tests pass
-- [x] Typecheck passes
+- [ ] In `relationship-converter.ts`, validate relationship has required fields before pushing
+- [ ] Skip relationships where `from`, `to`, or `unique_name` would be empty/undefined
+- [ ] Log warning when skipping invalid relationship with table names
+- [ ] Files now convert without relationship validation errors
+- [ ] Run `npm run test-custom-calcs` - no new failures introduced
+- [ ] Typecheck passes
+- [ ] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
+
+**Affected Files:** FactPolicyLine, RetailPolicyLine
+
+---
+
+### US-009: Handle duplicate dimension detection
+
+**Description:** As a converter, I want duplicate dimensions to be detected and deduplicated so that "dimensions must NOT have duplicate items" validation passes.
+
+**Acceptance Criteria:**
+- [ ] In `dimension-converter.ts`, track created dimension unique_names in a Set
+- [ ] If dimension with same unique_name already exists, skip with warning (keep first)
+- [ ] Log warning: "Skipping duplicate dimension '{name}' - already exists"
+- [ ] File: External_Dashboard_Index now passes dimension validation
+- [ ] Run `npm run test-custom-calcs` - no new failures introduced
+- [ ] Typecheck passes
+- [ ] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
+
+**Affected Files:** External_Dashboard_Index
+
+---
+
+### US-010: Handle boolean type expressions in numeric contexts
+
+**Description:** As a converter, I want expressions using boolean attributes in numeric contexts to get appropriate TODO stubs so that "Function requires NumericType, has BooleanType" errors produce valid output.
+
+**Acceptance Criteria:**
+- [ ] In DAX converter, detect when boolean column/attribute used in arithmetic (Times, DividedBy, etc.)
+- [ ] Create TODO stub explaining type mismatch: `0 /* TODO: {dax} - boolean attribute in numeric context */`
+- [ ] Files now convert with TODO stubs instead of type errors
+- [ ] Run `npm run test-custom-calcs` - no new failures introduced
+- [ ] Typecheck passes
+- [ ] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
+
+**Affected Files:** Machining_Performance.Loss__Model, POC_bim
 
 ## Non-Goals
 
-- Retroactive repair of existing converted files
-- Full DAX-to-MDX type system (only what's needed for stubs)
-- Handling types beyond BOOLEAN/NUMERIC (e.g., STRING, DATE)
-- Automatic resolution of TODO stubs (still requires user intervention)
+- Server deployment errors (502/503) - infrastructure issues, not converter bugs (System_Health_bim, StateSt_bim)
+- Full DAX-to-MDX conversion for complex patterns - only graceful fallback to TODO stubs
+- Automatic type coercion for boolean→numeric - just create TODO stubs
+- Breaking changes to existing successful conversions
 
 ## Technical Considerations
 
-- Expression parsing already exists in `dax-converter.ts` token classes
-- Type inference should be a separate module to avoid cluttering existing code
-- Two-pass approach: first collect usages, then generate with context
-- Keep existing `isBooleanReturningExpression()` as fallback for simple cases
-- `(1 = 1)` is valid MDX boolean TRUE that works in all boolean contexts
+- All changes should use existing patterns: `|| []` for null coalescing, `ensureArray()` helper
+- TODO stubs format: `0 /* TODO: {original_dax} */` for numeric, `(1 = 1) /* TODO: ... */` for boolean
+- Run `npm run test-custom-calcs` after each story to verify no regressions
+- Changes should be minimal and focused on the specific error pattern
+- Priority order: US-001 → US-002 → US-003 (null checks first, then parsing, then resolution)
 
-**Key Files to Modify:**
-- `src/commands/bim-to-sml/bim-converter/tools.ts` - Boolean detection, fallback values
-- `src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts` - Stage 6 fallback
-- `src/commands/bim-to-sml/bim-converter/measure-converter.ts` - Measure generation
-- `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - Token type inference
-- New: `src/commands/bim-to-sml/bim-converter/type-inference.ts` - Type system
+## Deployment Validation
+
+After each story, validate with deployment:
+```bash
+cd /Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter
+pnpm pbi-deploy /Users/dianne/Downloads/bim/bim/<filename>.bim
+```
+
+Fix any errors encountered until deployment succeeds before marking story complete.

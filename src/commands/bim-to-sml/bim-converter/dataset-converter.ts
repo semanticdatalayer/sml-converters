@@ -228,7 +228,7 @@ export class DatasetConverter {
       unique_name: datasetUniqueName,
       description: descriptionAsString(bimTable.description),
       label: bimTable.name,
-      columns: bimTable.columns.map((c) =>
+      columns: (bimTable.columns || []).map((c) =>
         c.type != undefined &&
         c.type.localeCompare(BimColumnType.Calculated) == 0
           ? this.mapYamlCalculatedColumn(c, bimTable, calculated_cols)

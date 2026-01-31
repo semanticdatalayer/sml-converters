@@ -34,7 +34,7 @@ export class TableConverter {
    * These tables should be skipped during dimension/dataset conversion.
    */
   collectCalculationGroupTables(bim: BimRoot, tableLists: TableLists): void {
-    bim.model.tables.forEach((table) => {
+    (bim.model.tables || []).forEach((table) => {
       if (isCalculationGroupTable(table)) {
         tableLists.calcGroupTables.add(table.name);
         tableLists.unusedTables.add(table.name);
@@ -104,7 +104,7 @@ export class TableConverter {
   ): void {
     const privateTables: string[] = [];
 
-    bim.model.tables.forEach((tbl) => {
+    (bim.model.tables || []).forEach((tbl) => {
       if (tbl.isPrivate && !tableLists.unusedTables.has(tbl.name)) {
         tableLists.unusedTables.add(tbl.name);
         privateTables.push(tbl.name);
@@ -124,7 +124,7 @@ export class TableConverter {
   ): Array<string> {
     const tablesToRm = new Array<string>();
 
-    bim.model.tables.forEach((tbl) => {
+    (bim.model.tables || []).forEach((tbl) => {
       if (!unusedTables.has(tbl.name) && tbl.showAsVariationsOnly)
         tablesToRm.push(tbl.name);
     });
@@ -200,7 +200,7 @@ export class TableConverter {
   listTablesColsHidden(bim: BimRoot, unusedTables: Set<string>): Set<string> {
     const tablesToRm = new Set<string>();
 
-    bim.model.tables.forEach((tbl) => {
+    (bim.model.tables || []).forEach((tbl) => {
       if (!unusedTables.has(tbl.name)) {
         // Check that not on left of a relationship
         let onLeft = false;
@@ -210,7 +210,7 @@ export class TableConverter {
         if (!onLeft) {
           // Check if all columns are hidden
           let allHidden = true;
-          tbl.columns.forEach((col) => {
+          (tbl.columns || []).forEach((col) => {
             if (!col.isHidden) {
               allHidden = false;
             }
@@ -218,9 +218,9 @@ export class TableConverter {
           if (allHidden) {
             // Check if referenced by calculations
             let used = false;
-            tbl.columns.forEach((col) => {
-              bim.model.tables.forEach((tbl2) => {
-                tbl2.measures?.forEach((meas) => {
+            (tbl.columns || []).forEach((col) => {
+              (bim.model.tables || []).forEach((tbl2) => {
+                (tbl2.measures || []).forEach((meas) => {
                   if (
                     meas.expression?.includes(`${tbl.name}[${col.name}]`) ||
                     meas.expression?.includes(`'${tbl.name}'[${col.name}]`)
@@ -230,8 +230,8 @@ export class TableConverter {
               });
 
               // Check if used in hierarchies
-              tbl.hierarchies?.forEach((hier) => {
-                hier.levels.forEach((level) => {
+              (tbl.hierarchies || []).forEach((hier) => {
+                (hier.levels || []).forEach((level) => {
                   if (level.column === col.name) used = true;
                 });
               });
@@ -250,7 +250,7 @@ export class TableConverter {
   populateTableLists(bim: BimRoot, tableLists: TableLists) {
     // When no relationships exist, treat all non-excluded tables as fact tables
     if (this.hasNoRelationships(bim)) {
-      bim.model.tables.forEach((bimTable) => {
+      (bim.model.tables || []).forEach((bimTable) => {
         if (!tableLists.unusedTables.has(bimTable.name)) {
           tableLists.factTables.push(bimTable);
         }
@@ -275,12 +275,12 @@ export class TableConverter {
           !tableLists.unusedTables.has(bimRelationship.fromTable) &&
           !tableLists.unusedTables.has(bimRelationship.toTable)
         ) {
-          const left = bim.model.tables.find(
+          const left = (bim.model.tables || []).find(
             (t) => t.name.localeCompare(bimRelationship.fromTable) == 0,
           );
           if (left) tableLists.leftTables.add(left.name);
 
-          const right = bim.model.tables.find(
+          const right = (bim.model.tables || []).find(
             (t) => t.name.localeCompare(bimRelationship.toTable) == 0,
           );
           if (right) tableLists.rightTables.add(right.name);
@@ -288,7 +288,7 @@ export class TableConverter {
       });
     }
 
-    bim.model.tables.forEach((bimTable) => {
+    (bim.model.tables || []).forEach((bimTable) => {
       // Always include tables that gave calculated measures
       if (!tableLists.unusedTables.has(bimTable.name)) {
         // Fact table because on left of joins but not right

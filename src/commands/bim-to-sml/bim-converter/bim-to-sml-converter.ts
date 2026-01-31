@@ -624,7 +624,7 @@ export function myParseBIM(bim: BimRoot): string {
   let totalFilter = 0;
   let totalCalcAndFilter = 0;
 
-  bim.model.tables.forEach((table) => {
+  (bim.model.tables || []).forEach((table) => {
     totalTables++;
     if (table.partitions) {
       const expr = expressionAsString(table.partitions[0]?.source?.expression)
