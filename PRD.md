@@ -34,12 +34,12 @@ This feature adds expression tree type inference to detect usage context and gen
 **Description:** As a developer, I need type rules for MDX operators so the system knows what types each operator expects and returns.
 
 **Acceptance Criteria:**
-- [ ] Create `getOperatorExpectedType(op: string): MdxType` function
-- [ ] Create `getOperatorReturnType(op: string): MdxType` function
-- [ ] AND, OR, NOT → expect BOOLEAN, return BOOLEAN
-- [ ] Arithmetic (+,-,*,/,^) → expect NUMERIC, return NUMERIC
-- [ ] Comparisons (>,<,=,<>,>=,<=) → expect NUMERIC, return BOOLEAN
-- [ ] Typecheck passes
+- [x] Create `getOperatorExpectedType(op: string): MdxType` function
+- [x] Create `getOperatorReturnType(op: string): MdxType` function
+- [x] AND, OR, NOT → expect BOOLEAN, return BOOLEAN
+- [x] Arithmetic (+,-,*,/,^) → expect NUMERIC, return NUMERIC
+- [x] Comparisons (>,<,=,<>,>=,<=) → expect NUMERIC, return BOOLEAN
+- [x] Typecheck passes
 
 ---
 

@@ -55,3 +55,55 @@ export function getUsageTypes(context: UsageContext, measureName: string): MdxTy
   const types = context.measureTypes.get(measureName);
   return types ? Array.from(types) : [];
 }
+
+/**
+ * Returns the type that an operator expects its arguments to be.
+ * @param op - The operator (AND, OR, NOT, +, -, *, /, ^, >, <, =, <>, >=, <=)
+ * @returns The expected argument type for the operator
+ */
+export function getOperatorExpectedType(op: string): MdxType {
+  const normalized = op.toUpperCase().trim();
+
+  // Boolean operators expect boolean arguments
+  if (normalized === 'AND' || normalized === 'OR' || normalized === 'NOT') {
+    return MdxType.BOOLEAN;
+  }
+
+  // Arithmetic operators expect numeric arguments
+  if (['+', '-', '*', '/', '^'].includes(normalized)) {
+    return MdxType.NUMERIC;
+  }
+
+  // Comparison operators expect numeric arguments
+  if (['>', '<', '=', '<>', '>=', '<='].includes(normalized)) {
+    return MdxType.NUMERIC;
+  }
+
+  return MdxType.UNKNOWN;
+}
+
+/**
+ * Returns the type that an operator returns.
+ * @param op - The operator (AND, OR, NOT, +, -, *, /, ^, >, <, =, <>, >=, <=)
+ * @returns The return type of the operator
+ */
+export function getOperatorReturnType(op: string): MdxType {
+  const normalized = op.toUpperCase().trim();
+
+  // Boolean operators return boolean
+  if (normalized === 'AND' || normalized === 'OR' || normalized === 'NOT') {
+    return MdxType.BOOLEAN;
+  }
+
+  // Arithmetic operators return numeric
+  if (['+', '-', '*', '/', '^'].includes(normalized)) {
+    return MdxType.NUMERIC;
+  }
+
+  // Comparison operators return boolean
+  if (['>', '<', '=', '<>', '>=', '<='].includes(normalized)) {
+    return MdxType.BOOLEAN;
+  }
+
+  return MdxType.UNKNOWN;
+}
