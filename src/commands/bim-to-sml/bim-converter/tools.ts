@@ -3,6 +3,17 @@ import { BimMeasure, BimTable, BimTableColumn } from "../bim-models/bim-model";
 import { Constants } from "../bim-models/constants";
 
 /**
+ * Ensures that a value is an array. Handles cases where JSON parsing returns
+ * a single object instead of an array when only one element exists.
+ *
+ * @param val - The value that should be an array
+ * @returns The original array, a single-element array containing the value, or an empty array if null/undefined
+ */
+export function ensureArray<T>(val: T | T[] | null | undefined): T[] {
+  return Array.isArray(val) ? val : (val ? [val] : []);
+}
+
+/**
  * Converts a Set of strings into an alphabetically sorted string representation
  * @param set - The Set of strings to convert
  * @param delim - The delimiter to use between elements
