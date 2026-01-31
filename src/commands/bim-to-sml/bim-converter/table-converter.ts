@@ -51,6 +51,28 @@ export class TableConverter {
     }
   }
 
+  /**
+   * Pre-populate measTables with table names that have BIM measures.
+   * This must be called BEFORE populateTableLists() so that tables with measures
+   * are correctly classified as fact tables (not dimension-only tables).
+   * Without this, tables with measures but on the "right" side of relationships
+   * would be incorrectly classified as dimension-only tables.
+   */
+  prePopulateMeasTables(bim: BimRoot, tableLists: TableLists): void {
+    (bim.model.tables || []).forEach((table) => {
+      if (table.measures && table.measures.length > 0) {
+        // Table has measures - add to measTables so it's treated as a fact table
+        tableLists.measTables.add(table.name);
+      }
+    });
+
+    if (tableLists.measTables.size > 0) {
+      this.logger.debug?.(
+        `Pre-populated measTables with ${tableLists.measTables.size} table(s) that have measures`,
+      );
+    }
+  }
+
   listUnusedBimTables(
     bim: BimRoot,
     tableLists: TableLists,

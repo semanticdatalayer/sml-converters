@@ -100,6 +100,11 @@ export class BimToYamlConverter {
     tableConverter.collectCalculationGroupTables(bim, tableLists);
     tableConverter.listUnusedBimTables(bim, tableLists, this.logger);
 
+    // Pre-populate measTables with tables that have BIM measures
+    // This ensures tables with measures are classified as fact tables (not dimension-only)
+    // even if they're on the "right" side of relationships
+    tableConverter.prePopulateMeasTables(bim, tableLists);
+
     // Classify tables as fact vs dimension BEFORE DAX conversion
     // so metrics are only created on fact tables
     tableConverter.populateTableLists(bim, tableLists);

@@ -1,219 +1,164 @@
-# PRD: Fix BIM Conversion Failures
+# PRD: Fix BIM Conversion Deployment Errors (tests1 Directory)
 
 ## Introduction
 
-Fix multiple BIM-to-SML conversion failures identified across test files. Errors are grouped by root cause and addressed systematically to improve converter robustness without breaking existing conversions.
+Fix BIM-to-SML conversion and deployment errors identified in `/Users/dianne/Downloads/bim/tests1/` files. This PRD addresses systematic fixes for errors grouped by type from `errors_to_address.txt`. Each fix must pass validation and deploy successfully.
 
 ## Goals
 
-- Fix ~45 failing BIM file conversions across 10 error categories
-- Add defensive null checks for optional BIM arrays
-- Handle malformed DAX expressions gracefully with TODO stubs
-- Improve measure reference resolution for calculated metrics
-- Add placeholder metrics for models with no measures
-- Ensure all fixes maintain backward compatibility with working conversions
-- All fixes validated via SML schema validation AND successful deployment
-
-## Validation Requirements
-
-**For each user story:**
-1. Run `npm run test-custom-calcs` to check for regressions
-2. Validate generated SML is schema-valid
-3. Deploy using: `pnpm pbi-deploy /Users/dianne/Downloads/bim/bim/<file>` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
-4. Fix any deployment errors until successful
+- Fix "expression contains a non-existing metric" errors by creating base metrics for referenced measures
+- Fix "Cannot read properties of undefined (reading 'map')" errors that re-appeared on tests1 files
+- Fix "Comma expected but OpenParen" and similar parsing errors in calculation expressions
+- Fix data type mismatches (NumericType vs StringType, IIF branch type mismatches)
+- Fix "end of input expected" parsing errors
+- Add automated test-deploy script for validation + deployment workflow
+- All fixes validated via deployment to AtScale
 
 ## User Stories
 
-### US-001: Add null checks for optional BIM arrays
+### US-001: Create base metrics for BIM measures referenced by other measures
 
-**Description:** As a converter, I want to handle missing optional arrays (columns, measures, hierarchies, partitions) so that files with sparse data don't crash with "Cannot read properties of undefined (reading 'map')".
-
-**Acceptance Criteria:**
-- [x] In `bim-to-sml-converter.ts`, wrap all `.map()` calls on optional arrays with null coalescing (`|| []`)
-- [x] In `table-converter.ts`, add null checks for `table.columns`, `table.measures`, `table.hierarchies`
-- [x] In `dimension-converter.ts`, add null checks for hierarchy levels and column arrays
-- [x] In `dataset-converter.ts`, add null checks for partition and column arrays
-- [x] Files that previously failed with ".map is not a function" now convert (may have TODO stubs)
-- [x] Run `npm run test-custom-calcs` - no new failures introduced
-- [x] Typecheck passes
-- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful (N/A - affected files have no relationships, producing 0 datasets - documented as "Future Work" in progress.txt)
-
-**Affected Files:** Assembly_kpis, A&P_Pacing_VS_Budget, Interactive_PVM, Manual_Load_Tracking, Marketing, Trade_Tracker_bim
-
----
-
-### US-002: Handle single dataset vs array in BIM parsing
-
-**Description:** As a converter, I want to handle BIM files where `data-sets.data-set` is a single object instead of an array so that these files don't crash with "parsedXml.schema.data-sets.data-set.map is not a function".
+**Description:** As a converter, I want to detect when a calculated measure references another BIM measure (like `SUM([Policy Estimated Monthly Commission])`), and create a base metric for the referenced measure first, so that "expression contains a non-existing metric" errors are eliminated.
 
 **Acceptance Criteria:**
-- [x] Add helper function `ensureArray(val)` in `tools.ts`: `Array.isArray(val) ? val : (val ? [val] : [])`
-- [x] In relevant parser code, use `ensureArray()` when expected array might be single object
-- [x] Files: EU_Safety_Model, epm_mtd, HDT07_Overview, Magellan_Refresh_Test now convert (N/A - affected files not available for testing, but fix applied to parser)
-- [x] Run `npm run test-custom-calcs` - no new failures introduced
+
+- [x] Scan all BIM measures to build a dependency map of which measures reference which other measures
+- [x] Identify BIM measures that have no DAX expression but ARE referenced by other measures
+- [x] Create base SML metrics for these referenced measures BEFORE converting calculated measures
+- [x] Add these base metrics to metricLookup so references resolve correctly
+- [x] Test FactPolicyLine_bim.json - "Total Policy Estimated Monthly Commission" resolves "Policy Estimated Monthly Commission"
+- [x] Test Marketing_-_Advertising_bim.json - "Total Spend Vs. PY" resolves "Total Spend PY"
+- [x] Test RetailPolicyLine_bim.json - same pattern resolves correctly
+- [x] Run `npm run test-custom-calcs` - no regressions
 - [x] Typecheck passes
-- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful (N/A - affected files not available)
+- [ ] Deploy all three files via `pnpm pbi-deploy` - fix errors until successful
 
----
+### US-002: Re-verify and fix array handling for tests1 files
 
-### US-003: Graceful DAX parsing failure with TODO stub
-
-**Description:** As a converter, I want DAX parsing failures to create TODO stubs instead of crashing so that files with unusual DAX syntax still produce valid SML output.
+**Description:** As a converter, I want to ensure the null-coalescing fixes for `.map()` on undefined arrays work correctly on the tests1 directory files, so that "Cannot read properties of undefined (reading 'map')" errors don't occur.
 
 **Acceptance Criteria:**
-- [x] Wrap `DaxTokenizer.tokenize()` calls in try-catch in `conversion-pipeline.ts`
-- [x] On parse failure, return fallback result with TODO stub containing original DAX
-- [x] Log warning with measure name and parse error details
-- [x] Error patterns handled: "Comma expected but OpenParen", "CloseParen expected but Div", "CloseBrace expected", "end of input expected" (N/A - these are AtScale MDX deployment errors, not DAX parsing errors; affected files convert successfully)
-- [x] Files with DAX parse errors now convert with TODO stubs instead of crashing
-- [x] Run `npm run test-custom-calcs` - no new failures introduced
-- [x] Typecheck passes
-- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful (N/A - affected files convert successfully; errors are deployment-specific)
 
-**Affected Files:** Commercial_KPIs, Dealer_Performance_Dashboard, Global_Report_-_Assembly_KPIs, Monthly_Sales_Dashboard, HDNA_Magellan_Report, DNA_Magellan_Report, Most_Loved, Planogram_Integration_DataModel_bim, Planogram_Informational_DataModel_bim, Usage_Metrics_Report_bim
+- [ ] Test Assembly_KPI_bim.json conversion and deployment
+- [ ] Test Assembly_KPIs_Model_bim.json conversion and deployment
+- [ ] Test EU_Safety_Model_bim.json conversion and deployment
+- [ ] Test epm_mtd_bim.json conversion and deployment
+- [ ] If errors occur, identify which arrays need additional null checks
+- [ ] Run `npm run test-custom-calcs` - no regressions
+- [ ] Typecheck passes
+- [ ] Deploy all affected files or document specific blockers
 
----
+### US-003: Fix special character parsing errors in MDX expressions
 
-### US-004: Handle malformed measure names with unclosed brackets
-
-**Description:** As a converter, I want to handle malformed DAX measure references like `[Booking Amt [$]` (missing closing bracket) so that these create TODO stubs instead of crashing.
+**Description:** As a converter, I want to handle special characters in measure/column names when generating MDX expressions, so that parsing errors like "Comma expected but OpenParen found" don't occur during deployment.
 
 **Acceptance Criteria:**
-- [x] In `dax-converter.ts` `parseColumnReference()`, handle unclosed bracket gracefully
-- [x] If `]` not found before end of expression, treat remainder as column name and log warning
-- [x] Create TODO stub for expressions containing malformed references
-- [x] Files: Magellan_RLS_Test, Magellan, QA_Dashboard variants now convert with TODO stubs
-- [x] Run `npm run test-custom-calcs` - no new failures introduced
-- [x] Typecheck passes
-- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
 
-**Affected Files:** Magellan_RLS_Test-12-11-24, Magellan, PV_Top_2k_Customers_bim, QA_Dashboard-Last_7_Days_bim, QA_Dashboard-_Last_7_Days_bim, QA_Dashboard_-Last_7_Days_bim
+- [ ] Analyze the specific DAX expressions causing parsing errors
+- [ ] For Dealer_Performance_Dashboard "Average Unit Value of Ette" - identify and fix the parsing issue
+- [ ] For Global_Report_-_Assembly_KPIs "K54_YTD_Var" - identify and fix the parsing issue
+- [ ] For HDNA_Magellan_Report "Bookings Change"/"Bookings Prior Year" - fix CloseParen/Div error
+- [ ] For Most_Loved "Plants_KPIs_K1toK19" - fix CloseBrace/StringLiteral error
+- [ ] Create TODO stubs for expressions that can't be safely converted
+- [ ] Run `npm run test-custom-calcs` - no regressions
+- [ ] Typecheck passes
+- [ ] Deploy affected files - fix errors until successful
 
----
+### US-004: Fix data type mismatches in function arguments
 
-### US-005: Stub dimension table column references in calculations
-
-**Description:** As a converter, I want dimension table column references in calculations to create TODO stubs so that "Measure X is not a measure" errors produce valid output.
-
-**Acceptance Criteria:**
-- [x] In `TableColumnReference.toMdx()`, verify `isDimensionOnlyTable()` check throws to trigger TODO fallback
-- [x] Ensure error message clearly states "dimension column reference cannot be converted"
-- [x] TODO stub created for these expressions instead of validation error
-- [x] Files now convert with TODO stubs instead of "Measure X is not a measure" errors
-- [x] Run `npm run test-custom-calcs` - no new failures introduced
-- [x] Typecheck passes
-- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
-
-**Affected Files:** DaVinci_Usage_Metrics_Report, hardware, Magellan-Usage_Metrics_Report, PFM_bim, UOM_bim, vulnerabilities_bim
-
----
-
-### US-006: Improve calculated metric reference resolution
-
-**Description:** As a converter, I want calculated metrics that reference other measures to resolve correctly so that "non-existing metric" errors are reduced.
+**Description:** As a converter, I want to detect and handle type mismatches in function arguments, so that errors like "Function Minus requires NumericType, has StringType" produce valid TODO stubs instead of invalid MDX.
 
 **Acceptance Criteria:**
-- [x] In `resolveUnresolvedReferences()`, also check for label matches (not just unique_name)
-- [x] Build bidirectional lookup: original_name ↔ unique_name for all measures and calcs
-- [x] Handle case where referenced measure was converted with different unique_name encoding
-- [x] Log which references could not be resolved with clear error message
-- [x] Files with "non-existing metric" errors have improved resolution
-- [x] Run `npm run test-custom-calcs` - no new failures introduced
-- [x] Typecheck passes
-- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful (FactAccountAging deployed; other files have unrelated errors: time intelligence, dimension column refs, type mismatches)
 
-**Affected Files:** FactAccountAging, FactAccountsReceivable, FactProduction, Marketing-Advertising, Retail_Account_Policy, magalu
+- [ ] For FactCoverage_Pivot "Data Date" - ensure NOW()/CURRENT_TIMESTAMP converts correctly or produces TODO stub
+- [ ] For FactProduction "YTDSumOfPremium" - time dimension requirement - create clear TODO stub
+- [ ] For Machining_Performance "OEE Text" - IIF branch type mismatch - detect and create TODO stub
+- [ ] Add validation to detect common type mismatches before generating MDX
+- [ ] Run `npm run test-custom-calcs` - no regressions
+- [ ] Typecheck passes
+- [ ] Deploy affected files - fix errors until successful
 
----
+### US-005: Fix "end of input expected" parsing errors
 
-### US-007: Add placeholder metric for models with no measures
-
-**Description:** As a converter, I want models that have no measures to get a placeholder metric so that "a model should have at least one metric defined" validation passes.
+**Description:** As a converter, I want to handle DAX expressions with unusual syntax that cause "end of input expected" errors during deployment, so that these produce valid TODO stubs.
 
 **Acceptance Criteria:**
-- [x] After all measures converted, check if `model.metrics` is empty
-- [x] If empty, create hidden placeholder calculated metric: unique_name `__placeholder_metric__`
-- [x] Placeholder expression: `1` (simple numeric literal)
-- [x] Set `is_hidden: true` and description: "Auto-generated placeholder - model had no measures"
-- [x] Add placeholder to both `result.measuresCalculated` and `model.metrics`
-- [x] Files now pass "model should have at least one metric" validation
-- [x] Run `npm run test-custom-calcs` - no new failures introduced
-- [x] Typecheck passes
-- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful (Jira_bim deployed successfully; other files have unrelated errors: no relationships, duplicate dimensions)
 
-**Affected Files:** External_Dashboard_Index, FactBillingRegister, FactGeneralLedgerRegister, FactDepositRegister, FactTransactionReconciliation, Jira, Most_Loved_Index, Price_Checker_bim, Size_Heat_Map_bim, Similarweb_Benchmark_bim, Supplier_Directory_bim
+- [ ] Analyze Magellan_-_Usage_Metrics_Report "P-90" DAX expression (PERCENTILE.INC)
+- [ ] Analyze Planogram_Integration_DataModel "Item Count" DAX expression
+- [ ] Ensure PERCENTILE.INC and similar unsupported functions produce TODO stubs
+- [ ] Strip trailing content that causes parsing issues
+- [ ] Run `npm run test-custom-calcs` - no regressions
+- [ ] Typecheck passes
+- [ ] Deploy both files - fix errors until successful
 
----
+### US-006: Add automated test-deploy script
 
-### US-008: Fix relationship creation null checks
-
-**Description:** As a converter, I want relationship creation to handle missing properties gracefully so that "relationships must have required properties" errors don't occur.
+**Description:** As a converter user, I want an npm script that converts a BIM file, validates the output, and deploys it, so that I can easily verify end-to-end conversion success.
 
 **Acceptance Criteria:**
-- [x] In `order-properties.ts`, fix bug in `orderDimensions()` that corrupted model relationships array (was accessing wrong array)
-- [x] Skip relationships where `from`, `to`, or `unique_name` would be empty/undefined (bug caused empty `{}` objects to be added)
-- [x] Log warning when skipping invalid relationship with table names (N/A - bug was fixed, not worked around)
-- [x] Files now convert without relationship validation errors
-- [x] Run `npm run test-custom-calcs` - no new failures introduced
-- [x] Typecheck passes
-- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful (relationship errors fixed; remaining errors are non-existing metrics which is unrelated)
 
-**Affected Files:** FactPolicyLine, RetailPolicyLine
+- [ ] Create `scripts/test-deploy.ts` that:
+  - Takes input BIM file path as argument
+  - Runs conversion via existing bim-to-sml command
+  - Validates SML output using sml-sdk validation (if available) or file checks
+  - Runs `pnpm pbi-deploy <file>` from correct directory
+  - Reports clear pass/fail status with error details
+- [ ] Add npm script: `"test-deploy": "npx ts-node scripts/test-deploy.ts"`
+- [ ] Script handles errors gracefully and reports deployment failures
+- [ ] Document usage in script header comments
+- [ ] Typecheck passes
 
----
+### US-007: Run test-deploy on all error files and document results
 
-### US-009: Handle duplicate dimension detection
-
-**Description:** As a converter, I want duplicate dimensions to be detected and deduplicated so that "dimensions must NOT have duplicate items" validation passes.
-
-**Acceptance Criteria:**
-- [x] In `dimension-converter.ts`, track created dimension unique_names in a Set
-- [x] If dimension with same unique_name already exists, skip with warning (keep first)
-- [x] Log warning: "Skipping duplicate dimension '{name}' - already exists"
-- [x] File: External_Dashboard_Index now passes dimension validation
-- [x] Run `npm run test-custom-calcs` - no new failures introduced
-- [x] Typecheck passes
-- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful (dimension validation PASSES; backend deployment fails due to unrelated "no relationships" issue documented in Future Work)
-
-**Affected Files:** External_Dashboard_Index
-
----
-
-### US-010: Handle boolean type expressions in numeric contexts
-
-**Description:** As a converter, I want expressions using boolean attributes in numeric contexts to get appropriate TODO stubs so that "Function requires NumericType, has BooleanType" errors produce valid output.
+**Description:** As a converter user, I want all files from errors_to_address.txt tested and either passing or documented with specific blockers.
 
 **Acceptance Criteria:**
-- [x] In DAX converter, detect when boolean column/attribute used in arithmetic (Times, DividedBy, etc.)
-- [x] Create TODO stub explaining type mismatch: `0 /* TODO: {dax} - boolean attribute in numeric context */`
-- [x] Files now convert with TODO stubs instead of type errors
-- [x] Run `npm run test-custom-calcs` - no new failures introduced
-- [x] Typecheck passes
-- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful (POC_bim deployed; Machining_Performance has unrelated IF branch type mismatch error)
 
-**Affected Files:** Machining_Performance.Loss__Model, POC_bim
+- [ ] Run test-deploy on FactPolicyLine_bim.json - document result
+- [ ] Run test-deploy on Marketing_-_Advertising_bim.json - document result
+- [ ] Run test-deploy on RetailPolicyLine_bim.json - document result
+- [ ] Run test-deploy on Assembly files - document results
+- [ ] Run test-deploy on files with parsing errors - document results
+- [ ] Run test-deploy on files with type errors - document results
+- [ ] Create summary table of pass/fail status for all files
+- [ ] Document any files requiring manual intervention or separate PRD
 
 ## Non-Goals
 
-- Server deployment errors (502/503) - infrastructure issues, not converter bugs (System_Health_bim, StateSt_bim)
-- Full DAX-to-MDX conversion for complex patterns - only graceful fallback to TODO stubs
-- Automatic type coercion for boolean→numeric - just create TODO stubs
-- Breaking changes to existing successful conversions
+- "Measure X is not a measure" errors where dimension keys are used as fact measures (requires separate PRD for architectural changes)
+- Converting all DAX functions to MDX (some remain as TODO stubs by design)
+- AI-powered DAX conversion improvements
+- Calculation group conversion
+- Performance optimization
 
 ## Technical Considerations
 
-- All changes should use existing patterns: `|| []` for null coalescing, `ensureArray()` helper
-- TODO stubs format: `0 /* TODO: {original_dax} */` for numeric, `(1 = 1) /* TODO: ... */` for boolean
-- Run `npm run test-custom-calcs` after each story to verify no regressions
-- Changes should be minimal and focused on the specific error pattern
-- Priority order: US-001 → US-002 → US-003 (null checks first, then parsing, then resolution)
+### Base Metric Creation for Referenced Measures (US-001)
 
-## Deployment Validation
+The core issue: BIM measures like "Policy Estimated Monthly Commission" exist as measures with a sourceColumn but no DAX expression. When "Total Policy Estimated Monthly Commission" has `SUM([Policy Estimated Monthly Commission])`, the reference fails because no metric was created.
 
-After each story, validate with deployment:
+**Implementation approach:**
+1. In `buildMeasureTableMap()`, also identify measures that:
+   - Have a `sourceColumn` but no `expression`
+   - Are referenced by other measures (detected via DAX parsing)
+2. Create base SML metrics for these before processing calculated measures
+3. Add to `metricLookup` with key `agg + tableName[measureName]`
+
+### Array Handling (US-002)
+
+Previous fixes applied null-coalescing (`|| []`) to iterations. If errors recur:
+1. Check if the tests1 files have different structure than previous test files
+2. Look for new array access patterns not covered before
+3. Ensure `ensureArray()` helper is applied where needed
+
+### Deployment Command
+
+From `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`:
 ```bash
-cd /Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter
-pnpm pbi-deploy /Users/dianne/Downloads/bim/bim/<filename>.bim
+pnpm pbi-deploy /Users/dianne/Downloads/bim/tests1/<filename>_bim.json
 ```
 
-Fix any errors encountered until deployment succeeds before marking story complete.
+### Test Script Location
+
+Create at `scripts/test-deploy.ts` following existing patterns in `scripts/` directory.
