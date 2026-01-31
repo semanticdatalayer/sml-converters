@@ -1,127 +1,143 @@
-# PRD: Handle BIM Files with No Relationships
+# PRD: Type-Aware TODO Stub Generation
 
 ## Introduction
 
-When a Power BI BIM file has NO relationships defined between tables, the current converter marks all tables as "unused" and excludes them. This PRD addresses the scenario where standalone tables should instead be treated as fact tables, with aggregatable columns becoming metrics and non-aggregatable columns becoming degenerate dimensions.
+The BIM-to-SML converter generates TODO stubs for unsupported DAX functions. Currently, boolean-returning functions like `HASONEVALUE` use `1` as the stub value. This works in numeric contexts (`2088 * [HasOneCurrency]`) but fails in boolean contexts (`[HasOneCurrency] AND [Other]`) because MDX requires `BooleanType` for AND/OR operators, not `IntType`.
 
-**Context:** This follows from previous PRD where Trek_bim.json was identified as needing new functionality because it has 4 tables but no relationships.
+This feature adds expression tree type inference to detect usage context and generate appropriate stubs. When a measure appears in both contexts, it creates duplicate measures with type-specific stubs.
 
 ## Goals
 
-- Detect when a BIM model has no relationships (empty or missing `relationships` array)
-- Convert standalone tables as fact tables instead of excluding them
-- Create implicit metrics from columns with `summarizeBy` aggregation hints
-- Create degenerate dimensions from non-aggregatable columns
-- Validate generated SML and deploy Trek_bim.json successfully
+- Eliminate "AndOperator requires arguments of type BooleanType" errors from TODO stubs
+- Detect usage context (numeric vs boolean) for each measure reference
+- Generate type-appropriate stubs: `1` for numeric, `(1 = 1)` for boolean
+- When dual-context usage detected, duplicate measure with `_num` and `_bool` suffixes
+- Provide clear warning messages when duplication occurs
 
 ## User Stories
 
-### US-001: Detect No-Relationships Scenario
+### US-001: Create type system foundation
 
-**Description:** As a converter, I need to detect when a BIM model has no relationships so I can apply standalone table handling.
+**Description:** As a developer, I need a type system module so that type inference can be built on solid foundations.
 
 **Acceptance Criteria:**
-- [x] Add `hasNoRelationships(bim: BimRoot): boolean` method to TableConverter
-- [x] Returns true when `relationships` array is missing, undefined, or empty
-- [x] When no relationships exist, skip the `listUnusedNoRelationships()` logic that marks tables as unused
-- [x] Tables excluded via `isPrivate: true` or `isHidden: true` (DateTableTemplate) remain excluded
-- [x] Add info log: "No relationships found in model - treating tables as standalone facts"
+- [x] Create `src/commands/bim-to-sml/bim-converter/type-inference.ts`
+- [x] Define `MdxType` enum with values: `BOOLEAN`, `NUMERIC`, `UNKNOWN`
+- [x] Define `UsageContext` interface to track measure → types mapping
+- [x] Export utility functions: `createUsageContext()`, `recordUsage()`, `getUsageTypes()`
 - [x] Typecheck passes
-- [x] Run `npm run test-custom-calcs` passes
 
 ---
 
-### US-002: Classify Standalone Tables as Facts
+### US-002: Implement operator type rules
 
-**Description:** As a converter, I need to classify all non-excluded tables as fact tables when no relationships exist.
+**Description:** As a developer, I need type rules for MDX operators so the system knows what types each operator expects and returns.
 
 **Acceptance Criteria:**
-- [x] Modify `populateTableLists()` to check for no-relationships scenario
-- [x] When no relationships, add all non-excluded tables to `factTables` array
-- [x] Leave `dimTables` empty when no relationships (dimensions come from degenerate dims later)
-- [x] Existing table exclusion logic (calcGroupTables, isPrivate, isHidden, variationsOnly) still applies
-- [x] Typecheck passes
-- [x] Run `npm run test-custom-calcs` passes
+- [ ] Create `getOperatorExpectedType(op: string): MdxType` function
+- [ ] Create `getOperatorReturnType(op: string): MdxType` function
+- [ ] AND, OR, NOT → expect BOOLEAN, return BOOLEAN
+- [ ] Arithmetic (+,-,*,/,^) → expect NUMERIC, return NUMERIC
+- [ ] Comparisons (>,<,=,<>,>=,<=) → expect NUMERIC, return BOOLEAN
+- [ ] Typecheck passes
 
 ---
 
-### US-003: Create Implicit Metrics from Aggregatable Columns
+### US-003: Add type inference to expression tree traversal
 
-**Description:** As a converter, I need to create metrics from columns that have `summarizeBy` aggregation hints.
+**Description:** As a developer, I need to propagate type expectations through the expression tree so each node knows its expected type.
 
 **Acceptance Criteria:**
-- [x] In MeasureConverter, add method to create metrics from columns with `summarizeBy` in ["sum", "count", "average", "min", "max", "distinctcount"]
-- [x] Call this method for standalone fact tables after dataset creation
-- [x] Metric `unique_name` uses existing naming conventions (e.g., `m_<table>.<column>`)
-- [x] Metric uses appropriate SML `calculation_method` based on `summarizeBy` value
-- [x] Skip columns with `summarizeBy: "none"` - these become degenerate dimension attributes
-- [x] Typecheck passes
-- [x] Run `npm run test-custom-calcs` passes
+- [ ] Create `inferTypes(expression: string, context: UsageContext): void` function
+- [ ] Parse expression and walk the tree, passing expected types downward
+- [ ] When measure reference encountered, record its expected type in context
+- [ ] Handle nested expressions (e.g., `IF(A AND B, X * Y, Z)`)
+- [ ] Typecheck passes
 
 ---
 
-### US-004: Create Degenerate Dimensions from Non-Aggregatable Columns
+### US-004: Integrate type context into conversion pipeline
 
-**Description:** As a converter, I need to create degenerate dimensions from columns that don't have aggregation hints.
+**Description:** As a developer, I need the conversion pipeline to track measure usage across all expressions so dual-context measures can be identified.
 
 **Acceptance Criteria:**
-- [x] In standalone fact scenario, identify columns with `summarizeBy: "none"` or missing summarizeBy
-- [x] For each standalone fact table with such columns, create a degenerate dimension
-- [x] Degenerate dimension contains level attributes from non-aggregatable columns
-- [x] Add to `tableLists.degenDims` set so existing `createDegenDimensions()` flow handles them
-- [x] Link degenerate dimension to fact dataset via `is_degenerate: true` (level_attribute references same dataset)
-- [x] Typecheck passes
-- [x] Run `npm run test-custom-calcs` passes
+- [ ] Modify `ConversionPipeline` to accept and pass `UsageContext`
+- [ ] First pass: collect all measure usages with their expected types
+- [ ] Store context in `MeasureConverter` for use during stub generation
+- [ ] Typecheck passes
 
 ---
 
-### US-005: Test Trek_bim.json Conversion and Deploy
+### US-005: Generate type-appropriate TODO stubs
 
-**Description:** As a developer, I need to validate Trek_bim.json conversion produces valid SML and deploys.
+**Description:** As a developer, I need stub generation to use the correct value based on usage context so MDX type checking passes.
 
 **Acceptance Criteria:**
-- [x] Run bim-to-sml conversion on `/Users/dianne/Downloads/bim/testfiles/Trek_bim.json`
-- [x] Conversion completes without errors
-- [x] Output contains datasets for: SSRS, "Cubes & Users", "Total Number Cube Users"
-- [x] DateTableTemplate is excluded (isPrivate: true)
-- [x] Deploy using `pnpm pbi-deploy /Users/dianne/Downloads/bim/testfiles/Trek_bim.json` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`
-- [x] Deployment successful: Trek_bim_30becb81
-- [x] Typecheck passes
+- [ ] Modify `getFallbackValue()` to accept optional `MdxType` parameter
+- [ ] Return `1` for NUMERIC or UNKNOWN context
+- [ ] Return `(1 = 1)` for BOOLEAN-only context
+- [ ] Update `createFallback()` in pipeline to use type-aware generation
+- [ ] Typecheck passes
+
+---
+
+### US-006: Implement measure duplication for dual-context usage
+
+**Description:** As a user, I want measures used in both numeric and boolean contexts to be automatically split so both usages work correctly.
+
+**Acceptance Criteria:**
+- [ ] Detect when a measure has both NUMERIC and BOOLEAN usages
+- [ ] Create `[OriginalName_num]` measure with `1` stub
+- [ ] Create `[OriginalName_bool]` measure with `(1 = 1)` stub
+- [ ] Add comment to both explaining they were split from original
+- [ ] Log warning message listing split measures
+- [ ] Typecheck passes
+
+---
+
+### US-007: Rewrite references to use split measures
+
+**Description:** As a developer, I need references to split measures updated to use the appropriate version so the generated MDX is valid.
+
+**Acceptance Criteria:**
+- [ ] After identifying dual-context measures, do second pass over expressions
+- [ ] Replace `[MeasureName]` with `[MeasureName_num]` in numeric contexts
+- [ ] Replace `[MeasureName]` with `[MeasureName_bool]` in boolean contexts
+- [ ] Preserve original expression in TODO comment for user reference
+- [ ] Typecheck passes
+
+---
+
+### US-008: Verify with PFM_from_Daniel_bim.json
+
+**Description:** As a developer, I need to verify the fix works with the known problematic file.
+
+**Acceptance Criteria:**
+- [ ] Run conversion on PFM_from_Daniel_bim.json
+- [ ] No "AndOperator requires BooleanType" errors in output
+- [ ] Split measures are correctly generated for dual-context cases
+- [ ] Numeric contexts still evaluate correctly (stub * value = value)
+- [ ] Run `npm run test-custom-calcs` - all tests pass
+- [ ] Typecheck passes
 
 ## Non-Goals
 
-- Do not change behavior for BIM files that HAVE relationships (existing logic unchanged)
-- Do not convert hidden/private DateTableTemplate tables
-- Do not create relationships between standalone tables (they remain independent facts)
-- Do not handle partial relationship scenarios (some tables with relationships, some without) - this is all-or-nothing
+- Retroactive repair of existing converted files
+- Full DAX-to-MDX type system (only what's needed for stubs)
+- Handling types beyond BOOLEAN/NUMERIC (e.g., STRING, DATE)
+- Automatic resolution of TODO stubs (still requires user intervention)
 
 ## Technical Considerations
 
+- Expression parsing already exists in `dax-converter.ts` token classes
+- Type inference should be a separate module to avoid cluttering existing code
+- Two-pass approach: first collect usages, then generate with context
+- Keep existing `isBooleanReturningExpression()` as fallback for simple cases
+- `(1 = 1)` is valid MDX boolean TRUE that works in all boolean contexts
+
 **Key Files to Modify:**
-- `src/commands/bim-to-sml/bim-converter/table-converter.ts` - Detection and classification
-- `src/commands/bim-to-sml/bim-converter/measure-converter.ts` - Implicit metrics from columns
-- `src/commands/bim-to-sml/bim-converter/dimension-converter.ts` - Degenerate dimensions
-- `src/commands/bim-to-sml/bim-converter/bim-to-sml-converter.ts` - Orchestration
-
-**Existing Patterns to Reuse:**
-- `createDegenDimensions()` in DimensionConverter for degenerate dimension creation
-- `tableLists.degenDims` set tracks which tables need degenerate dimensions
-- `SmlConvertResultBuilder` for adding new objects
-- `makeUniqueName()` for unique name generation
-
-**Trek_bim.json Structure:**
-- 4 tables total, 1 excluded (DateTableTemplate via isPrivate/isHidden)
-- 3 convertible tables: SSRS, "Cubes & Users", "Total Number Cube Users"
-- "Cubes & Users" has one explicit measure (`Today = NOW()`)
-- Columns have `summarizeBy: "sum"` (aggregatable) or `summarizeBy: "none"` (degenerate dim)
-
-**summarizeBy Mapping:**
-| BIM summarizeBy | SML Aggregation |
-|-----------------|-----------------|
-| sum | Sum |
-| count | Count |
-| average | Avg |
-| min | Min |
-| max | Max |
-| distinctcount | DistinctCount |
-| none | (degenerate dimension attribute) |
+- `src/commands/bim-to-sml/bim-converter/tools.ts` - Boolean detection, fallback values
+- `src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts` - Stage 6 fallback
+- `src/commands/bim-to-sml/bim-converter/measure-converter.ts` - Measure generation
+- `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - Token type inference
+- New: `src/commands/bim-to-sml/bim-converter/type-inference.ts` - Type system
