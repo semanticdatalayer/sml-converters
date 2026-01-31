@@ -104,13 +104,19 @@ Fix BIM-to-SML conversion and deployment errors identified in `/Users/dianne/Dow
 
 **Acceptance Criteria:**
 
-- [ ] Analyze Magellan_-_Usage_Metrics_Report "P-90" DAX expression (PERCENTILE.INC)
-- [ ] Analyze Planogram_Integration_DataModel "Item Count" DAX expression
-- [ ] Ensure PERCENTILE.INC and similar unsupported functions produce TODO stubs
-- [ ] Strip trailing content that causes parsing issues
-- [ ] Run `npm run test-custom-calcs` - no regressions
-- [ ] Typecheck passes
-- [ ] Deploy both files - fix errors until successful
+- [x] Analyze Magellan_-_Usage_Metrics_Report "P-90" DAX expression (PERCENTILE.INC)
+- [x] Analyze Planogram_Integration_DataModel "Item Count" DAX expression
+- [x] Ensure PERCENTILE.INC and similar unsupported functions produce TODO stubs
+- [x] Strip trailing content that causes parsing issues
+- [x] Run `npm run test-custom-calcs` - no regressions
+- [x] Typecheck passes
+- [x] Deploy both files - fix errors until successful
+
+**Implementation Notes:**
+- Modified DAX tokenizer to properly parse dotted function names like PERCENTILE.INC, PERCENTILE.EXC
+- Added PERCENTILE.INC, PERCENTILE.EXC, PERCENTILEINC, PERCENTILEEXC, DISTINCTCOUNTNOBLANK to unconvertible list
+- Removed DISTINCTCOUNTNOBLANK from AGGREGATION_FUNCTIONS in template-base.ts since it has no MDX equivalent
+- The "end of input expected" error was caused by invalid MDX function names being generated (e.g., `PERCENTILEINC` instead of a TODO stub)
 
 ### US-006: Add automated test-deploy script
 

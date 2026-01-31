@@ -7,7 +7,8 @@ import { Constants } from "../../bim-models/constants";
 /** Aggregation functions that create base measures */
 const AGGREGATION_FUNCTIONS = new Set([
   "SUM", "COUNT", "COUNTROWS", "MIN", "MAX", "AVERAGE", "AVG",
-  "DISTINCTCOUNT", "DISTINCTCOUNTNOBLANK"
+  "DISTINCTCOUNT"
+  // Note: DISTINCTCOUNTNOBLANK has no MDX equivalent, so it's in unconvertible list
 ]);
 
 /**

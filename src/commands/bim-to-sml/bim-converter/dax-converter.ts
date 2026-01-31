@@ -715,7 +715,38 @@ export class DaxTokenizer {
       this.position++;
     }
 
-    const identifier = expression.substring(start, this.position);
+    let identifier = expression.substring(start, this.position);
+
+    // Handle DAX dotted function names like PERCENTILE.INC, PERCENTILE.EXC
+    // If we have an identifier followed by '.' and another identifier, combine them
+    if (this.position < expression.length && expression[this.position] === ".") {
+      const dotPos = this.position;
+      const afterDotPos = this.position + 1;
+      // Check if there's an identifier after the dot
+      if (afterDotPos < expression.length && this.isLetterOrUnderscore(expression[afterDotPos])) {
+        // Parse the identifier after the dot
+        let endPos = afterDotPos;
+        while (
+          endPos < expression.length &&
+          (this.isLetterOrUnderscore(expression[endPos]) ||
+            this.isDigit(expression[endPos]) ||
+            expression[endPos] === "_")
+        ) {
+          endPos++;
+        }
+        // Check if this is followed by '(' - if so, it's a dotted function name
+        let nextNonSpace = endPos;
+        while (nextNonSpace < expression.length && expression[nextNonSpace] === " ") {
+          nextNonSpace++;
+        }
+        if (nextNonSpace < expression.length && expression[nextNonSpace] === "(") {
+          // It's a dotted function name like PERCENTILE.INC(...)
+          // Include the dot and suffix in the identifier
+          this.position = endPos;
+          identifier = expression.substring(start, endPos);
+        }
+      }
+    }
 
     // Check for VAR keyword
     if (identifier.toUpperCase() === "VAR") {

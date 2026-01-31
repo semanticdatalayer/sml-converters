@@ -174,3 +174,30 @@ This PRD addresses errors in `/Users/dianne/Downloads/bim/tests1/` files as list
   - npm run test-custom-calcs passes (54% conversion rate maintained)
   - Typecheck passes
 ---
+
+## Iteration 6 - US-005: Fix "end of input expected" parsing errors
+- **Problem**: Magellan_-_Usage_Metrics_Report and Planogram_Integration_DataModel failed deployment with "end of input expected" errors
+- **Root causes**:
+  1. DAX dotted function names (PERCENTILE.INC, PERCENTILE.EXC) were not parsed correctly by the tokenizer
+  2. `PERCENTILE` was parsed as an identifier, `.` was skipped, and `INC` was parsed as a separate function
+  3. When converted to MDX, this produced `PERCENTILEINC(...)` which is not a valid MDX function
+  4. Similarly, DISTINCTCOUNTNOBLANK has no MDX equivalent
+- **Fixes**:
+  1. Modified `parseIdentifierOrFunction()` in dax-converter.ts to consume dotted function names like `PERCENTILE.INC`
+  2. Added PERCENTILE.INC, PERCENTILE.EXC, PERCENTILEINC, PERCENTILEEXC, DISTINCTCOUNTNOBLANK to unconvertible list
+  3. Removed DISTINCTCOUNTNOBLANK from AGGREGATION_FUNCTIONS in template-base.ts
+- **Files changed**:
+  - `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - Parse dotted function names
+  - `src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json` - Added unconvertible functions
+  - `src/commands/bim-to-sml/bim-converter/conversion-templates/template-base.ts` - Removed DISTINCTCOUNTNOBLANK from aggregation list
+- **Learnings for future iterations**:
+  - DAX has dotted function names (PERCENTILE.INC, PERCENTILE.EXC) that need special tokenizer handling
+  - The tokenizer only parsed letters, digits, and underscores - periods would break function names
+  - Functions without MDX equivalents should be in unconvertible list, not just passed through
+  - Always check how DAX expressions are tokenized before checking conversion logic
+- **Verified**:
+  - Magellan_-_Usage_Metrics_Report_bim.json deploys successfully
+  - Planogram_Integration_DataModel_bim.json deploys successfully
+  - npm run test-custom-calcs passes (54% conversion rate maintained)
+  - Typecheck passes
+---

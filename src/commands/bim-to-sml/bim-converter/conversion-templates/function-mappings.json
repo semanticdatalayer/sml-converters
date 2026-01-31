@@ -134,7 +134,12 @@
     "VALUE",
     "ROUNDUP",
     "ROUNDDOWN",
-    "EXTERNALMEASURE"
+    "EXTERNALMEASURE",
+    "PERCENTILE.INC",
+    "PERCENTILE.EXC",
+    "PERCENTILEINC",
+    "PERCENTILEEXC",
+    "DISTINCTCOUNTNOBLANK"
   ],
   "complex_patterns": [
     "CALCULATE",
