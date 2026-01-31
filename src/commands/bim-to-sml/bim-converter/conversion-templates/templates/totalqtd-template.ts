@@ -10,7 +10,7 @@ import {
   failedConversion,
 } from "../../conversion-result";
 import { ConversionContext } from "../conversion-context";
-import { resolveDimensionHierarchy } from "../../converter-utils";
+import { resolveDimensionHierarchy, extractDimUniqueName, resolveTimeLevelByUnit } from "../../converter-utils";
 
 /**
  * TotalQtdTemplate converts DAX TOTALQTD function to MDX.
@@ -86,6 +86,19 @@ export class TotalQtdTemplate extends ConversionTemplate {
       if (!dimensionRef) {
         return failedConversion(
           `TOTALQTD could not resolve dimension reference from date column`,
+          token.functionAgg,
+        );
+      }
+
+      // MDX QTD() function requires a time dimension with a Quarter level
+      const dimUniqueName = extractDimUniqueName(dimensionRef);
+      const quarterLevel = dimUniqueName
+        ? resolveTimeLevelByUnit(dimUniqueName, "quarter", context.result, context.bim)
+        : undefined;
+
+      if (!quarterLevel) {
+        return failedConversion(
+          `TOTALQTD requires Quarter level in time dimension hierarchy, but ${dimUniqueName || "unknown dimension"} has no Quarter level`,
           token.functionAgg,
         );
       }

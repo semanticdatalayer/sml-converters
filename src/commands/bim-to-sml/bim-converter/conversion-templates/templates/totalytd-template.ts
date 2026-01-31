@@ -10,7 +10,7 @@ import {
   failedConversion,
 } from "../../conversion-result";
 import { ConversionContext } from "../conversion-context";
-import { resolveDimensionHierarchy } from "../../converter-utils";
+import { resolveDimensionHierarchy, extractDimUniqueName, resolveTimeLevelByUnit } from "../../converter-utils";
 
 /**
  * TotalYtdTemplate converts DAX TOTALYTD function to MDX.
@@ -86,6 +86,20 @@ export class TotalYtdTemplate extends ConversionTemplate {
       if (!dimensionRef) {
         return failedConversion(
           `TOTALYTD could not resolve dimension reference from date column`,
+          token.functionAgg,
+        );
+      }
+
+      // MDX YTD() function requires a time dimension with a Year level
+      // Check if the dimension has a year level; if not, fail conversion
+      const dimUniqueName = extractDimUniqueName(dimensionRef);
+      const yearLevel = dimUniqueName
+        ? resolveTimeLevelByUnit(dimUniqueName, "year", context.result, context.bim)
+        : undefined;
+
+      if (!yearLevel) {
+        return failedConversion(
+          `TOTALYTD requires Year level in time dimension hierarchy, but ${dimUniqueName || "unknown dimension"} has no Year level`,
           token.functionAgg,
         );
       }

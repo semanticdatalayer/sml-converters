@@ -153,7 +153,15 @@ export class PreviousMonthTemplate extends ConversionTemplate {
           const dimUniqueName = extractDimUniqueName(dimensionRef);
           const monthLevel = dimUniqueName
             ? resolveTimeLevelByUnit(dimUniqueName, "month", context.result, context.bim)
-            : "Month";
+            : undefined;
+
+          // ParallelPeriod requires a month level to exist in the dimension hierarchy
+          if (!monthLevel) {
+            return failedConversion(
+              `PREVIOUSMONTH requires Month level in dimension hierarchy, but ${dimUniqueName || "unknown dimension"} has no Month level`,
+              token.functionAgg,
+            );
+          }
 
           // Validate that the month level exists in the dimension hierarchy
           if (!this.levelExistsInDimension(dimUniqueName, monthLevel, context)) {
@@ -208,7 +216,15 @@ export class PreviousMonthTemplate extends ConversionTemplate {
     const dimUniqueName = extractDimUniqueName(dimensionRef);
     const monthLevel = dimUniqueName
       ? resolveTimeLevelByUnit(dimUniqueName, "month", context.result, context.bim)
-      : "Month";
+      : undefined;
+
+    // ParallelPeriod requires a month level to exist in the dimension hierarchy
+    if (!monthLevel) {
+      return failedConversion(
+        `PREVIOUSMONTH requires Month level in dimension hierarchy, but ${dimUniqueName || "unknown dimension"} has no Month level`,
+        token.functionAgg,
+      );
+    }
 
     // Validate that the month level exists in the dimension hierarchy
     if (!this.levelExistsInDimension(dimUniqueName, monthLevel, context)) {

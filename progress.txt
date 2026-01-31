@@ -144,3 +144,33 @@ This PRD addresses errors in `/Users/dianne/Downloads/bim/tests1/` files as list
   - npm run test-custom-calcs passes (54% conversion rate maintained)
   - Typecheck passes
 ---
+
+## Iteration 5 - US-004: Fix data type mismatches in function arguments
+- **Problem**: Time intelligence functions (TOTALYTD, SAMEPERIODLASTYEAR, etc.) generated invalid MDX when dimension hierarchy lacks required time levels
+- **Root cause**: `resolveTimeLevelByUnit()` returned fallback string like "Year" when no matching level exists, causing MDX to reference non-existent hierarchy levels
+- **Fixes**:
+  1. Changed `resolveTimeLevelByUnit()` to return `undefined` instead of fallback when time level doesn't exist
+  2. Updated SAMEPERIODLASTYEAR, PREVIOUSMONTH, PARALLELPERIOD templates to fail conversion when required time level is missing
+  3. Updated TOTALYTD template to validate Year level exists before generating YTD() MDX
+  4. Updated TOTALMTD template to validate Month level exists before generating MTD() MDX
+  5. Updated TOTALQTD template to validate Quarter level exists before generating QTD() MDX
+- **Files changed**:
+  - `src/commands/bim-to-sml/bim-converter/converter-utils.ts` - resolveTimeLevelByUnit returns undefined
+  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/sameperiodlastyear-template.ts` - year level validation
+  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/previousmonth-template.ts` - month level validation
+  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/parallelperiod-template.ts` - time level validation
+  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/totalytd-template.ts` - year level validation
+  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/totalmtd-template.ts` - month level validation
+  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/totalqtd-template.ts` - quarter level validation
+- **Learnings for future iterations**:
+  - Time intelligence MDX functions (YTD, MTD, QTD, ParallelPeriod) require specific hierarchy levels to exist
+  - Flat date dimensions with only a Day level don't support YTD/MTD/QTD patterns
+  - "Fail fast" by returning undefined from utility functions instead of fallback values
+  - Time level validation should happen before generating MDX, not during deployment
+- **Verified**:
+  - FactCoverage_Pivot_bim.json deploys successfully
+  - FactProduction_bim.json deploys successfully (was failing with "requires TimeYears level")
+  - Machining_Performance.Loss__Model_bim.json deploys successfully
+  - npm run test-custom-calcs passes (54% conversion rate maintained)
+  - Typecheck passes
+---

@@ -10,7 +10,7 @@ import {
   failedConversion,
 } from "../../conversion-result";
 import { ConversionContext } from "../conversion-context";
-import { resolveDimensionHierarchy } from "../../converter-utils";
+import { resolveDimensionHierarchy, extractDimUniqueName, resolveTimeLevelByUnit } from "../../converter-utils";
 
 /**
  * TotalMtdTemplate converts DAX TOTALMTD function to MDX.
@@ -86,6 +86,19 @@ export class TotalMtdTemplate extends ConversionTemplate {
       if (!dimensionRef) {
         return failedConversion(
           `TOTALMTD could not resolve dimension reference from date column`,
+          token.functionAgg,
+        );
+      }
+
+      // MDX MTD() function requires a time dimension with a Month level
+      const dimUniqueName = extractDimUniqueName(dimensionRef);
+      const monthLevel = dimUniqueName
+        ? resolveTimeLevelByUnit(dimUniqueName, "month", context.result, context.bim)
+        : undefined;
+
+      if (!monthLevel) {
+        return failedConversion(
+          `TOTALMTD requires Month level in time dimension hierarchy, but ${dimUniqueName || "unknown dimension"} has no Month level`,
           token.functionAgg,
         );
       }

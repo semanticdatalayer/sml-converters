@@ -153,7 +153,15 @@ export class SamePeriodLastYearTemplate extends ConversionTemplate {
           const dimUniqueName = extractDimUniqueName(dimensionRef);
           const yearLevel = dimUniqueName
             ? resolveTimeLevelByUnit(dimUniqueName, "year", context.result, context.bim)
-            : "Year";
+            : undefined;
+
+          // ParallelPeriod requires a year level to exist in the dimension hierarchy
+          if (!yearLevel) {
+            return failedConversion(
+              `SAMEPERIODLASTYEAR requires Year level in dimension hierarchy, but ${dimUniqueName || "unknown dimension"} has no Year level`,
+              token.functionAgg,
+            );
+          }
 
           // MDX tuple syntax requires both elements to be members/references, not expressions.
           // If measureMdx contains arithmetic operators (+, -, *, /), the tuple is invalid.
@@ -211,7 +219,15 @@ export class SamePeriodLastYearTemplate extends ConversionTemplate {
     const dimUniqueName = extractDimUniqueName(dimensionRef);
     const yearLevel = dimUniqueName
       ? resolveTimeLevelByUnit(dimUniqueName, "year", context.result, context.bim)
-      : "Year";
+      : undefined;
+
+    // ParallelPeriod requires a year level to exist in the dimension hierarchy
+    if (!yearLevel) {
+      return failedConversion(
+        `SAMEPERIODLASTYEAR requires Year level in dimension hierarchy, but ${dimUniqueName || "unknown dimension"} has no Year level`,
+        token.functionAgg,
+      );
+    }
 
     // For standalone, return the ParallelPeriod expression
     const mdxExpression = `ParallelPeriod(${dimensionRef}.[${yearLevel}], 1, ${dimensionRef}.CurrentMember)`;

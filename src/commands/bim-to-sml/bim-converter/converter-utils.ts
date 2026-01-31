@@ -448,14 +448,14 @@ export function extractDimUniqueName(dimRef: string): string | undefined {
  * @param timeUnit - The time unit to find (e.g., "year", "quarter", "month", "day")
  * @param result - The SmlConverterResult containing converted dimensions
  * @param bim - Optional BIM model for fallback when dimensions aren't converted yet
- * @returns The level unique_name (e.g., "D_YEAR") or fallback to capitalized timeUnit (e.g., "Year")
+ * @returns The level unique_name (e.g., "D_YEAR") or undefined if level doesn't exist
  */
 export function resolveTimeLevelByUnit(
   dimUniqueName: string,
   timeUnit: "year" | "quarter" | "month" | "week" | "day",
   result: SmlConverterResult,
   bim?: BimRoot,
-): string {
+): string | undefined {
   // Try to find from converted dimensions first
   for (const dim of result.dimensions) {
     if (dim.unique_name === dimUniqueName) {
@@ -465,15 +465,9 @@ export function resolveTimeLevelByUnit(
           return la.unique_name;
         }
       }
-      // If no matching time_unit level, use first available level from hierarchy
-      // This handles flat dimensions with single level (e.g., Date with Month as attribute)
-      if (dim.hierarchies?.[0]?.levels?.[0]) {
-        return dim.hierarchies[0].levels[0].unique_name;
-      }
-      // Fallback to first level_attribute if no hierarchy levels
-      if (dim.level_attributes?.[0]) {
-        return dim.level_attributes[0].unique_name;
-      }
+      // If looking for year/quarter/month/week but dim only has day level,
+      // don't fall back - the ParallelPeriod requires the specific level to exist
+      // Return undefined to signal failure
     }
   }
 
@@ -496,8 +490,9 @@ export function resolveTimeLevelByUnit(
     }
   }
 
-  // Final fallback: use capitalized time unit (e.g., "Year", "Month")
-  return timeUnit.charAt(0).toUpperCase() + timeUnit.slice(1);
+  // Return undefined to indicate no matching level found
+  // Callers should handle this by failing conversion (producing TODO stub)
+  return undefined;
 }
 
 /**

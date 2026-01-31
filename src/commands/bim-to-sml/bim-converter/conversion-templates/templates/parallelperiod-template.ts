@@ -195,7 +195,15 @@ export class ParallelPeriodTemplate extends ConversionTemplate {
           const dimUniqueName = extractDimUniqueName(dimensionRef);
           const mdxLevel = dimUniqueName
             ? resolveTimeLevelByUnit(dimUniqueName, timeUnit, context.result, context.bim)
-            : interval.charAt(0).toUpperCase() + interval.slice(1).toLowerCase();
+            : undefined;
+
+          // ParallelPeriod requires the specified time level to exist in the dimension hierarchy
+          if (!mdxLevel) {
+            return failedConversion(
+              `PARALLELPERIOD requires ${timeUnit} level in dimension hierarchy, but ${dimUniqueName || "unknown dimension"} has no ${timeUnit} level`,
+              token.functionAgg,
+            );
+          }
 
           // Validate that the resolved level actually exists in the dimension hierarchy
           // Time intelligence functions require multi-level hierarchies (Year > Quarter > Month > Day)
@@ -285,7 +293,15 @@ export class ParallelPeriodTemplate extends ConversionTemplate {
     const dimUniqueName = extractDimUniqueName(dimensionRef);
     const mdxLevel = dimUniqueName
       ? resolveTimeLevelByUnit(dimUniqueName, timeUnit, context.result, context.bim)
-      : interval.charAt(0).toUpperCase() + interval.slice(1).toLowerCase();
+      : undefined;
+
+    // ParallelPeriod requires the specified time level to exist in the dimension hierarchy
+    if (!mdxLevel) {
+      return failedConversion(
+        `PARALLELPERIOD requires ${timeUnit} level in dimension hierarchy, but ${dimUniqueName || "unknown dimension"} has no ${timeUnit} level`,
+        token.functionAgg,
+      );
+    }
 
     // Validate that the resolved level actually exists in the dimension hierarchy
     if (!this.levelExistsInDimension(dimUniqueName, mdxLevel, context)) {

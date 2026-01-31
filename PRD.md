@@ -82,13 +82,21 @@ Fix BIM-to-SML conversion and deployment errors identified in `/Users/dianne/Dow
 
 **Acceptance Criteria:**
 
-- [ ] For FactCoverage_Pivot "Data Date" - ensure NOW()/CURRENT_TIMESTAMP converts correctly or produces TODO stub
-- [ ] For FactProduction "YTDSumOfPremium" - time dimension requirement - create clear TODO stub
-- [ ] For Machining_Performance "OEE Text" - IIF branch type mismatch - detect and create TODO stub
-- [ ] Add validation to detect common type mismatches before generating MDX
-- [ ] Run `npm run test-custom-calcs` - no regressions
-- [ ] Typecheck passes
-- [ ] Deploy affected files - fix errors until successful
+- [x] For FactCoverage_Pivot "Data Date" - ensure NOW()/CURRENT_TIMESTAMP converts correctly or produces TODO stub
+- [x] For FactProduction "YTDSumOfPremium" - time dimension requirement - create clear TODO stub
+- [x] For Machining_Performance "OEE Text" - IIF branch type mismatch - detect and create TODO stub
+- [x] Add validation to detect common type mismatches before generating MDX
+- [x] Run `npm run test-custom-calcs` - no regressions
+- [x] Typecheck passes
+- [x] Deploy affected files - fix errors until successful
+
+**Implementation Notes:**
+- Changed `resolveTimeLevelByUnit()` to return `undefined` instead of fallback string when time level doesn't exist
+- Updated SAMEPERIODLASTYEAR, PREVIOUSMONTH, PARALLELPERIOD templates to fail conversion when required time level is missing
+- Updated TOTALYTD, TOTALMTD, TOTALQTD templates to validate time dimension hierarchy levels exist
+- Time intelligence functions now produce TODO stubs when dimension lacks required Year/Quarter/Month levels
+- FactCoverage_Pivot and Machining_Performance already deployed successfully (NOW() and IIF fixes from prior work)
+- FactProduction now produces TODO stubs for YTD calculations instead of invalid MDX referencing non-existent levels
 
 ### US-005: Fix "end of input expected" parsing errors
 
