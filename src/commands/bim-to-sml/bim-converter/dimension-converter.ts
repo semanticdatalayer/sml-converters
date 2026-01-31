@@ -610,6 +610,20 @@ export class DimensionConverter {
       bimColumn,
       datasetName,
     );
+    // Check if dimension with same unique_name already exists - skip duplicate
+    if (result.dimensions.find((d) => d.unique_name === degenDim.unique_name)) {
+      this.logger.warn(
+        `Skipping duplicate dimension '${degenDim.unique_name}' - already exists`,
+      );
+      return;
+    }
+    // Also check model dimensions array to prevent duplicate references
+    if (result.models[0].dimensions?.includes(degenDim.unique_name)) {
+      this.logger.warn(
+        `Skipping duplicate dimension reference '${degenDim.unique_name}' in model`,
+      );
+      return;
+    }
     result.dimensions.push(degenDim);
     result.models[0].dimensions?.push(degenDim.unique_name);
   }

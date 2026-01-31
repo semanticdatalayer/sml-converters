@@ -1058,3 +1058,136 @@ This PRD addresses ~45 failing BIM file conversions identified in `/Users/dianne
 - The `isDimensionOnlyTable()` check already existed and worked for dimension column references
 
 ---
+
+## Iteration 29 - US-006: Auto-create base metrics for column references
+
+**What was implemented:**
+- Modified `ColumnReference.toMdx()` in dax-converter.ts to create base metrics when needed
+- When a bare column reference like `[Balance Amount]` is used in DAX (e.g., `SUM([Balance Amount])`):
+  1. First checks if a metric already exists for this column
+  2. If not, searches all BIM tables for the column
+  3. If found, creates a base metric using the aggregation from parentAggFn (from enclosing SUM/MIN/MAX etc.)
+  4. Falls back to column's summarizeBy, then defaults to 'sum'
+
+**Root cause analysis:**
+- DAX `SUM([Balance Amount])` was converted to `[Measures].[Balance Amount]`
+- But no base metric existed for `Balance Amount` because:
+  1. The column had no `summarizeBy` property in BIM
+  2. `measuresFromColumns()` only creates metrics for columns WITH summarizeBy
+- `TableColumnReference.toMdx()` already had logic to create metrics, but `ColumnReference.toMdx()` didn't
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - Added metric creation logic to ColumnReference.toMdx()
+
+**Result:** PASS - FactAccountAging deploys successfully
+
+**Verification:**
+- npm run test-custom-calcs: PASS
+- Typecheck: PASS
+- FactAccountAging_bim.json: Deployed ✓ (now creates `FactAccountAging Balance Amount` metric)
+- Other affected files have unrelated errors (time intelligence, dimension column refs)
+
+**Learnings for future iterations:**
+- `ColumnReference` (bare `[Name]`) and `TableColumnReference` (`'Table'[Name]`) need parallel logic for metric creation
+- `parentAggFn` is passed through the conversion pipeline to specify the aggregation type from enclosing functions
+- Columns without `summarizeBy` won't get metrics created by `measuresFromColumns()`, so DAX conversion must create them on-demand
+
+---
+
+## Iteration 30 - US-007: Add placeholder metric for models with no measures
+
+**What was implemented:**
+- Added placeholder metric creation when model has no metrics
+- After all measure conversion is complete, checks if `model.metrics.length === 0`
+- Creates hidden calculated metric with `unique_name: __placeholder_metric__`, `expression: "1"`, `is_hidden: true`
+- Added to both `result.measuresCalculated` and `model.metrics`
+- Added necessary imports: `SMLMetricCalculated`, `SMLModelMetricsAndCalc`
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/bim-to-sml-converter.ts` - Added placeholder metric logic after resolveUnresolvedReferences()
+
+**Result:** PASS - Jira_bim.json deployed successfully
+
+**Verification:**
+- npm run test-custom-calcs: PASS
+- Typecheck: PASS
+- Jira_bim.json: Deployed ✓ (placeholder metric added, deployment succeeded)
+- Other affected files have unrelated errors:
+  - External_Dashboard_Index: duplicate dimensions (US-009)
+  - Most_Loved_Index: no relationships/no datasets (Future Work)
+
+**Learnings for future iterations:**
+- SML models require at least one metric to be valid
+- Placeholder metrics should be hidden (`is_hidden: true`) so they don't appear in BI tools
+- The check must happen after ALL measure conversion methods are called (measuresFromSimpleMeasures, createDatasetsAndMetrics, measuresFromColumns, resolveUnresolvedReferences)
+- Files with 0 datasets still fail deployment due to backend requiring underlying data - this is a separate issue from having no metrics
+
+---
+
+## Iteration 31 - US-008: Fix relationship creation null checks
+
+**What was implemented:**
+- Fixed bug in `orderDimensions()` function in `order-properties.ts`
+- Bug: Loop was accessing `result.models[0].relationships[ri]` instead of `dim.relationships[ri]`
+- This caused empty `{}` objects to be written to model relationships when a dimension had more embedded relationships than the model had model-level relationships
+- FactPolicyLine had 35 embedded relationships in `dimension_Fact_Policy_Line` but only 15 model relationships
+- Loop indices 15-35 accessed undefined array entries, creating empty relationship objects
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-models/order-properties.ts` - Fixed array reference in orderDimensions()
+
+**Result:** PASS - relationship validation errors fixed
+
+**Verification:**
+- npm run test-custom-calcs: PASS
+- Typecheck: PASS
+- FactPolicyLine_bim.json: No longer has "must have required property 'unique_name'" errors
+- RetailPolicyLine_bim.json: No longer has relationship validation errors
+- Note: Both files have remaining errors about non-existing metrics - this is unrelated to US-008
+
+**Learnings for future iterations:**
+- Be careful when iterating over one array but accessing another by the same index
+- Dimension relationships (`dim.relationships`) are separate from model relationships (`result.models[0].relationships`)
+- When sparse array indices are assigned undefined values via Object.assign, empty objects are created
+- Always verify the correct array is being read from AND written to
+
+---
+
+## Iteration 32 - US-009: Handle duplicate dimension detection
+
+**What was implemented:**
+- Modified `addDegenerateDim()` in dimension-converter.ts to check for existing dimensions
+- Added duplicate detection: checks both `result.dimensions` and `result.models[0].dimensions`
+- Skips dimension creation with warning when duplicate unique_name detected
+- Log message: "Skipping duplicate dimension '{name}' - already exists"
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/dimension-converter.ts` - Added duplicate checks in addDegenerateDim()
+
+**Result:** PASS - dimension validation passes
+
+**Verification:**
+- npm run test-custom-calcs: PASS
+- Typecheck: PASS
+- External_Dashboard_Index_bim.json: Validation PASSES (no duplicate dimension errors)
+  - Model now has 4 unique dimensions instead of 8 (4 duplicates skipped)
+  - Warning logged for each skipped duplicate: Category, Sub Category, Option, Link
+  - Backend deployment fails due to "no relationships" issue (separate from US-009)
+
+**Root cause:**
+- Same column names (Category, Sub Category, Option, Link) exist across 10 different tables
+- `createDegenDimensions()` was creating dimensions for each table's column
+- `convertDegenerateDim()` always uses `makeUniqueName(\`dimension.${bimColumn.name}\`)`
+- Result: dimension_Category added to model 10 times instead of once
+
+**Fix:**
+- Check if dimension with same unique_name exists before adding
+- Keep first occurrence, skip subsequent duplicates with warning
+
+**Learnings for future iterations:**
+- Degenerate dimensions from multiple tables with same column name produce same unique_name
+- Always check for existing items before adding to result arrays
+- SML model.dimensions array must have unique entries (no duplicates allowed)
+- "data-set.map is not a function" error is unrelated - it's the "no relationships" backend issue
+
+---
