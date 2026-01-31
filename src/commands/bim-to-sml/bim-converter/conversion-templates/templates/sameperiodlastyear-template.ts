@@ -155,6 +155,17 @@ export class SamePeriodLastYearTemplate extends ConversionTemplate {
             ? resolveTimeLevelByUnit(dimUniqueName, "year", context.result, context.bim)
             : "Year";
 
+          // MDX tuple syntax requires both elements to be members/references, not expressions.
+          // If measureMdx contains arithmetic operators (+, -, *, /), the tuple is invalid.
+          // A simple measure reference looks like [Measures].[Name] with no operators.
+          const isSimpleMeasureRef = /^\[Measures\]\.\[[^\]]+\]$/.test(measureMdx.trim());
+          if (!isSimpleMeasureRef) {
+            return failedConversion(
+              `SAMEPERIODLASTYEAR measure is an expression (${measureMdx}) - MDX tuple requires simple measure reference`,
+              token.functionAgg,
+            );
+          }
+
           // Build MDX: (ParallelPeriod([dim].[hier].[YearLevel], 1, [dim].[hier].CurrentMember), [Measures].[measure])
           const mdxExpression = `(ParallelPeriod(${dimensionRef}.[${yearLevel}], 1, ${dimensionRef}.CurrentMember), ${measureMdx})`;
 

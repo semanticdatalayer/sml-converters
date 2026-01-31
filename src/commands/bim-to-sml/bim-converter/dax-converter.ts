@@ -207,6 +207,7 @@ export class ParenToken extends DaxToken {
 /**
  * Represents a DAX brace expression { val1, val2, ... }
  * Used for IN operator: column IN {val1, val2}
+ * Also used for DAX table literals (list of values)
  */
 export class BraceToken extends DaxToken {
   constructor(public args: DaxToken[], position: number) {
@@ -214,7 +215,15 @@ export class BraceToken extends DaxToken {
   }
 
   toMdx(info?: any): string {
-    return `{ ${this.args.map((arg) => arg.toMdx(info)).join("")} }`;
+    // DAX brace expressions (table literals like {"value1", "value2"}) have no MDX equivalent
+    // in measure expressions. They can only be used in:
+    // 1. IN operator context (handled separately by InOperatorTemplate)
+    // 2. Table variable assignments (not supported in MDX measures)
+    // Throw to trigger TODO fallback
+    throw new Error(
+      `DAX table literal expression {${this.args.map(a => a.toString()).join(", ")}} ` +
+      `has no MDX equivalent for measure expressions`
+    );
   }
 
   toString(): string {

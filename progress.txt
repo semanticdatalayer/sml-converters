@@ -114,3 +114,33 @@ This PRD addresses errors in `/Users/dianne/Downloads/bim/tests1/` files as list
   - Typecheck passes
   - Deployment blockers documented as AtScale server-side issues
 ---
+
+## Iteration 4 - US-003: Fix special character parsing errors in MDX expressions
+- **Problem**: Multiple BIM files failed deployment with parsing errors like "Comma expected but OpenParen found"
+- **Root causes**:
+  1. FIND function passed through literally (no MDX equivalent)
+  2. ISBLANK not being converted to ISEMPTY when nested in compound expressions
+  3. DAX table literals `{...}` passed through literally (no MDX equivalent in measures)
+  4. SAMEPERIODLASTYEAR generating tuple with arithmetic expressions (invalid MDX)
+- **Fixes**:
+  1. Added FIND, SEARCH, CONTAINSSTRING, SUBSTITUTE, REPLACE, REPT, PATH* to unconvertible list
+  2. Added ISBLANK → ISEMPTY to direct_mappings (handles nested ISBLANK in IF conditions)
+  3. Made BraceToken.toMdx() throw error to trigger TODO fallback
+  4. Added check in SAMEPERIODLASTYEAR template to fail when measure is not a simple reference
+- **Files changed**:
+  - `src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json` - Added unconvertible functions, ISBLANK mapping
+  - `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - BraceToken throws for TODO fallback
+  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/sameperiodlastyear-template.ts` - Check for simple measure ref
+- **Learnings for future iterations**:
+  - DAX string functions (FIND, SEARCH, etc.) have no MDX equivalent for measure expressions
+  - Direct function mappings handle nested cases better than templates (for simple 1:1 mappings)
+  - DAX table literals are not valid in MDX measure expressions
+  - MDX tuple syntax `(set, measure)` requires both parts to be members, not expressions
+- **Verified**:
+  - Dealer_Performance_Dashboard_bim.json deploys successfully
+  - Global_Report_-_Assembly_KPIs_bim.json deploys successfully
+  - HDNA_Magellan_Report_bim.json deploys successfully
+  - Most_Loved_bim.json deploys successfully
+  - npm run test-custom-calcs passes (54% conversion rate maintained)
+  - Typecheck passes
+---

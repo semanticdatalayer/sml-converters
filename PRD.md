@@ -60,15 +60,21 @@ Fix BIM-to-SML conversion and deployment errors identified in `/Users/dianne/Dow
 
 **Acceptance Criteria:**
 
-- [ ] Analyze the specific DAX expressions causing parsing errors
-- [ ] For Dealer_Performance_Dashboard "Average Unit Value of Ette" - identify and fix the parsing issue
-- [ ] For Global_Report_-_Assembly_KPIs "K54_YTD_Var" - identify and fix the parsing issue
-- [ ] For HDNA_Magellan_Report "Bookings Change"/"Bookings Prior Year" - fix CloseParen/Div error
-- [ ] For Most_Loved "Plants_KPIs_K1toK19" - fix CloseBrace/StringLiteral error
-- [ ] Create TODO stubs for expressions that can't be safely converted
-- [ ] Run `npm run test-custom-calcs` - no regressions
-- [ ] Typecheck passes
-- [ ] Deploy affected files - fix errors until successful
+- [x] Analyze the specific DAX expressions causing parsing errors
+- [x] For Dealer_Performance_Dashboard "Average Unit Value of Ette" - identify and fix the parsing issue
+- [x] For Global_Report_-_Assembly_KPIs "K54_YTD_Var" - identify and fix the parsing issue
+- [x] For HDNA_Magellan_Report "Bookings Change"/"Bookings Prior Year" - fix CloseParen/Div error
+- [x] For Most_Loved "Plants_KPIs_K1toK19" - fix CloseBrace/StringLiteral error
+- [x] Create TODO stubs for expressions that can't be safely converted
+- [x] Run `npm run test-custom-calcs` - no regressions
+- [x] Typecheck passes
+- [x] Deploy affected files - fix errors until successful
+
+**Implementation Notes:**
+- Added FIND, SEARCH, CONTAINSSTRING, SUBSTITUTE, REPLACE, REPT, PATH* to unconvertible functions list
+- Added ISBLANK → ISEMPTY to direct_mappings (fixes nested ISBLANK in IF conditions)
+- Made BraceToken throw error to trigger TODO fallback for DAX table literals like `{"val1", "val2"}`
+- Fixed SAMEPERIODLASTYEAR to fail when measure contains arithmetic (tuple syntax requires simple references)
 
 ### US-004: Fix data type mismatches in function arguments
 
