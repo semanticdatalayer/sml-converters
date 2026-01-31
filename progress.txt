@@ -609,3 +609,135 @@ This PRD addresses the Trek_bim.json scenario - BIM files with no relationships 
 **Final PRD Status:** ALL USER STORIES COMPLETE ✅
 
 ---
+
+## NEW PRD: Type-Aware TODO Stub Generation
+
+**Started:** 2026-01-30
+
+This PRD addresses the PFM_from_Daniel_bim.json scenario - boolean-returning functions like HASONEVALUE use `1` as stub which fails in boolean contexts (AND/OR operators require BooleanType, not IntType).
+
+---
+
+## Iteration 16 - US-001: Create Type System Foundation
+
+**What was implemented:**
+- Created `src/commands/bim-to-sml/bim-converter/type-inference.ts`
+- Defined `MdxType` enum: BOOLEAN, NUMERIC, UNKNOWN
+- Defined `UsageContext` interface with `measureTypes: Map<string, Set<MdxType>>`
+- Exported utility functions: `createUsageContext()`, `recordUsage()`, `getUsageTypes()`
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/type-inference.ts` (new file)
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Learnings for future iterations:**
+- UsageContext uses Set<MdxType> to track multiple contexts per measure
+- getUsageTypes() returns array for easy dual-context detection (length > 1)
+- US-002 will add operator type rules (AND/OR expect BOOLEAN, arithmetic expects NUMERIC)
+
+---
+
+## Iteration 17 - US-002: Implement Operator Type Rules
+
+**What was implemented:**
+- Added `getOperatorExpectedType(op: string): MdxType` function
+- Added `getOperatorReturnType(op: string): MdxType` function
+- Boolean operators (AND, OR, NOT) → expect BOOLEAN, return BOOLEAN
+- Arithmetic operators (+, -, *, /, ^) → expect NUMERIC, return NUMERIC
+- Comparison operators (>, <, =, <>, >=, <=) → expect NUMERIC, return BOOLEAN
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/type-inference.ts`
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Learnings for future iterations:**
+- Operators normalized to uppercase for matching
+- Two separate functions: expected type (what args should be) vs return type (what result is)
+- US-003 will implement tree traversal to propagate types through expressions
+
+---
+
+## Iteration 18 - US-003: Add Type Inference to Expression Tree Traversal
+
+**What was implemented:**
+- Added `inferTypes(expression: string, context: UsageContext): void` function
+- Added `getFunctionArgExpectedType(funcName, argIndex)` for function argument types
+- Added `getFunctionReturnType(funcName)` for function return types
+- Added `inferTokenType()` recursive helper that walks the token tree
+- Added `inferFunctionType()` for function-specific handling (IF/IIF special case)
+- Added `inferTokenListWithOperators()` for operator context propagation
+- IF/IIF: first arg expects BOOLEAN, branches inherit parent context
+- Boolean operators (AND, OR, NOT) propagate BOOLEAN to operands
+- Arithmetic operators propagate NUMERIC to operands
+- Measure references recorded via `recordUsage()` with expected type
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/type-inference.ts`
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Learnings for future iterations:**
+- DaxTokenizer used to parse expressions into token tree
+- FunctionToken.args includes CommaTokens - filter them out to get actual args
+- ParenToken, VarToken, ReturnToken all have nested token lists
+- ColumnReference and TableColumnReference are measure references to record
+- US-004 will integrate type context into conversion pipeline
+
+---
+
+## Iteration 19 - US-004: Integrate Type Context into Conversion Pipeline
+
+**What was implemented:**
+- Added `usageContext?: UsageContext` to `PipelineConfig` interface
+- Modified `ConversionPipeline.convert()` to run `inferTypes()` before conversion when usageContext provided
+- Added `usageContext: UsageContext` field to `MeasureConverter` class
+- Initialized usageContext in constructor via `createUsageContext()`
+- Added `getUsageContext()` and `getMeasureUsageTypes()` methods to MeasureConverter
+- Modified `metricFromCalc()` to pass usageContext to pipeline
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts`
+- `src/commands/bim-to-sml/bim-converter/measure-converter.ts`
+- `PRD.md`
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Learnings for future iterations:**
+- UsageContext is a shared instance across all measure conversions via MeasureConverter
+- Pipeline runs inferTypes() on each expression, accumulating measure usage types
+- MeasureConverter.getMeasureUsageTypes() can be called after conversion to check dual-context
+- US-005 will use this context to generate type-appropriate fallback values (1 for numeric, (1=1) for boolean)
+
+---
+
+## Iteration 20 - US-005: Generate Type-Appropriate TODO Stubs
+
+**What was implemented:**
+1. Modified `getFallbackValue()` in tools.ts to accept optional `MdxType` parameter
+   - BOOLEAN context → returns `(1 = 1)` (valid MDX boolean TRUE)
+   - NUMERIC/UNKNOWN context → returns `1` for boolean functions, `0` for numeric
+2. Updated `createFallback()` in conversion-pipeline.ts to use type-aware generation
+   - Checks usageContext for measures used only in BOOLEAN context
+   - Passes detected MdxType to getFallbackValue()
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/tools.ts` - Added MdxType param to getFallbackValue()
+- `src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts` - Type-aware createFallback()
+- `PRD.md`
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Verification:**
+- Test output shows type-aware stubs working:
+  - `Non-Holiday Sales` → `(1 = 1) /* TODO: ... NOT(...) */` (boolean context detected)
+  - `High Value Sales` → `(1 = 1) /* TODO: ... FILTER(...) */` (boolean context detected)
+  - Other TODO stubs still use `0` or `1` for numeric contexts
+
+**Learnings for future iterations:**
+- `(1 = 1)` is valid MDX boolean TRUE that works in AND/OR contexts
+- Type inference from US-003/US-004 feeds into fallback generation
+- US-006 will handle dual-context (both BOOLEAN and NUMERIC) by splitting measures
+
+---

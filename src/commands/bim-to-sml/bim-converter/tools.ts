@@ -527,13 +527,28 @@ export function isBooleanReturningExpression(daxExpression: string): boolean {
   return false;
 }
 
+import { MdxType } from "./type-inference";
+
 /**
  * Creates the appropriate fallback value for a DAX expression.
- * Returns "1" for boolean-returning functions (since TRUE=1 in numeric contexts),
- * "0" for numeric functions.
+ *
+ * When mdxType is provided (type-aware mode):
+ * - BOOLEAN: Returns "(1 = 1)" which is a valid MDX boolean TRUE
+ * - NUMERIC or UNKNOWN: Returns "1" for boolean-returning functions, "0" otherwise
+ *
+ * When mdxType is not provided (legacy mode):
+ * - Returns "1" for boolean-returning functions (since TRUE=1 in numeric contexts)
+ * - Returns "0" for numeric functions
+ *
  * Using "1" instead of "FALSE" avoids type errors when boolean results are used
  * in arithmetic operations (e.g., division by boolean).
  */
-export function getFallbackValue(daxExpression: string): string {
+export function getFallbackValue(daxExpression: string, mdxType?: MdxType): string {
+  // Type-aware mode: use the expected type to determine fallback
+  if (mdxType === MdxType.BOOLEAN) {
+    return "(1 = 1)"; // Valid MDX boolean TRUE for boolean contexts
+  }
+
+  // NUMERIC, UNKNOWN, or no type provided: use original logic
   return isBooleanReturningExpression(daxExpression) ? "1" : "0";
 }

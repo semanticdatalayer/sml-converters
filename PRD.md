@@ -73,11 +73,11 @@ This feature adds expression tree type inference to detect usage context and gen
 **Description:** As a developer, I need stub generation to use the correct value based on usage context so MDX type checking passes.
 
 **Acceptance Criteria:**
-- [ ] Modify `getFallbackValue()` to accept optional `MdxType` parameter
-- [ ] Return `1` for NUMERIC or UNKNOWN context
-- [ ] Return `(1 = 1)` for BOOLEAN-only context
-- [ ] Update `createFallback()` in pipeline to use type-aware generation
-- [ ] Typecheck passes
+- [x] Modify `getFallbackValue()` to accept optional `MdxType` parameter
+- [x] Return `1` for NUMERIC or UNKNOWN context
+- [x] Return `(1 = 1)` for BOOLEAN-only context
+- [x] Update `createFallback()` in pipeline to use type-aware generation
+- [x] Typecheck passes
 
 ---
 

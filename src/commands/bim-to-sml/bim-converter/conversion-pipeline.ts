@@ -11,8 +11,8 @@ import { TemplateRegistry } from "./conversion-templates/template-registry";
 import { ConversionContext } from "./conversion-templates/conversion-context";
 import { VarInliner } from "./var-analysis/var-inliner";
 import { Logger } from "../../../shared/logger";
-import { escapeForComment, isBooleanReturningExpression } from "./tools";
-import { UsageContext, inferTypes } from "./type-inference";
+import { escapeForComment, getFallbackValue } from "./tools";
+import { UsageContext, inferTypes, MdxType, getUsageTypes } from "./type-inference";
 
 /**
  * Configuration for conversion pipeline
@@ -544,12 +544,31 @@ export class ConversionPipeline {
 
   /**
    * Stage 6: Create fallback TODO stub
-   * Uses 1 for boolean-returning functions (TRUE=1 in numeric context), 0 for others
+   * Uses type-aware fallback values:
+   * - BOOLEAN-only context: (1 = 1) - valid MDX boolean TRUE
+   * - NUMERIC or mixed context: 1 for boolean functions, 0 for numeric
    */
   private createFallback(daxExpression: string): PipelineResult {
-    // Use 1 for boolean-returning functions to avoid type errors when used in arithmetic
-    // (e.g., DIVIDE by boolean). TRUE=1 in DAX numeric context.
-    const fallbackValue = isBooleanReturningExpression(daxExpression) ? "1" : "0";
+    // Determine the expected type from usage context if available
+    // For BOOLEAN-only usage, use (1 = 1) which is valid MDX boolean
+    // For NUMERIC or mixed usage, use numeric fallback (1 or 0)
+    let expectedType: MdxType | undefined;
+
+    if (this.config.usageContext) {
+      // Check all measure references in the expression for their usage types
+      // If ANY measure is used only in BOOLEAN context, use BOOLEAN fallback
+      const measureTypes = this.config.usageContext.measureTypes;
+      for (const [measureName, types] of measureTypes) {
+        const typeArray = Array.from(types);
+        // If measure is used ONLY in BOOLEAN context (not mixed with NUMERIC)
+        if (typeArray.length === 1 && typeArray[0] === MdxType.BOOLEAN) {
+          expectedType = MdxType.BOOLEAN;
+          break;
+        }
+      }
+    }
+
+    const fallbackValue = getFallbackValue(daxExpression, expectedType);
     return {
       success: true,
       expression: `${fallbackValue} /* TODO: ${escapeForComment(daxExpression)} */`,
