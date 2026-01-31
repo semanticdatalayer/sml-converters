@@ -182,10 +182,12 @@ export function getFunctionReturnType(funcName: string): MdxType {
   const normalized = funcName.toUpperCase().trim();
 
   // Boolean-returning functions
+  // Note: SELECTEDVALUE returns the column's value type, NOT boolean
+  // It only has special behavior (returning BLANK vs alternate) based on filter context
   const booleanFunctions = [
     'NOT', 'AND', 'OR', 'ISBLANK', 'ISERROR', 'ISEMPTY',
     'HASONEVALUE', 'HASONEFILTER', 'ISFILTERED', 'ISCROSSFILTERED',
-    'CONTAINS', 'CONTAINSROW', 'SELECTEDVALUE',
+    'CONTAINS', 'CONTAINSROW',
   ];
   if (booleanFunctions.includes(normalized)) {
     return MdxType.BOOLEAN;

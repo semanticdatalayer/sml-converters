@@ -26,6 +26,9 @@ export interface ConversionContext {
   /** Table name containing the measure */
   tableName: string;
 
+  /** Label/name of the measure being converted (used for type context lookup) */
+  measureLabel?: string;
+
   /** SML converter result accumulator */
   result: SmlConverterResult;
 
@@ -58,11 +61,13 @@ export function createConversionContext(
   measureConverter: MeasureConverter,
   logger: Logger,
   templateRegistry: TemplateRegistry,
+  measureLabel?: string,
 ): ConversionContext {
   return {
     bim,
     daxExpression,
     tableName,
+    measureLabel,
     result,
     attrMaps,
     unusedTables,

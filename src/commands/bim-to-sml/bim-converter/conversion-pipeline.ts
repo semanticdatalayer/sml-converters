@@ -128,7 +128,7 @@ export class ConversionPipeline {
       // DAX parsing failed - log warning and return TODO fallback
       const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
       this.logger.warn(`DAX parsing failed for expression: ${errorMsg}`);
-      return this.createFallback(daxExpression, `DAX parse error: ${errorMsg}`);
+      return this.createFallback(daxExpression, `DAX parse error: ${errorMsg}`, context);
     }
 
     // Check if expression contains VARs - if so, skip Stages 1-3 and go to Stage 4
@@ -228,7 +228,7 @@ export class ConversionPipeline {
 
     // Stage 6: Fallback TODO
     this.logger.debug("All stages failed, creating fallback TODO");
-    return this.createFallback(daxExpression);
+    return this.createFallback(daxExpression, undefined, context);
   }
 
   // DAX aggregate functions that should pass their aggregation type to child column references
@@ -557,32 +557,49 @@ export class ConversionPipeline {
 
   /**
    * Stage 6: Create fallback TODO stub
-   * Uses type-aware fallback values based on the RETURN TYPE of the expression:
+   * Uses type-aware fallback values based on:
+   * 1. If measure is ONLY used in numeric contexts (from pre-inferred types), use NUMERIC stub
+   * 2. Otherwise, use the RETURN TYPE of the top-level function
    * - BOOLEAN return type: (1 = 1) - valid MDX boolean TRUE
    * - NUMERIC return type: 0
    * - UNKNOWN: falls back to isBooleanReturningExpression() heuristic
    * @param daxExpression - Original DAX expression
    * @param reason - Optional reason for fallback (e.g., parse error message)
+   * @param context - Optional conversion context for type lookup
    */
-  private createFallback(daxExpression: string, reason?: string): PipelineResult {
-    // Determine the expected type based on the RETURN TYPE of the top-level function
-    // NOT based on the types of referenced measures inside the expression
-    // For example: DIVIDE(..., NOT([X]) && [Y]) returns NUMERIC even though X and Y are in boolean context
+  private createFallback(daxExpression: string, reason?: string, context?: ConversionContext): PipelineResult {
+    // Determine the expected type based on how this measure is USED in other expressions
+    // This takes priority because a boolean-returning function might only be used in numeric contexts
+    // Example: HASONEVALUE() returns BOOLEAN but when used in DIVIDE(..., [measure]) needs numeric stub
     let expectedType: MdxType | undefined;
 
-    try {
-      const tokenizer = new DaxTokenizer();
-      const tokens = tokenizer.tokenize(daxExpression);
-      // Find the top-level function token
-      const topLevelFunc = tokens.find(t => t instanceof FunctionToken) as FunctionToken | undefined;
-      if (topLevelFunc) {
-        const returnType = getFunctionReturnType(topLevelFunc.functionAgg);
-        if (returnType !== MdxType.UNKNOWN) {
-          expectedType = returnType;
-        }
+    // First check if this measure is ONLY used in numeric contexts (from pre-inferred types)
+    // If so, use NUMERIC stub even if the function returns BOOLEAN
+    if (context?.measureLabel && context?.measureConverter) {
+      if (context.measureConverter.isOnlyUsedInNumericContext(context.measureLabel)) {
+        expectedType = MdxType.NUMERIC;
+        this.logger.debug?.(
+          `Measure '${context.measureLabel}' is only used in numeric contexts - using numeric stub`
+        );
       }
-    } catch {
-      // If parsing fails, fall through to default logic
+    }
+
+    // If no usage-based type found, fall back to function return type
+    if (!expectedType) {
+      try {
+        const tokenizer = new DaxTokenizer();
+        const tokens = tokenizer.tokenize(daxExpression);
+        // Find the top-level function token
+        const topLevelFunc = tokens.find(t => t instanceof FunctionToken) as FunctionToken | undefined;
+        if (topLevelFunc) {
+          const returnType = getFunctionReturnType(topLevelFunc.functionAgg);
+          if (returnType !== MdxType.UNKNOWN) {
+            expectedType = returnType;
+          }
+        }
+      } catch {
+        // If parsing fails, fall through to default logic
+      }
     }
 
     const fallbackValue = getFallbackValue(daxExpression, expectedType);

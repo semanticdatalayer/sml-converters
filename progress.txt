@@ -1191,3 +1191,53 @@ This PRD addresses ~45 failing BIM file conversions identified in `/Users/dianne
 - "data-set.map is not a function" error is unrelated - it's the "no relationships" backend issue
 
 ---
+
+## Iteration 33 - US-010: Handle boolean type expressions in numeric contexts
+
+**What was implemented:**
+1. Removed `SELECTEDVALUE` from `booleanFunctions` list in type-inference.ts
+   - SELECTEDVALUE returns the column's value type, NOT boolean
+   - It only has special behavior based on filter context, not a boolean return type
+2. Added `preInferAllMeasureTypes()` method to MeasureConverter
+   - Runs type inference on ALL DAX expressions BEFORE conversion
+   - Builds complete usage context so we know how each measure is referenced
+3. Added `isOnlyUsedInNumericContext()` method to MeasureConverter
+   - Checks if a measure is ONLY used in numeric contexts (not boolean)
+   - Used to determine if boolean-returning function should use numeric stub
+4. Added `measureLabel` to ConversionContext
+   - Passed to pipeline for type context lookup
+5. Modified `createFallback()` in conversion-pipeline.ts
+   - First checks if measure is only used in numeric contexts via pre-inferred types
+   - If so, uses NUMERIC stub even for boolean-returning functions (e.g., HASONEVALUE)
+   - Falls back to function return type if no usage-based type found
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/type-inference.ts` - Removed SELECTEDVALUE from boolean functions
+- `src/commands/bim-to-sml/bim-converter/measure-converter.ts` - Added pre-inference and usage-based type lookup
+- `src/commands/bim-to-sml/bim-converter/conversion-templates/conversion-context.ts` - Added measureLabel field
+- `src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts` - Modified createFallback() to use usage context
+- `src/commands/bim-to-sml/bim-converter/bim-to-sml-converter.ts` - Call preInferAllMeasureTypes() before conversion
+
+**Result:** PASS - POC_bim deploys successfully; boolean type errors fixed
+
+**Verification:**
+- npm run test-custom-calcs: PASS
+- Typecheck: PASS
+- POC_bim.json: Deployed ✓
+  - `HasOneCurrencyBusinessPlan` now uses `1` (numeric) instead of `(1 = 1)` (boolean)
+  - Fix correctly detects that measure is ONLY used in DIVIDE denominator (numeric context)
+- Machining_Performance.Loss__Model_bim.json: Boolean errors fixed, but has unrelated IF branch type mismatch error
+
+**Root cause:**
+- Boolean-returning functions like HASONEVALUE produce `(1 = 1)` TODO stub
+- When these measures are referenced in numeric contexts (DIVIDE, multiplication, etc.), MDX type checker fails
+- Solution: Pre-infer types for ALL expressions BEFORE conversion
+- If a measure is ONLY used in numeric contexts, use numeric stub (`1` or `0`) regardless of function return type
+
+**Learnings for future iterations:**
+- Type inference must run on ALL expressions BEFORE conversion to know complete usage context
+- A boolean-returning function's stub should be numeric if it's ONLY used in numeric contexts
+- Pre-pass approach: collect all usage types first, then use that info during stub generation
+- SELECTEDVALUE returns column value type, not boolean - was incorrectly classified
+
+---

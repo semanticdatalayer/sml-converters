@@ -55,7 +55,7 @@ import {
   removeComments,
 } from "./tools";
 import { MeasureDependencyTracker } from "./measure-dependency-tracker";
-import { UsageContext, createUsageContext, getUsageTypes, isDualContext, getDualContextMeasures, MdxType, rewriteSplitMeasureReferences } from "./type-inference";
+import { UsageContext, createUsageContext, getUsageTypes, isDualContext, getDualContextMeasures, MdxType, rewriteSplitMeasureReferences, inferTypes } from "./type-inference";
 // import { Tools } from "../../../shared/tools";
 
 export class MeasureConverter {
@@ -105,6 +105,46 @@ export class MeasureConverter {
    */
   getDualContextMeasureNames(): string[] {
     return getDualContextMeasures(this.usageContext);
+  }
+
+  /**
+   * Check if a measure is ONLY used in NUMERIC context (not BOOLEAN).
+   * Used to determine if a boolean-returning function should use numeric stub
+   * because it's only referenced in numeric contexts (e.g., arithmetic, division).
+   * @param measureName - Name of the measure
+   * @returns true if measure is only used in numeric context
+   */
+  isOnlyUsedInNumericContext(measureName: string): boolean {
+    const types = getUsageTypes(this.usageContext, measureName);
+    // If measure has no recorded usages, we don't know - return false to use default
+    if (types.length === 0) return false;
+    // Check if ONLY NUMERIC usages exist (no BOOLEAN or UNKNOWN)
+    return types.every(t => t === MdxType.NUMERIC);
+  }
+
+  /**
+   * Pre-infer types for ALL DAX expressions before conversion.
+   * This builds complete usage context so we know how each measure is referenced
+   * BEFORE generating TODO stubs. Called before measuresFromSimpleMeasures().
+   * @param bim - Root BIM model with all measures
+   */
+  preInferAllMeasureTypes(bim: BimRoot): void {
+    this.logger.debug?.("Pre-inferring types for all DAX expressions...");
+    let count = 0;
+    for (const table of bim.model?.tables || []) {
+      for (const measure of table.measures || []) {
+        const expr = expressionAsString(measure.expression);
+        if (expr) {
+          try {
+            inferTypes(expr, this.usageContext);
+            count++;
+          } catch {
+            // Skip expressions that fail to parse - will be handled during conversion
+          }
+        }
+      }
+    }
+    this.logger.debug?.(`Pre-inferred types for ${count} expressions`);
   }
 
   /**
@@ -1024,6 +1064,7 @@ export class MeasureConverter {
       this,
       this.logger,
       pipeline.getTemplateRegistry(),
+      bimMeasure.name, // measureLabel for type context lookup
     );
 
     // Run through 5-stage pipeline with error handling

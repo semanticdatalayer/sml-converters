@@ -125,6 +125,11 @@ export class BimToYamlConverter {
     // Pass tracker to MeasureConverter
     measureConverter.setDependencyTracker(dependencyTracker);
 
+    // Pre-infer types for ALL DAX expressions before conversion
+    // This builds complete usage context so we know how each measure is referenced
+    // BEFORE generating TODO stubs (fixes boolean-in-numeric-context errors)
+    measureConverter.preInferAllMeasureTypes(bim);
+
     measureConverter.measuresFromSimpleMeasures(
       bim,
       result,
