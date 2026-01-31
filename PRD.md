@@ -48,11 +48,11 @@ This feature adds expression tree type inference to detect usage context and gen
 **Description:** As a developer, I need to propagate type expectations through the expression tree so each node knows its expected type.
 
 **Acceptance Criteria:**
-- [ ] Create `inferTypes(expression: string, context: UsageContext): void` function
-- [ ] Parse expression and walk the tree, passing expected types downward
-- [ ] When measure reference encountered, record its expected type in context
-- [ ] Handle nested expressions (e.g., `IF(A AND B, X * Y, Z)`)
-- [ ] Typecheck passes
+- [x] Create `inferTypes(expression: string, context: UsageContext): void` function
+- [x] Parse expression and walk the tree, passing expected types downward
+- [x] When measure reference encountered, record its expected type in context
+- [x] Handle nested expressions (e.g., `IF(A AND B, X * Y, Z)`)
+- [x] Typecheck passes
 
 ---
 
