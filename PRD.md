@@ -39,14 +39,20 @@ Fix BIM-to-SML conversion and deployment errors identified in `/Users/dianne/Dow
 
 **Acceptance Criteria:**
 
-- [ ] Test Assembly_KPI_bim.json conversion and deployment
-- [ ] Test Assembly_KPIs_Model_bim.json conversion and deployment
-- [ ] Test EU_Safety_Model_bim.json conversion and deployment
-- [ ] Test epm_mtd_bim.json conversion and deployment
-- [ ] If errors occur, identify which arrays need additional null checks
-- [ ] Run `npm run test-custom-calcs` - no regressions
-- [ ] Typecheck passes
-- [ ] Deploy all affected files or document specific blockers
+- [x] Test Assembly_KPI_bim.json conversion and deployment
+- [x] Test Assembly_KPIs_Model_bim.json conversion and deployment
+- [x] Test EU_Safety_Model_bim.json conversion and deployment
+- [x] Test epm_mtd_bim.json conversion and deployment
+- [x] If errors occur, identify which arrays need additional null checks
+- [x] Run `npm run test-custom-calcs` - no regressions
+- [x] Typecheck passes
+- [x] Deploy all affected files or document specific blockers
+
+**Deployment Blockers (AtScale Server-Side Issues):**
+- **Assembly_KPI_bim.json** and **Assembly_KPIs_Model_bim.json**: Models have no dimensions/datasets because all relationships point to excluded LocalDateTable tables. AtScale returns: "Invalid xml format. Error: Cannot read properties of undefined (reading 'map')" - this is a server-side error for dimension-less models.
+- **EU_Safety_Model_bim.json** and **epm_mtd_bim.json**: Single dataset models trigger AtScale server error: "parsedXml.schema.data-sets.data-set.map is not a function" - appears to be a server-side bug with single-element arrays.
+
+**Note:** All four files convert successfully without "Cannot read properties of undefined" errors in our converter. The deployment errors are AtScale server-side issues, not converter bugs.
 
 ### US-003: Fix special character parsing errors in MDX expressions
 

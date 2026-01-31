@@ -94,3 +94,23 @@ This PRD addresses errors in `/Users/dianne/Downloads/bim/tests1/` files as list
 - US-007: Test all files and document results
 
 ---
+
+## Iteration 3 - US-002: Re-verify array handling for tests1 files
+- **Problem**: Verify "Cannot read properties of undefined (reading 'map')" errors don't occur during conversion
+- **Tested files**: Assembly_KPI_bim.json, Assembly_KPIs_Model_bim.json, EU_Safety_Model_bim.json, epm_mtd_bim.json
+- **Result**: All four files convert successfully without undefined errors in converter code
+- **Deployment blockers (AtScale server-side issues)**:
+  - Assembly_KPI & Assembly_KPIs_Model: Models have no dimensions because relationships point to excluded LocalDateTable tables. Server returns "Cannot read properties of undefined (reading 'map')" for dimension-less models.
+  - EU_Safety_Model & epm_mtd: Single dataset models trigger "parsedXml.schema.data-sets.data-set.map is not a function" - server-side bug with single-element arrays.
+- **Files changed**: None (no converter bugs found)
+- **Learnings for future iterations**:
+  - BIM files with relationships only to LocalDateTable tables produce dimension-less SML models
+  - AtScale server has bugs with dimension-less models and single-dataset models
+  - Conversion success ≠ deployment success - server-side issues can still occur
+  - "Cannot read properties of undefined (reading 'map')" can be server-side, not just converter-side
+- **Verified**:
+  - All four files convert without "Cannot read properties of undefined" converter errors
+  - npm run test-custom-calcs passes
+  - Typecheck passes
+  - Deployment blockers documented as AtScale server-side issues
+---
