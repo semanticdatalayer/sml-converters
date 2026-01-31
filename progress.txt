@@ -741,3 +741,32 @@ This PRD addresses the PFM_from_Daniel_bim.json scenario - boolean-returning fun
 - US-006 will handle dual-context (both BOOLEAN and NUMERIC) by splitting measures
 
 ---
+
+## Iteration 21 - US-006: Implement Measure Duplication for Dual-Context Usage
+
+**What was implemented:**
+1. Added `isDualContext()` and `getDualContextMeasures()` functions to type-inference.ts
+2. Added `isDualContextMeasure()` and `getDualContextMeasureNames()` methods to MeasureConverter
+3. Added `createSplitMeasures()` method that:
+   - Detects when a TODO stub measure is used in both BOOLEAN and NUMERIC contexts
+   - Creates `[MeasureName_num]` with numeric stub (0 or 1 based on expression type)
+   - Creates `[MeasureName_bool]` with boolean stub `(1 = 1)`
+   - Adds descriptive comments explaining the split
+   - Logs warning when splitting occurs
+4. Modified `metricFromCalc()` to return `SMLMetricCalculated[]` instead of single metric
+5. Updated dataset-converter.ts to iterate over returned metrics array
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/type-inference.ts` - Added dual-context detection functions
+- `src/commands/bim-to-sml/bim-converter/measure-converter.ts` - Added split measure creation, changed return type
+- `src/commands/bim-to-sml/bim-converter/dataset-converter.ts` - Updated to handle array of metrics
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Learnings for future iterations:**
+- Dual-context detection uses the UsageContext that tracks measure types during type inference
+- Split measures get `_num` and `_bool` suffixes with appropriate TODO stub values
+- Original measure is NOT created when split - only the two split versions
+- US-007 will need to rewrite references to split measures in other expressions
+
+---

@@ -86,12 +86,12 @@ This feature adds expression tree type inference to detect usage context and gen
 **Description:** As a user, I want measures used in both numeric and boolean contexts to be automatically split so both usages work correctly.
 
 **Acceptance Criteria:**
-- [ ] Detect when a measure has both NUMERIC and BOOLEAN usages
-- [ ] Create `[OriginalName_num]` measure with `1` stub
-- [ ] Create `[OriginalName_bool]` measure with `(1 = 1)` stub
-- [ ] Add comment to both explaining they were split from original
-- [ ] Log warning message listing split measures
-- [ ] Typecheck passes
+- [x] Detect when a measure has both NUMERIC and BOOLEAN usages
+- [x] Create `[OriginalName_num]` measure with `1` stub
+- [x] Create `[OriginalName_bool]` measure with `(1 = 1)` stub
+- [x] Add comment to both explaining they were split from original
+- [x] Log warning message listing split measures
+- [x] Typecheck passes
 
 ---
 

@@ -144,7 +144,8 @@ export class DatasetConverter {
           )
         ) {
           // Creates metricCalc when expression is math only logic
-          const smlMetric = await this.measureConverter.metricFromCalc(
+          // Returns array of metrics (normally 1, but 2 for dual-context split measures)
+          const smlMetrics = await this.measureConverter.metricFromCalc(
             bim,
             bimMeasure,
             bimTable,
@@ -155,14 +156,16 @@ export class DatasetConverter {
             fellOut,
           );
 
-          if (smlMetric) {
-            this.measureConverter.addSMLCalc(
-              smlMetric,
-              model,
-              result,
-              attrMaps,
-              bimTable,
-            );
+          if (smlMetrics && smlMetrics.length > 0) {
+            for (const smlMetric of smlMetrics) {
+              this.measureConverter.addSMLCalc(
+                smlMetric,
+                model,
+                result,
+                attrMaps,
+                bimTable,
+              );
+            }
           }
         }
       }

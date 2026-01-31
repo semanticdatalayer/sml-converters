@@ -55,7 +55,7 @@ import {
   removeComments,
 } from "./tools";
 import { MeasureDependencyTracker } from "./measure-dependency-tracker";
-import { UsageContext, createUsageContext, getUsageTypes, MdxType } from "./type-inference";
+import { UsageContext, createUsageContext, getUsageTypes, isDualContext, getDualContextMeasures, MdxType } from "./type-inference";
 // import { Tools } from "../../../shared/tools";
 
 export class MeasureConverter {
@@ -88,6 +88,113 @@ export class MeasureConverter {
    */
   getMeasureUsageTypes(measureName: string): MdxType[] {
     return getUsageTypes(this.usageContext, measureName);
+  }
+
+  /**
+   * Check if a measure is used in both BOOLEAN and NUMERIC contexts.
+   * @param measureName - Name of the measure
+   * @returns true if measure has dual-context usage
+   */
+  isDualContextMeasure(measureName: string): boolean {
+    return isDualContext(this.usageContext, measureName);
+  }
+
+  /**
+   * Get all measures that require splitting due to dual-context usage.
+   * @returns Array of measure names with both BOOLEAN and NUMERIC usages
+   */
+  getDualContextMeasureNames(): string[] {
+    return getDualContextMeasures(this.usageContext);
+  }
+
+  /**
+   * Create split measures for a dual-context TODO stub measure.
+   * When a measure is used in both boolean and numeric contexts, we create two versions:
+   * - [MeasureName_num] with numeric stub (1 for boolean-returning, 0 for numeric)
+   * - [MeasureName_bool] with boolean stub (1 = 1)
+   *
+   * @param originalCalc - The original calculated metric that needs splitting
+   * @param daxExpression - The original DAX expression
+   * @param bimTable - The BIM table containing the measure
+   * @param result - SML converter result to add split measures to
+   * @param attrMaps - Attribute maps for unique name generation
+   * @param model - The SML model to add metrics to
+   * @returns Array of [numericCalc, booleanCalc] if split occurred, or undefined if not needed
+   */
+  createSplitMeasures(
+    originalCalc: SMLMetricCalculated,
+    daxExpression: string,
+    bimTable: BimTable,
+    result: SmlConverterResult,
+    attrMaps: AttributeMaps,
+    model: SMLModel,
+  ): [SMLMetricCalculated, SMLMetricCalculated] | undefined {
+    const measureName = originalCalc.label || originalCalc.unique_name;
+
+    // Check if this measure has dual-context usage
+    if (!this.isDualContextMeasure(measureName)) {
+      return undefined;
+    }
+
+    // Only split measures that have TODO stubs (unconvertible)
+    if (!originalCalc.expression?.includes('/* TODO:')) {
+      return undefined;
+    }
+
+    this.logger.warn(
+      `Measure '${measureName}' is used in both numeric and boolean contexts - creating split measures: ${measureName}_num and ${measureName}_bool`,
+    );
+
+    // Create numeric version with appropriate stub
+    const numericUniqueName = createUniqueAttrName(
+      attrMaps.attrNameMap,
+      `${measureName}_num`,
+      makeUniqueName(`calculation.${bimTable.name}.`) + `${measureName}_num`,
+      "calculation from BIM measure (numeric split)",
+      bimTable.name,
+      "",
+      this.logger,
+    );
+
+    const numericFallback = getFallbackValue(daxExpression, MdxType.NUMERIC);
+    const numericCalc: SMLMetricCalculated = {
+      object_type: SMLObjectType.MetricCalc,
+      unique_name: numericUniqueName,
+      description: originalCalc.description
+        ? `${originalCalc.description} (numeric version - split from ${measureName})`
+        : `Numeric version - split from ${measureName} due to dual-context usage`,
+      label: `${measureName}_num`,
+      folder: originalCalc.folder,
+      is_hidden: originalCalc.is_hidden,
+      format: originalCalc.format,
+      expression: `${numericFallback} /* TODO (numeric context): ${escapeForComment(daxExpression)} - Split from '${measureName}' which is used in both numeric and boolean contexts */`,
+    };
+
+    // Create boolean version with (1 = 1) stub
+    const booleanUniqueName = createUniqueAttrName(
+      attrMaps.attrNameMap,
+      `${measureName}_bool`,
+      makeUniqueName(`calculation.${bimTable.name}.`) + `${measureName}_bool`,
+      "calculation from BIM measure (boolean split)",
+      bimTable.name,
+      "",
+      this.logger,
+    );
+
+    const booleanCalc: SMLMetricCalculated = {
+      object_type: SMLObjectType.MetricCalc,
+      unique_name: booleanUniqueName,
+      description: originalCalc.description
+        ? `${originalCalc.description} (boolean version - split from ${measureName})`
+        : `Boolean version - split from ${measureName} due to dual-context usage`,
+      label: `${measureName}_bool`,
+      folder: originalCalc.folder,
+      is_hidden: originalCalc.is_hidden,
+      format: originalCalc.format,
+      expression: `(1 = 1) /* TODO (boolean context): ${escapeForComment(daxExpression)} - Split from '${measureName}' which is used in both numeric and boolean contexts */`,
+    };
+
+    return [numericCalc, booleanCalc];
   }
 
   setTableLists(tableLists: TableLists) {
@@ -698,6 +805,10 @@ export class MeasureConverter {
    * Stage 4: AI-powered DAX to MDX conversion (if --llmName provided)
    * Stage 5: Fallback TODO stub
    *
+   * For measures that are used in both boolean and numeric contexts (dual-context),
+   * returns an array with split measures: [original]_num and [original]_bool with
+   * type-appropriate stubs.
+   *
    * @param bim - Root BIM model
    * @param bimMeasure - BIM measure with DAX expression
    * @param bimTable - Parent table containing measure
@@ -706,7 +817,7 @@ export class MeasureConverter {
    * @param rawCalcs - Set of raw calculation names
    * @param tableLists - Lists of table usage (fact/dim/unused)
    * @param fellOut - Array tracking measures that fell through to fallback
-   * @returns SMLMetricCalculated or undefined if conversion fails completely
+   * @returns Array of SMLMetricCalculated (1 for normal, 2 for dual-context split) or undefined
    */
   async metricFromCalc(
     bim: BimRoot,
@@ -717,7 +828,7 @@ export class MeasureConverter {
     rawCalcs: Set<string>,
     tableLists: TableLists,
     fellOut: Array<string>,
-  ): Promise<SMLMetricCalculated | undefined> {
+  ): Promise<SMLMetricCalculated[] | undefined> {
     // Debugging breakpoint for specific measure
     if (bimMeasure.name === "MaxPremiumYr") {
       console.log("break");
@@ -757,7 +868,7 @@ export class MeasureConverter {
 
       rawCalcs.add(bimMeasure.name);
       tableLists.measTables.add(bimTable.name);
-      return smlMetric;
+      return [smlMetric];
     }
 
     // Check for transitive calculation group dependencies via tracker
@@ -791,7 +902,7 @@ export class MeasureConverter {
 
         rawCalcs.add(bimMeasure.name);
         tableLists.measTables.add(bimTable.name);
-        return smlMetric;
+        return [smlMetric];
       }
     }
 
@@ -876,9 +987,28 @@ export class MeasureConverter {
     // Add to rawCalcs if fallback
     if (pipelineResult.category === ConversionCategory.UNCONVERTIBLE) {
       rawCalcs.add(bimMeasure.name);
+
+      // Check for dual-context usage - if measure is used in both boolean and numeric
+      // contexts, create split measures with type-appropriate stubs
+      const splitMeasures = this.createSplitMeasures(
+        smlMetric,
+        daxExpression,
+        bimTable,
+        result,
+        attrMaps,
+        result.models[0],
+      );
+
+      if (splitMeasures) {
+        // Return split measures instead of original
+        // The original measure won't be added - only the split versions
+        rawCalcs.add(`${bimMeasure.name}_num`);
+        rawCalcs.add(`${bimMeasure.name}_bool`);
+        return splitMeasures;
+      }
     }
 
-    return smlMetric;
+    return [smlMetric];
   }
 
   /**

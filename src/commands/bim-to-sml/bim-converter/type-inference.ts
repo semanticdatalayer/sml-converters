@@ -57,6 +57,33 @@ export function getUsageTypes(context: UsageContext, measureName: string): MdxTy
 }
 
 /**
+ * Check if a measure is used in both BOOLEAN and NUMERIC contexts (dual-context).
+ * @param context - The usage context to query
+ * @param measureName - Name of the measure
+ * @returns true if measure is used in both contexts
+ */
+export function isDualContext(context: UsageContext, measureName: string): boolean {
+  const types = context.measureTypes.get(measureName);
+  if (!types) return false;
+  return types.has(MdxType.BOOLEAN) && types.has(MdxType.NUMERIC);
+}
+
+/**
+ * Get all measures that are used in dual context (both BOOLEAN and NUMERIC).
+ * @param context - The usage context to query
+ * @returns Array of measure names that have dual-context usage
+ */
+export function getDualContextMeasures(context: UsageContext): string[] {
+  const dualContext: string[] = [];
+  for (const [measureName, types] of context.measureTypes) {
+    if (types.has(MdxType.BOOLEAN) && types.has(MdxType.NUMERIC)) {
+      dualContext.push(measureName);
+    }
+  }
+  return dualContext;
+}
+
+/**
  * Returns the type that an operator expects its arguments to be.
  * @param op - The operator (AND, OR, NOT, +, -, *, /, ^, >, <, =, <>, >=, <=)
  * @returns The expected argument type for the operator
