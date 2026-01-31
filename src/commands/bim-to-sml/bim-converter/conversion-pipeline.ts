@@ -12,7 +12,7 @@ import { ConversionContext } from "./conversion-templates/conversion-context";
 import { VarInliner } from "./var-analysis/var-inliner";
 import { Logger } from "../../../shared/logger";
 import { escapeForComment, getFallbackValue } from "./tools";
-import { UsageContext, inferTypes, MdxType, getUsageTypes } from "./type-inference";
+import { UsageContext, inferTypes, MdxType, getUsageTypes, getFunctionReturnType } from "./type-inference";
 
 /**
  * Configuration for conversion pipeline
@@ -111,12 +111,25 @@ export class ConversionPipeline {
     // Run type inference to collect measure usage contexts (if usageContext provided)
     // This tracks whether measures are used in boolean vs numeric contexts
     if (this.config.usageContext) {
-      inferTypes(daxExpression, this.config.usageContext);
+      try {
+        inferTypes(daxExpression, this.config.usageContext);
+      } catch (inferError) {
+        // Type inference failure is non-fatal - continue without type context
+        this.logger.debug(`Type inference failed for '${daxExpression}': ${inferError instanceof Error ? inferError.message : String(inferError)}`);
+      }
     }
 
-    // Tokenize expression
-    const tokenizer = new DaxTokenizer();
-    const tokens = tokenizer.tokenize(daxExpression);
+    // Tokenize expression - wrap in try-catch to handle malformed DAX gracefully
+    let tokens: DaxToken[];
+    try {
+      const tokenizer = new DaxTokenizer();
+      tokens = tokenizer.tokenize(daxExpression);
+    } catch (parseError) {
+      // DAX parsing failed - log warning and return TODO fallback
+      const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
+      this.logger.warn(`DAX parsing failed for expression: ${errorMsg}`);
+      return this.createFallback(daxExpression, `DAX parse error: ${errorMsg}`);
+    }
 
     // Check if expression contains VARs - if so, skip Stages 1-3 and go to Stage 4
     // This prevents all stages from converting expressions with VAR references that aren't inlined
@@ -544,34 +557,41 @@ export class ConversionPipeline {
 
   /**
    * Stage 6: Create fallback TODO stub
-   * Uses type-aware fallback values:
-   * - BOOLEAN-only context: (1 = 1) - valid MDX boolean TRUE
-   * - NUMERIC or mixed context: 1 for boolean functions, 0 for numeric
+   * Uses type-aware fallback values based on the RETURN TYPE of the expression:
+   * - BOOLEAN return type: (1 = 1) - valid MDX boolean TRUE
+   * - NUMERIC return type: 0
+   * - UNKNOWN: falls back to isBooleanReturningExpression() heuristic
+   * @param daxExpression - Original DAX expression
+   * @param reason - Optional reason for fallback (e.g., parse error message)
    */
-  private createFallback(daxExpression: string): PipelineResult {
-    // Determine the expected type from usage context if available
-    // For BOOLEAN-only usage, use (1 = 1) which is valid MDX boolean
-    // For NUMERIC or mixed usage, use numeric fallback (1 or 0)
+  private createFallback(daxExpression: string, reason?: string): PipelineResult {
+    // Determine the expected type based on the RETURN TYPE of the top-level function
+    // NOT based on the types of referenced measures inside the expression
+    // For example: DIVIDE(..., NOT([X]) && [Y]) returns NUMERIC even though X and Y are in boolean context
     let expectedType: MdxType | undefined;
 
-    if (this.config.usageContext) {
-      // Check all measure references in the expression for their usage types
-      // If ANY measure is used only in BOOLEAN context, use BOOLEAN fallback
-      const measureTypes = this.config.usageContext.measureTypes;
-      for (const [measureName, types] of measureTypes) {
-        const typeArray = Array.from(types);
-        // If measure is used ONLY in BOOLEAN context (not mixed with NUMERIC)
-        if (typeArray.length === 1 && typeArray[0] === MdxType.BOOLEAN) {
-          expectedType = MdxType.BOOLEAN;
-          break;
+    try {
+      const tokenizer = new DaxTokenizer();
+      const tokens = tokenizer.tokenize(daxExpression);
+      // Find the top-level function token
+      const topLevelFunc = tokens.find(t => t instanceof FunctionToken) as FunctionToken | undefined;
+      if (topLevelFunc) {
+        const returnType = getFunctionReturnType(topLevelFunc.functionAgg);
+        if (returnType !== MdxType.UNKNOWN) {
+          expectedType = returnType;
         }
       }
+    } catch {
+      // If parsing fails, fall through to default logic
     }
 
     const fallbackValue = getFallbackValue(daxExpression, expectedType);
+    const comment = reason
+      ? `${escapeForComment(reason)} - ${escapeForComment(daxExpression)}`
+      : escapeForComment(daxExpression);
     return {
       success: true,
-      expression: `${fallbackValue} /* TODO: ${escapeForComment(daxExpression)} */`,
+      expression: `${fallbackValue} /* TODO: ${comment} */`,
       confidence: 0.0,
       category: ConversionCategory.UNCONVERTIBLE,
       stage: 6,
@@ -579,6 +599,7 @@ export class ConversionPipeline {
       metadata: {
         originalDax: daxExpression,
         method: "fallback",
+        ...(reason && { reason }),
       },
     };
   }
