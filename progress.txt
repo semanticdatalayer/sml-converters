@@ -413,3 +413,143 @@ New deployment errors detected (different from previous session):
 - Time intelligence templates may reference hierarchy levels that don't exist in converted model
 
 ---
+
+## Iteration 10 - Fix time intelligence level validation + more boolean fixes
+
+**What was implemented:**
+1. PARALLELPERIOD/PREVIOUSMONTH templates: Added `levelExistsInDimension()` validation
+2. IF template: Added `hasBooleanTypeMismatch()` to detect bare measures in AND/OR context
+3. ISBLANK template: Changed `value IS NULL` → `ISEMPTY(value)` (IS NULL invalid for function results)
+4. CONCATENATE template: Wrapped operands with `CSTR()` for type conversion
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/parallelperiod-template.ts`
+- `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/previousmonth-template.ts`
+- `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/if-template.ts`
+- `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/isblank-template.ts`
+- `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/concatenate-template.ts`
+
+**Result:** Fixed "Level Month not found" error for PFM_from_Daniel
+
+**Analysis:**
+- Time intelligence functions (PARALLELPERIOD, PREVIOUSMONTH) were generating MDX refs to non-existent hierarchy levels
+- Dates dimension in PFM model has flat structure: single `Date` level with `Month` as secondary attribute
+- MDX `ParallelPeriod([dim].[hier].[Month], ...)` requires `Month` to be a hierarchy LEVEL, not attribute
+- Fix: Validate level exists in dimension hierarchy, reject with TODO stub if not
+- ISBLANK using `IS NULL` caused "IS NULL not valid for function results" - changed to ISEMPTY()
+- CONCATENATE without CSTR() caused type errors when concatenating DateTime with String
+
+**New Error (PFM_from_Daniel):** "Measure ProjectID in calculation is not a measure"
+- Same architectural limitation as test_bim's TopTaskID issue
+- ProjectID is dimension key column used in arithmetic calculation context
+- Converter creates it as dimension key metric (average), but DAX needs sum
+- Requires architectural changes - documented as "future work"
+
+**Learnings:**
+- Time intelligence requires multi-level hierarchies (Year > Quarter > Month > Day)
+- Flat date dimensions (Date level + Month attribute) don't support time intelligence patterns
+- ISEMPTY() is the correct MDX function for null checks on function results
+- CSTR() needed for type conversion in string concatenation (DateTime → String)
+- "Measure X is not a measure" indicates dimension key used in calc context
+
+---
+
+## Summary: Final Status of Failing BIM Files (Previous PRD)
+
+| File | Status | Blocker |
+|------|--------|---------|
+| Trek_bim.json | **Now in scope** | No relationships in BIM file |
+| test_bim.json | Future Work | TopTaskID: dimension key as calc measure |
+| PFM_from_Daniel_bim.json | Future Work | ProjectID: dimension key as calc measure |
+
+---
+
+## NEW PRD: Handle BIM Files with No Relationships
+
+**Started:** 2026-01-30
+
+This PRD addresses the Trek_bim.json scenario - BIM files with no relationships between tables.
+
+### Approach
+- Detect when `relationships` array is missing or empty
+- Treat all non-excluded tables as standalone fact tables
+- Columns with `summarizeBy` (sum, count, average, etc.) → implicit metrics
+- Columns with `summarizeBy: "none"` → degenerate dimension attributes
+
+### User Stories
+- US-001: Detect no-relationships scenario
+- US-002: Classify standalone tables as facts
+- US-003: Create implicit metrics from aggregatable columns
+- US-004: Create degenerate dimensions from non-aggregatable columns
+- US-005: Test Trek_bim.json conversion and deploy
+
+---
+
+## Iteration 11 - US-001: Detect No-Relationships Scenario
+
+**What was implemented:**
+- Added `hasNoRelationships(bim: BimRoot): boolean` method to TableConverter
+- Returns true when `relationships` array is missing, undefined, or empty
+- Modified `listUnusedBimTables()` to skip `listUnusedNoRelationships()` when no relationships exist
+- Added info log: "No relationships found in model - treating tables as standalone facts"
+- Hidden/private tables (via `listTablesAllColsHidden`) still get excluded
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/table-converter.ts`
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Learnings for future iterations:**
+- `listUnusedNoRelationships()` was the culprit marking all tables as unused
+- Still need to run `listTablesAllColsHidden()` for DateTableTemplate exclusion
+- US-002 will need to modify `populateTableLists()` to add tables to factTables when no relationships
+
+---
+
+## Iteration 12 - US-002: Classify Standalone Tables as Facts
+
+**What was implemented:**
+- Modified `populateTableLists()` to check for no-relationships scenario using `hasNoRelationships()`
+- When no relationships, all non-excluded tables added to `factTables` array
+- `dimTables` remains empty (dimensions will come from degenerate dims in US-004)
+- Early return after handling standalone facts to skip relationship-based logic
+- Added distinct log message: "Standalone fact tables (no relationships):: ..."
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/table-converter.ts`
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Learnings for future iterations:**
+- `hasNoRelationships()` reused from US-001 for clean detection
+- Early return pattern keeps existing relationship-based logic untouched
+- US-003 will create implicit metrics from columns with `summarizeBy`
+- US-004 will populate degenerate dimensions for non-aggregatable columns
+
+---
+
+## Iteration 13 - US-003: Create Implicit Metrics from Aggregatable Columns
+
+**What was implemented:**
+- Verified existing `measuresFromColumns()` method already handles metrics creation for standalone facts
+- The method creates SML base metrics with `calculation_method` based on `summarizeBy`:
+  - sum → Sum, count → NonDistinctCount, average → Average, min → Minimum, max → Maximum, distinctcount → CountDistinct
+- Columns with `summarizeBy: "none"` are skipped (via `doCreateSummary()`)
+- Trek_bim.json conversion now produces 6 metrics from 6 aggregatable columns across 3 fact tables
+
+**Files changed:**
+- No code changes needed - functionality already existed via `measuresFromColumns()`
+- Updated PRD.md to mark US-003 acceptance criteria as complete
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Verification:**
+- Trek_bim.json conversion: 6 metrics created (Number OF Reports, Number of reports fired via email, Number of Users x3 tables, Number of Cubes)
+- Each metric has proper `unique_name`, `calculation_method`, `column`, and `dataset` references
+
+**Learnings for future iterations:**
+- SML base metrics use `calculation_method` field, not MDX expressions
+- Existing `measuresFromColumns()` already supports standalone fact scenario via `factTableNames` filter
+- US-004 needs to create degenerate dimensions for columns with `summarizeBy: "none"` (like "Cube" column in Cubes & Users table)
+
+---

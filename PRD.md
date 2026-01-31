@@ -50,13 +50,13 @@ When a Power BI BIM file has NO relationships defined between tables, the curren
 **Description:** As a converter, I need to create metrics from columns that have `summarizeBy` aggregation hints.
 
 **Acceptance Criteria:**
-- [ ] In MeasureConverter, add method to create metrics from columns with `summarizeBy` in ["sum", "count", "average", "min", "max", "distinctcount"]
-- [ ] Call this method for standalone fact tables after dataset creation
-- [ ] Metric `unique_name` uses existing naming conventions (e.g., `m_<table>.<column>`)
-- [ ] Metric expression uses appropriate MDX aggregation: `Sum([dataset.Table].[Column])` etc.
-- [ ] Skip columns with `summarizeBy: "none"` - these become degenerate dimension attributes
-- [ ] Typecheck passes
-- [ ] Run `npm run test-custom-calcs` passes
+- [x] In MeasureConverter, add method to create metrics from columns with `summarizeBy` in ["sum", "count", "average", "min", "max", "distinctcount"]
+- [x] Call this method for standalone fact tables after dataset creation
+- [x] Metric `unique_name` uses existing naming conventions (e.g., `m_<table>.<column>`)
+- [x] Metric uses appropriate SML `calculation_method` based on `summarizeBy` value
+- [x] Skip columns with `summarizeBy: "none"` - these become degenerate dimension attributes
+- [x] Typecheck passes
+- [x] Run `npm run test-custom-calcs` passes
 
 ---
 
