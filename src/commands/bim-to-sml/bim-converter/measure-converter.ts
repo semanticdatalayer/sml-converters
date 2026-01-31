@@ -118,6 +118,16 @@ export class MeasureConverter {
     let resolvedCount = 0;
     let unresolvedCount = 0;
 
+    // Build set of all valid metric unique_names (base metrics + calcs)
+    // If a referenced name is already a valid unique_name, don't remap it
+    const validUniqueNames = new Set<string>();
+    for (const metric of result.measures) {
+      validUniqueNames.add(metric.unique_name);
+    }
+    for (const calc of result.measuresCalculated) {
+      validUniqueNames.add(calc.unique_name);
+    }
+
     // Build a lookup map from original column/measure name to actual unique_name
     // This handles cases where unique_name was encoded (e.g., "GR Value w/o BOM" → "GR Value w_o BOM")
     const nameToUniqueName = new Map<string, string>();
@@ -134,9 +144,15 @@ export class MeasureConverter {
     }
 
     // Add all calculated metrics
+    // IMPORTANT: Only add if the label doesn't already map to a base metric unique_name
+    // Otherwise we'd overwrite a correct reference (e.g., calc "Post-Close Actual Hours_Current"
+    // with label "Post-Close Actual Hours" should not override base metric "Post-Close Actual Hours")
     for (const calc of result.measuresCalculated) {
       if (calc.label && calc.unique_name !== calc.label) {
-        nameToUniqueName.set(calc.label, calc.unique_name);
+        // Don't add if the label is already a valid unique_name (base metric with same name)
+        if (!validUniqueNames.has(calc.label) && !nameToUniqueName.has(calc.label)) {
+          nameToUniqueName.set(calc.label, calc.unique_name);
+        }
       }
     }
 
@@ -175,6 +191,12 @@ export class MeasureConverter {
           return match;
         }
 
+        // Skip if the referenced name is already a valid unique_name
+        // This prevents incorrectly remapping valid base metric references
+        if (validUniqueNames.has(referencedName)) {
+          return match;
+        }
+
         // Check if we have a mapping for this name to a different unique_name
         const actualUniqueName = nameToUniqueName.get(referencedName);
         if (actualUniqueName && actualUniqueName !== referencedName) {
@@ -183,7 +205,10 @@ export class MeasureConverter {
         }
 
         // Also check metricLookup for base metrics by column name
-        for (const [, metricInfo] of attrMaps.metricLookup.entries()) {
+        // Skip calc entries (key starts with 'calc') - they store measure labels as colName
+        // which can conflict with base metric column names
+        for (const [key, metricInfo] of attrMaps.metricLookup.entries()) {
+          if (key.startsWith('calc')) continue; // Skip calculated metric entries
           if (metricInfo.colName === referencedName && metricInfo.uniqueName !== referencedName) {
             resolvedCount++;
             return `[Measures].[${metricInfo.uniqueName}]`;

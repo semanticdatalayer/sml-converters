@@ -335,7 +335,9 @@ export class ColumnReference extends DaxToken {
       // Not a BIM measure - might be a column reference
       // Check if a base metric was already created for this column
       // Search metricLookup for any metric with this column name
+      // Skip calc entries (key starts with 'calc') - they store measure labels as colName
       for (const [key, metricInfo] of info.attrMaps.metricLookup.entries()) {
+        if (key.startsWith('calc')) continue; // Skip calculated metric entries
         if (metricInfo.colName === this.columnName) {
           return `[Measures].[${metricInfo.uniqueName}]`;
         }

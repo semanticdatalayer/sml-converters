@@ -25,7 +25,7 @@
 | test_bim.json | future work | US-003 |
 | Ulta_bim.json | deployed | US-004 |
 | POC_bim.json | deployed | US-005 |
-| PFM_from_Daniel_bim.json | pending | - |
+| PFM_from_Daniel_bim.json | future work | US-006 |
 
 ---
 
@@ -49,6 +49,17 @@
 - **Required work**: Architectural changes to handle columns that serve dual purposes
   - Need to create separate metrics for different aggregation contexts
   - Or detect when DAX expressions need different aggregation than dimension key
+- **Status**: Documented as future work, out of scope for bug-fix PRD
+
+### PFM_from_Daniel_bim.json - TODO stub type conflicts
+- **Issue**: Boolean-returning functions (HASONEVALUE, etc.) use `1` as TODO stub for numeric compatibility
+- **Problem**: Same stub used in BOTH numeric (`2088 * [HasOneCurrency]`) AND boolean (`[HasOneCurrency] AND [Other]`) contexts
+- **Error**: "Function AndOperator requires arguments of type BooleanType$, AttributeValue(...) has type IntType"
+- **Root cause**: MDX is type-strict. `1` is IntType, `TRUE` is BooleanType. Can't satisfy both contexts.
+- **Required work**: Fundamental type-system handling
+  - Option 1: Detect usage context and generate appropriate stub type
+  - Option 2: Use `(1 = 1)` which is boolean TRUE but may not work in all arithmetic
+  - Option 3: Require users to manually fix TODO stubs (current approach)
 - **Status**: Documented as future work, out of scope for bug-fix PRD
 
 ---
@@ -248,5 +259,48 @@
 - **Issue**: When COUNTROWS references an unused table, `createAndAddCountRowsMeasure()` returns empty string but caller still created calculation
 - **Error**: "Error getting physical type of flat attribute [DocRowCount]: Flat attribute `` not found"
 - **Fix**: Added check `if (!referencedMetric)` to skip calculation creation and log warning
+
+### Fix 10: Self-referential cycle in calculated measures
+- **Files**: `measure-converter.ts`, `dax-converter.ts`
+- **Issue**: When a calculated metric's label matches a base metric's unique_name, `resolveUnresolvedReferences()` would incorrectly remap valid base metric references to the calc's unique_name
+- **Error**: "Cycle calculated measure reference detected. Reference path: Post-Close Actual Hours_Current->Post-Close Actual Hours_Current"
+- **Root cause**:
+  1. Base metric `Post-Close Actual Hours` created for column on `Actuals After LCM` table
+  2. Calc metric with label `Post-Close Actual Hours` and unique_name `Post-Close Actual Hours_Current` created for measure on `Current` table
+  3. `resolveUnresolvedReferences()` built a `nameToUniqueName` map that didn't prevent calc labels from overwriting base metric unique_names
+  4. Expression `[Measures].[Post-Close Actual Hours]` (correct reference to base metric) was remapped to `[Measures].[Post-Close Actual Hours_Current]` (self-reference)
+- **Fix**:
+  1. Build a `validUniqueNames` set of all metric unique_names (base + calc)
+  2. Skip adding calc label→unique_name mapping if label is already a valid unique_name
+  3. In second pass, skip remapping if referenced name is already a valid unique_name
+  4. Skip calc entries in metricLookup searches (key starts with 'calc')
+
+---
+
+## Iteration 6 - US-006: PFM_from_Daniel_bim.json
+
+**What was implemented:**
+- Fixed self-referential cycle bug in `resolveUnresolvedReferences()`
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/measure-converter.ts`
+- `src/commands/bim-to-sml/bim-converter/dax-converter.ts`
+
+**Result:** Future work (skipped)
+
+**Analysis:**
+- First error: "Cycle calculated measure reference detected"
+  - Root cause: Calc with label matching base metric unique_name caused incorrect remapping
+  - Fixed by tracking valid unique_names and preventing invalid overwrites
+- Second error (after fix): "Function AndOperator requires arguments of type BooleanType$"
+  - Root cause: `HasOneCurrency` TODO stub is `1` (IntType) but used in boolean AND context
+  - This is a fundamental type-system conflict requiring architectural changes
+  - Same TODO stub cannot satisfy both numeric and boolean contexts
+
+**Learnings for future iterations:**
+- When calc labels match base metric unique_names, prevent remapping
+- Build a validUniqueNames set to check before any name resolution
+- MDX is stricter about types than DAX - boolean and numeric aren't interchangeable
+- Some TODO stubs will need manual intervention by users
 
 ---
