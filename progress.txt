@@ -201,3 +201,57 @@ This PRD addresses errors in `/Users/dianne/Downloads/bim/tests1/` files as list
   - npm run test-custom-calcs passes (54% conversion rate maintained)
   - Typecheck passes
 ---
+
+## Iteration 7 - US-006: Add automated test-deploy script
+- **Problem**: Need an easy way to convert BIM files and deploy to AtScale for testing
+- **Solution**: Created `scripts/test-deploy.ts` wrapper that calls `pnpm pbi-deploy` from SML test directory
+- **Implementation**:
+  - Script validates input file/directory path
+  - Validates SML test directory exists
+  - Runs `pnpm pbi-deploy` with appropriate arguments
+  - Reports clear pass/fail status with exit codes
+  - Supports `--keep` flag to retain deployed catalogs
+- **Files changed**:
+  - `scripts/test-deploy.ts` - New wrapper script
+  - `package.json` - Added `test-deploy` npm script
+  - `PRD.md` - Marked US-006 acceptance criteria complete
+- **Learnings for future iterations**:
+  - `pbi-deploy` script in SML repo handles full convert-patch-deploy pipeline
+  - Wrapper scripts can run commands in different directories via `cwd` option
+  - Both `deploy-test` (inline) and `test-deploy` (wrapper) approaches now available
+  - The SML test directory has all required env vars in its .env file
+- **Verified**:
+  - npm run build passes (typecheck)
+  - npm run test-custom-calcs passes (54% conversion rate)
+  - Script created with full usage documentation
+---
+
+## Iteration 8 - US-007: Run test-deploy on all error files and document results
+- **Problem**: Need comprehensive testing of all 41 BIM files in tests1 directory to document pass/fail status
+- **Result**: 19 PASS (46%), 22 FAIL (54%)
+- **Passing files (19)**:
+  - Commercial_KPIs, DaVinci_Usage_Metrics_Report, Dealer_Performance_Dashboard
+  - FactAutoCoverage_Pivot, FactCoverage_Pivot, FactPolicyLine, FactProduction
+  - Global_Report_-_Assembly_KPIs, HDNA_Magellan_Report, Machining_Performance.Loss__Model
+  - Magellan_-_Usage_Metrics_Report, Marketing_-_Advertising, Most_Loved
+  - Planogram_Informational_DataModel, Planogram_Integration_DataModel, POC
+  - Retail_Account_Policy, RetailPolicyLine, Usage_Metrics_Report
+- **Failure categories**:
+  1. **AtScale server: dimension-less model (11 files)** - Server bug with models having no dimensions
+  2. **AtScale server: single dataset (5 files)** - Server bug with parsedXml.schema.data-sets.data-set.map
+  3. **SML validation: hierarchy conflict (2 files)** - Hilcorp files have duplicate level issues
+  4. **Converter: multi-column relationship (1 file)** - BayerVital warning about multi-column relationships
+  5. **DAX parsing errors (3 files)** - magalu, Monthly_Sales_Dashboard, StateSt need converter work
+- **Files changed**:
+  - `PRD.md` - Updated US-007 with complete test results and documentation
+- **Learnings for future iterations**:
+  - Most failures (16 of 22) are AtScale server-side issues, not converter bugs
+  - Dimension-less models occur when all relationships point to excluded LocalDateTable tables
+  - Single-dataset models trigger server bug with XML parsing
+  - SML hierarchy generation needs separate PRD for handling complex multi-hierarchy cases
+  - DAX parsing edge cases (special characters in Portuguese, specific YTD patterns) need continued work
+- **Verified**:
+  - npm run test-custom-calcs passes (54% conversion rate maintained)
+  - npm run build passes (typecheck)
+  - All 41 files tested and documented
+---

@@ -141,14 +141,65 @@ Fix BIM-to-SML conversion and deployment errors identified in `/Users/dianne/Dow
 
 **Acceptance Criteria:**
 
-- [ ] Run test-deploy on FactPolicyLine_bim.json - document result
-- [ ] Run test-deploy on Marketing_-_Advertising_bim.json - document result
-- [ ] Run test-deploy on RetailPolicyLine_bim.json - document result
-- [ ] Run test-deploy on Assembly files - document results
-- [ ] Run test-deploy on files with parsing errors - document results
-- [ ] Run test-deploy on files with type errors - document results
-- [ ] Create summary table of pass/fail status for all files
-- [ ] Document any files requiring manual intervention or separate PRD
+- [x] Run test-deploy on FactPolicyLine_bim.json - document result
+- [x] Run test-deploy on Marketing_-_Advertising_bim.json - document result
+- [x] Run test-deploy on RetailPolicyLine_bim.json - document result
+- [x] Run test-deploy on Assembly files - document results
+- [x] Run test-deploy on files with parsing errors - document results
+- [x] Run test-deploy on files with type errors - document results
+- [x] Create summary table of pass/fail status for all files
+- [x] Document any files requiring manual intervention or separate PRD
+
+**Test Results Summary (41 files tested):**
+
+| Status | Count | Percentage |
+|--------|-------|------------|
+| ✅ PASS | 19 | 46% |
+| ❌ FAIL | 22 | 54% |
+
+**Passing Files (19):**
+| File | Status |
+|------|--------|
+| Commercial_KPIs_bim.json | ✅ PASS |
+| DaVinci_Usage_Metrics_Report_bim.json | ✅ PASS |
+| Dealer_Performance_Dashboard_bim.json | ✅ PASS |
+| FactAutoCoverage_Pivot_bim.json | ✅ PASS |
+| FactCoverage_Pivot_bim.json | ✅ PASS |
+| FactPolicyLine_bim.json | ✅ PASS |
+| FactProduction_bim.json | ✅ PASS |
+| Global_Report_-_Assembly_KPIs_bim.json | ✅ PASS |
+| HDNA_Magellan_Report_bim.json | ✅ PASS |
+| Machining_Performance.Loss__Model_bim.json | ✅ PASS |
+| Magellan_-_Usage_Metrics_Report_bim.json | ✅ PASS |
+| Marketing_-_Advertising_bim.json | ✅ PASS |
+| Most_Loved_bim.json | ✅ PASS |
+| Planogram_Informational_DataModel_bim.json | ✅ PASS |
+| Planogram_Integration_DataModel_bim.json | ✅ PASS |
+| POC_bim.json | ✅ PASS |
+| Retail_Account_Policy_bim.json | ✅ PASS |
+| RetailPolicyLine_bim.json | ✅ PASS |
+| Usage_Metrics_Report_bim.json | ✅ PASS |
+
+**Failing Files by Category (22):**
+
+| Category | Files | Root Cause |
+|----------|-------|------------|
+| AtScale server: dimension-less model | Assembly_KPI, Assembly_KPIs_Model, A&P_Pacing_VS_Budget, Interactive_PVM, Manual_Load_Tracking, Marketing, Most_Loved_Index, Price_Checker, Similarweb_Benchmark, Size_Heat_Map, Trade_Tracker | Server returns "Cannot read properties of undefined (reading 'map')" for models without dimensions |
+| AtScale server: single dataset | EU_Safety_Model, epm_mtd, External_Dashboard_Index, HDT07_Overview, Magellan_Refresh_Test | Server bug "parsedXml.schema.data-sets.data-set.map is not a function" |
+| SML validation: hierarchy conflict | Hilcorp, Hilcorp_SSAS_Model | "Level X is duplicated in hierarchies but levels below differ" |
+| Converter: multi-column relationship | BayerVital | Table has relationships to multiple columns (conversion warning) |
+| DAX parsing error | magalu, Monthly_Sales_Dashboard, StateSt | Specific DAX patterns not yet handled |
+
+**Files Requiring Separate PRD:**
+1. **Hilcorp files** - SML hierarchy generation produces duplicate level conflicts when BIM has multiple hierarchies sharing levels
+2. **magalu_bim** - DAX expression "% Abandono de Carrinho" contains unconverted pattern
+3. **Monthly_Sales_Dashboard** - "m_ytd Delta Dealers %" expression parse error
+4. **StateSt** - MDX generation issue with measure references
+
+**Server-Side Issues (Not Converter Bugs):**
+- 11 files fail due to AtScale server not handling dimension-less models
+- 5 files fail due to AtScale server bug with single-dataset models
+- These are documented for AtScale engineering to address
 
 ## Non-Goals
 
