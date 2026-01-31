@@ -753,9 +753,13 @@ export class MeasureConverter {
     );
 
     if (!measureUniqueName) {
+      // Use qualified name with table prefix to avoid conflicts with dimension attributes
+      // that may have the same column name (e.g., "Id" on multiple tables)
+      // This ensures metrics are distinguishable from attributes when referenced in MDX
+      const qualifiedName = `${tableName} ${c.name}`;
       measureUniqueName = createUniqueAttrName(
         attrMaps.attrNameMap,
-        c.name,
+        qualifiedName,
         default_meas_name,
         "measure from column",
         tableName,

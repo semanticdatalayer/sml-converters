@@ -260,10 +260,10 @@ export class TableColumnReference extends DaxToken {
       // 2. Otherwise fall back to column's summarizeBy property
       // 3. Default to 'sum' if neither is available
       const bimTable = info.bim.model?.tables.find(
-        (t: any) => t.name === this.tableName
+        (t: any) => t.name.toLowerCase() === this.tableName.toLowerCase()
       );
       const bimColumn = bimTable?.columns?.find(
-        (c: any) => c.name === columnName
+        (c: any) => c.name.toLowerCase() === columnName.toLowerCase()
       );
       const aggFn = info.parentAggFn?.toLowerCase() ||
                     bimColumn?.summarizeBy?.toLowerCase() ||

@@ -96,13 +96,13 @@ Fix multiple BIM-to-SML conversion failures identified across test files. Errors
 **Description:** As a converter, I want dimension table column references in calculations to create TODO stubs so that "Measure X is not a measure" errors produce valid output.
 
 **Acceptance Criteria:**
-- [ ] In `TableColumnReference.toMdx()`, verify `isDimensionOnlyTable()` check throws to trigger TODO fallback
-- [ ] Ensure error message clearly states "dimension column reference cannot be converted"
-- [ ] TODO stub created for these expressions instead of validation error
-- [ ] Files now convert with TODO stubs instead of "Measure X is not a measure" errors
-- [ ] Run `npm run test-custom-calcs` - no new failures introduced
-- [ ] Typecheck passes
-- [ ] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
+- [x] In `TableColumnReference.toMdx()`, verify `isDimensionOnlyTable()` check throws to trigger TODO fallback
+- [x] Ensure error message clearly states "dimension column reference cannot be converted"
+- [x] TODO stub created for these expressions instead of validation error
+- [x] Files now convert with TODO stubs instead of "Measure X is not a measure" errors
+- [x] Run `npm run test-custom-calcs` - no new failures introduced
+- [x] Typecheck passes
+- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
 
 **Affected Files:** DaVinci_Usage_Metrics_Report, hardware, Magellan-Usage_Metrics_Report, PFM_bim, UOM_bim, vulnerabilities_bim
 

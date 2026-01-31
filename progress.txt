@@ -1020,3 +1020,41 @@ This PRD addresses ~45 failing BIM file conversions identified in `/Users/dianne
 - EXTERNALMEASURE is DAX function for referencing measures from external datasets - no MDX equivalent
 
 ---
+
+## Iteration 28 - US-005: Fix metric/attribute name collision causing deployment errors
+
+**What was implemented:**
+1. Modified `createAndAddMeasureFromColumn()` in measure-converter.ts to use qualified names
+   - Metric unique_names now include table prefix: `{tableName} {columnName}` (e.g., "Device Software Id")
+   - This avoids collision with dimension attributes that share the same column name
+
+2. Fixed case-insensitive column lookup in `TableColumnReference.toMdx()` in dax-converter.ts
+   - BIM columns might be uppercase (CS_NET_PAID) while DAX references lowercase (cs_net_paid)
+   - Changed table and column lookups to use `.toLowerCase()` for case-insensitive matching
+
+**Root cause analysis:**
+- Dimension tables often have columns named "Id" that become dimension level attributes
+- Fact tables also have columns named "Id" that become metrics when referenced in DAX
+- AtScale MDX resolver found the attribute instead of the metric when names matched
+- Error: "Measure Id in calculation is not a measure"
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/measure-converter.ts` - qualified metric names
+- `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - case-insensitive lookups
+
+**Result:** PASS - all affected files deploy successfully
+
+**Verification:**
+- npm run test-custom-calcs: PASS
+- Typecheck: PASS
+- hardware_bim.json: Deployed ✓
+- vulnerabilities_bim.json: Deployed ✓
+- PFM_bim.json: Deployed ✓
+
+**Learnings for future iterations:**
+- Metrics from columns should use qualified names (table + column) to avoid attribute collisions
+- DAX is case-insensitive but BIM column names preserve original casing
+- Always use case-insensitive lookups when searching BIM tables/columns from DAX expressions
+- The `isDimensionOnlyTable()` check already existed and worked for dimension column references
+
+---
