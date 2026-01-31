@@ -927,3 +927,96 @@ This PRD addresses ~45 failing BIM file conversions identified in `/Users/dianne
 - Some files produce valid SML but 0 datasets due to no relationships - this is expected for relationship-less models
 
 ---
+
+## Iteration 25 - US-002: Add ensureArray() helper for single-vs-array normalization
+
+**What was implemented:**
+1. Added `ensureArray<T>(val)` generic helper function to tools.ts
+   - Returns array as-is if already an array
+   - Wraps single object in array
+   - Returns empty array for null/undefined
+2. Applied `ensureArray()` in BimFileParser.parse() for top-level model arrays:
+   - tables, relationships, dataSources, perspectives, cultures, annotations
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/tools.ts` - Added ensureArray() helper
+- `src/commands/bim-to-sml/bim-file-parser.ts` - Applied ensureArray() to normalize arrays
+- `PRD.md` - Marked US-002 complete
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Notes:**
+- Initial implementation also normalized nested table arrays (columns, measures, hierarchies, etc.)
+- This caused "Cannot read properties of undefined (reading 'unique_name')" in RelationshipConverter
+- Root cause: some code paths expected undefined instead of empty array for hierarchies
+- Reverted to only normalize top-level model arrays to be conservative
+
+**Learnings for future iterations:**
+- Be conservative when normalizing arrays - only apply where needed
+- Some code paths may rely on `undefined` vs `[]` distinction
+- Top-level model arrays are safe to normalize; nested table arrays are riskier
+- ensureArray() is useful for JSON parsed from XML (XML-to-JSON converters often return single objects)
+
+---
+
+## Iteration 26 - US-003: Graceful DAX parsing failure with TODO stub
+
+**What was implemented:**
+1. Wrapped `DaxTokenizer.tokenize()` call in try-catch in ConversionPipeline.convert()
+2. On parse failure, log warning and return TODO fallback with original DAX and error message
+3. Also protected `inferTypes()` call since it uses tokenize internally
+4. Enhanced `createFallback()` to accept optional `reason` parameter for error context
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts`
+- `PRD.md` - marked US-003 complete
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Analysis:**
+- PRD mentioned error patterns like "Comma expected but OpenParen" - these are AtScale MDX deployment errors, not DAX parsing errors
+- Affected files (Commercial_KPIs, Dealer_Performance_Dashboard, etc.) already convert successfully
+- Implementation provides defensive protection for any potential DAX parsing failures (e.g., malformed VAR declarations)
+- Tested with malformed DAX `"VAR x"` (missing `=`) - correctly returns TODO fallback with error message
+
+**Learnings for future iterations:**
+- DAX tokenizer can throw errors on: invalid number format, invalid operator format, malformed VAR declarations
+- Deployment errors (Comma expected, CloseParen expected) come from AtScale MDX parser, not DAX tokenizer
+- Always wrap external tokenization calls in try-catch for robustness
+
+---
+
+## Iteration 27 - US-004: Handle malformed measure names with unclosed brackets
+
+**What was implemented:**
+1. Enhanced `parseColumnReference()` in dax-converter.ts to:
+   - Handle DAX `]]` escape sequences (double `]` = literal `]` in column name)
+   - Gracefully handle unclosed brackets (no `]` before end of expression)
+2. Added column name validation in `ColumnReference.toMdx()` and `TableColumnReference.toMdx()`:
+   - If column name contains `]`, throw error to trigger TODO fallback
+   - This is because MDX references to names with `]` are unreliable (even with `]]` escaping)
+3. Added `EXTERNALMEASURE` to unconvertible functions list
+   - DAX function that references external measures from another dataset
+   - No MDX equivalent
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - bracket escape handling, column name validation
+- `src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json` - added EXTERNALMEASURE
+
+**Result:** PASS - all affected files deploy successfully
+
+**Verification:**
+- Magellan_bim.json: Deployed ✓ (expressions with `[$]` become TODO stubs)
+- Magellan_RLS_Test_-_12-11-24_bim.json: Deployed ✓
+- QA_Dashboard_-_Last_7_Days_bim.json: Deployed ✓ (EXTERNALMEASURE now TODO stub)
+- PV_Top_2k_Customers_bim.json: Deployed ✓
+- npm run test-custom-calcs: PASS
+- Typecheck: PASS
+
+**Learnings for future iterations:**
+- DAX uses `]]` escape sequence: `[Booking Amt [$]]]` = column name `Booking Amt [$]`
+- MDX also uses `]]` escape, but AtScale's parser doesn't reliably handle nested brackets
+- Safest approach: if column name contains `]`, create TODO stub instead of trying to escape
+- EXTERNALMEASURE is DAX function for referencing measures from external datasets - no MDX equivalent
+
+---

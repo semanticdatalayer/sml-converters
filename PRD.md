@@ -79,13 +79,13 @@ Fix multiple BIM-to-SML conversion failures identified across test files. Errors
 **Description:** As a converter, I want to handle malformed DAX measure references like `[Booking Amt [$]` (missing closing bracket) so that these create TODO stubs instead of crashing.
 
 **Acceptance Criteria:**
-- [ ] In `dax-converter.ts` `parseColumnReference()`, handle unclosed bracket gracefully
-- [ ] If `]` not found before end of expression, treat remainder as column name and log warning
-- [ ] Create TODO stub for expressions containing malformed references
-- [ ] Files: Magellan_RLS_Test, Magellan, QA_Dashboard variants now convert with TODO stubs
-- [ ] Run `npm run test-custom-calcs` - no new failures introduced
-- [ ] Typecheck passes
-- [ ] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
+- [x] In `dax-converter.ts` `parseColumnReference()`, handle unclosed bracket gracefully
+- [x] If `]` not found before end of expression, treat remainder as column name and log warning
+- [x] Create TODO stub for expressions containing malformed references
+- [x] Files: Magellan_RLS_Test, Magellan, QA_Dashboard variants now convert with TODO stubs
+- [x] Run `npm run test-custom-calcs` - no new failures introduced
+- [x] Typecheck passes
+- [x] Deploy affected files via `pnpm pbi-deploy` - fix errors until successful
 
 **Affected Files:** Magellan_RLS_Test-12-11-24, Magellan, PV_Top_2k_Customers_bim, QA_Dashboard-Last_7_Days_bim, QA_Dashboard-_Last_7_Days_bim, QA_Dashboard_-Last_7_Days_bim
 

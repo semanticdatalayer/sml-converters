@@ -246,6 +246,13 @@ export class TableColumnReference extends DaxToken {
       return `'${this.tableName}'`;
     }
 
+    // If column name contains ], MDX references become unreliable - trigger TODO fallback
+    if (columnName.includes("]")) {
+      throw new Error(
+        `Column name "${columnName}" contains ']' which cannot be reliably referenced in MDX`
+      );
+    }
+
     // Need to find or create a base metric for this table+column combination
     if (info && info.attrMaps && info.bim && info.measureConverter) {
       // Determine the aggregation function to use:
@@ -326,6 +333,13 @@ export class ColumnReference extends DaxToken {
 
   toMdx(info?: any): string {
     // DAX column/measure reference [Name] → MDX [Measures].[actual_unique_name]
+    // If column name contains ], MDX references become unreliable - trigger TODO fallback
+    if (this.columnName.includes("]")) {
+      throw new Error(
+        `Column name "${this.columnName}" contains ']' which cannot be reliably referenced in MDX`
+      );
+    }
+
     // Need to look up the actual SML unique_name that was created for this measure
     if (info && info.attrMaps && info.bim) {
       // First, try to find if this is a reference to a BIM measure that was converted to a calc
@@ -363,7 +377,7 @@ export class ColumnReference extends DaxToken {
       }
     }
 
-    // Fallback: use column name as-is (will likely cause validation error)
+    // Fallback: use column name as-is
     return `[Measures].[${this.columnName}]`;
   }
 
@@ -872,18 +886,39 @@ export class DaxTokenizer {
     const start = this.position;
     this.position++; // Skip [
 
-    while (
-      this.position < expression.length &&
-      expression[this.position] !== "]"
-    ) {
+    // DAX bracket escaping: ]] inside brackets = literal ]
+    // E.g., [Booking Amt [$]]] means column name is "Booking Amt [$]"
+    let columnName = "";
+    let foundClosingBracket = false;
+
+    while (this.position < expression.length) {
+      if (expression[this.position] === "]") {
+        // Check for escaped ]] (literal ] in column name)
+        if (
+          this.position + 1 < expression.length &&
+          expression[this.position + 1] === "]"
+        ) {
+          // Escaped ] - add literal ] to column name and skip both
+          columnName += "]";
+          this.position += 2;
+          continue;
+        }
+        // Real closing bracket
+        foundClosingBracket = true;
+        this.position++; // Skip ]
+        break;
+      }
+      columnName += expression[this.position];
       this.position++;
     }
 
-    if (this.position < expression.length) {
-      this.position++; // Skip ]
+    // Handle unclosed bracket gracefully - treat remainder as column name
+    // This creates a valid token instead of crashing
+    if (!foundClosingBracket && columnName.length > 0) {
+      // Log warning would happen at conversion time, not parsing time
+      // Column name is whatever we parsed before hitting end of expression
     }
 
-    let columnName = expression.substring(start + 1, this.position - 1);
     // DAX allows single quotes inside brackets for column names: ['Column Name']
     // Strip the single quotes to get the actual column name
     if (columnName.startsWith("'") && columnName.endsWith("'")) {

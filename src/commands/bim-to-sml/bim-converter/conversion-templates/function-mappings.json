@@ -121,7 +121,8 @@
     "EDATE",
     "VALUE",
     "ROUNDUP",
-    "ROUNDDOWN"
+    "ROUNDDOWN",
+    "EXTERNALMEASURE"
   ],
   "complex_patterns": [
     "CALCULATE",
