@@ -97,13 +97,13 @@ function orderDimensions(result: SmlConverterResult) {
       result.dimensions[di].relationships = undefined;
     } else {
       for (let ri = 0; ri < dim.relationships.length; ri++) {
-        const rel = result.models[0].relationships[ri];
+        const rel = dim.relationships[ri];
         const relationshipObjectOrder = {
           unique_name: undefined,
           from: undefined,
           to: undefined,
         };
-        result.models[0].relationships[ri] = Object.assign(
+        dim.relationships[ri] = Object.assign(
           relationshipObjectOrder,
           rel,
         );
