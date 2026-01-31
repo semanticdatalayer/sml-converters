@@ -220,6 +220,24 @@ export class TableConverter {
   }
 
   populateTableLists(bim: BimRoot, tableLists: TableLists) {
+    // When no relationships exist, treat all non-excluded tables as fact tables
+    if (this.hasNoRelationships(bim)) {
+      bim.model.tables.forEach((bimTable) => {
+        if (!tableLists.unusedTables.has(bimTable.name)) {
+          tableLists.factTables.push(bimTable);
+        }
+      });
+
+      this.logger.info(
+        `Standalone fact tables (no relationships):: ${arrayToStringAlphabetical(
+          this.tablesToStringList(tableLists.factTables),
+          ", ",
+        )}`,
+      );
+      // dimTables remains empty - dimensions come from degenerate dims later
+      return;
+    }
+
     // If table is on left and not right, then fact
     // else if measures are on it then both fact and dim
     // else dim dataset

@@ -36,12 +36,12 @@ When a Power BI BIM file has NO relationships defined between tables, the curren
 **Description:** As a converter, I need to classify all non-excluded tables as fact tables when no relationships exist.
 
 **Acceptance Criteria:**
-- [ ] Modify `populateTableLists()` to check for no-relationships scenario
-- [ ] When no relationships, add all non-excluded tables to `factTables` array
-- [ ] Leave `dimTables` empty when no relationships (dimensions come from degenerate dims later)
-- [ ] Existing table exclusion logic (calcGroupTables, isPrivate, isHidden, variationsOnly) still applies
-- [ ] Typecheck passes
-- [ ] Run `npm run test-custom-calcs` passes
+- [x] Modify `populateTableLists()` to check for no-relationships scenario
+- [x] When no relationships, add all non-excluded tables to `factTables` array
+- [x] Leave `dimTables` empty when no relationships (dimensions come from degenerate dims later)
+- [x] Existing table exclusion logic (calcGroupTables, isPrivate, isHidden, variationsOnly) still applies
+- [x] Typecheck passes
+- [x] Run `npm run test-custom-calcs` passes
 
 ---
 
