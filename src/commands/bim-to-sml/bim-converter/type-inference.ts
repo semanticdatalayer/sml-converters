@@ -209,6 +209,18 @@ export function getFunctionReturnType(funcName: string): MdxType {
   return MdxType.UNKNOWN;
 }
 
+/**
+ * Result of rewriting measure references in an expression.
+ */
+export interface RewriteResult {
+  /** The modified expression with split measure references */
+  expression: string;
+  /** Whether any references were rewritten */
+  modified: boolean;
+  /** Original expression preserved for comment */
+  originalExpression: string;
+}
+
 // Import token types for type inference tree walking
 import {
   DaxToken,
@@ -358,4 +370,156 @@ function inferTokenListWithOperators(tokens: DaxToken[], defaultType: MdxType, c
       inferTokenType(token, operatorExpectedType, context);
     }
   }
+}
+
+/**
+ * Position tracking for measure reference context.
+ */
+interface MeasureRefPosition {
+  /** Measure name */
+  measureName: string;
+  /** Start position in expression */
+  start: number;
+  /** End position in expression */
+  end: number;
+  /** Expected type at this reference */
+  expectedType: MdxType;
+}
+
+/**
+ * Rewrites references to split measures in an MDX expression.
+ * Replaces [MeasureName] with [MeasureName_num] or [MeasureName_bool] based on context.
+ *
+ * @param mdxExpression - The MDX expression to rewrite
+ * @param splitMeasures - Set of measure names that were split (without suffixes)
+ * @param originalDaxExpression - Original DAX expression for type inference
+ * @returns RewriteResult with modified expression and metadata
+ */
+export function rewriteSplitMeasureReferences(
+  mdxExpression: string,
+  splitMeasures: Set<string>,
+  originalDaxExpression: string,
+): RewriteResult {
+  if (splitMeasures.size === 0) {
+    return {
+      expression: mdxExpression,
+      modified: false,
+      originalExpression: mdxExpression,
+    };
+  }
+
+  // First, run type inference on the original DAX to get context for each reference
+  const context = createUsageContext();
+  inferTypes(originalDaxExpression, context);
+
+  // Now find all [Measures].[Name] patterns in the MDX
+  // and determine which need to be replaced
+  const measureRefPattern = /\[Measures\]\.\[([^\]]+)\]/g;
+  let modified = false;
+  const originalExpression = mdxExpression;
+
+  // We need to analyze the MDX expression to determine context at each reference point
+  // Since MDX and DAX have similar operator semantics, we can use the same approach
+  const result = mdxExpression.replace(measureRefPattern, (match, measureName, offset) => {
+    // Check if this measure was split
+    if (!splitMeasures.has(measureName)) {
+      return match; // Not a split measure, leave unchanged
+    }
+
+    // Determine context at this position in the expression
+    // Look for surrounding operators to determine type context
+    const contextType = inferContextAtPosition(mdxExpression, offset, measureName);
+
+    modified = true;
+
+    if (contextType === MdxType.BOOLEAN) {
+      return `[Measures].[${measureName}_bool]`;
+    } else {
+      // NUMERIC or UNKNOWN defaults to numeric
+      return `[Measures].[${measureName}_num]`;
+    }
+  });
+
+  return {
+    expression: result,
+    modified,
+    originalExpression,
+  };
+}
+
+/**
+ * Infer the type context at a specific position in an MDX expression.
+ * Looks for nearby operators to determine if the context is boolean or numeric.
+ *
+ * @param expression - The MDX expression
+ * @param position - The character position of the measure reference
+ * @param measureName - The measure name being analyzed
+ * @returns The inferred MdxType for this position
+ */
+function inferContextAtPosition(expression: string, position: number, measureName: string): MdxType {
+  // Look at surrounding text to determine context
+  // Search backwards and forwards for operators
+
+  // Get text before and after the measure reference
+  const before = expression.substring(0, position).toUpperCase();
+  const after = expression.substring(position).toUpperCase();
+
+  // Check for boolean operators nearby
+  // AND, OR, NOT operators indicate boolean context
+  const booleanOperators = [' AND ', ' OR ', 'NOT '];
+
+  for (const op of booleanOperators) {
+    // Check if there's a boolean operator immediately before (with possible whitespace)
+    const trimmedBefore = before.trimEnd();
+    if (trimmedBefore.endsWith(op.trimEnd())) {
+      return MdxType.BOOLEAN;
+    }
+
+    // Check if there's a boolean operator after the measure reference
+    // Find where this reference ends
+    const refEnd = after.indexOf(']', after.indexOf(']') + 1);
+    if (refEnd >= 0) {
+      const afterRef = after.substring(refEnd + 1).trimStart();
+      if (afterRef.startsWith(op.trimStart())) {
+        return MdxType.BOOLEAN;
+      }
+    }
+  }
+
+  // Check for arithmetic operators which indicate numeric context
+  const arithmeticOperators = ['+', '-', '*', '/', '^'];
+
+  for (const op of arithmeticOperators) {
+    // Check if there's an arithmetic operator immediately before
+    const trimmedBefore = before.trimEnd();
+    if (trimmedBefore.endsWith(op)) {
+      return MdxType.NUMERIC;
+    }
+
+    // Check after the reference
+    const refEnd = after.indexOf(']', after.indexOf(']') + 1);
+    if (refEnd >= 0) {
+      const afterRef = after.substring(refEnd + 1).trimStart();
+      if (afterRef.startsWith(op)) {
+        return MdxType.NUMERIC;
+      }
+    }
+  }
+
+  // Check for IIF/IF condition position (first argument is boolean)
+  // Pattern: IIF( ... [Measures].[Name] ...AND/OR... , ...)
+  // If we're inside the first argument of IIF/IF and there's a boolean op, it's boolean
+  const iifMatch = before.match(/\bI?IF\s*\(\s*$/);
+  if (iifMatch) {
+    // We're right after IIF(, so this could be in the condition - check for comma
+    const afterComma = after.indexOf(',');
+    const afterClose = after.indexOf(')');
+    // If no comma before close paren or if we're in first section, check for boolean ops
+    if (afterComma === -1 || afterComma > afterClose) {
+      return MdxType.BOOLEAN;
+    }
+  }
+
+  // Default to NUMERIC if we can't determine context
+  return MdxType.NUMERIC;
 }

@@ -770,3 +770,68 @@ This PRD addresses the PFM_from_Daniel_bim.json scenario - boolean-returning fun
 - US-007 will need to rewrite references to split measures in other expressions
 
 ---
+
+## Iteration 22 - US-007: Rewrite References to Split Measures
+
+**What was implemented:**
+1. Added `RewriteResult` interface to type-inference.ts for tracking rewrite results
+2. Added `rewriteSplitMeasureReferences()` function to type-inference.ts:
+   - Takes MDX expression, set of split measure names, and original DAX
+   - Finds all `[Measures].[Name]` references matching split measures
+   - Uses `inferContextAtPosition()` to determine boolean vs numeric context
+   - Returns rewritten expression with `_num` or `_bool` suffixes
+3. Added `inferContextAtPosition()` helper to detect context at specific position:
+   - Checks for boolean operators (AND, OR, NOT) before/after reference
+   - Checks for arithmetic operators (+, -, *, /, ^) indicating numeric context
+   - Detects IIF/IF condition position (first argument is boolean context)
+4. Added `splitMeasureRegistry` Map to MeasureConverter for tracking split measures
+5. Added `registerSplitMeasure()` and `getSplitMeasureNames()` methods
+6. Added `rewriteSplitMeasureReferences()` method to MeasureConverter:
+   - Iterates all calculated metrics except split measures themselves
+   - Calls type-inference rewrite function
+   - Preserves original expression in comment when modified
+7. Updated `createSplitMeasures()` to register split measures
+8. Updated dataset-converter.ts to call `rewriteSplitMeasureReferences()` after all measures converted
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/type-inference.ts` - Added rewrite functions
+- `src/commands/bim-to-sml/bim-converter/measure-converter.ts` - Added registry and rewrite method
+- `src/commands/bim-to-sml/bim-converter/dataset-converter.ts` - Call rewrite after conversion
+
+**Result:** PASS - typecheck and test-custom-calcs both pass
+
+**Learnings for future iterations:**
+- Context detection uses operator proximity analysis (boolean vs arithmetic operators)
+- IIF/IF first argument is always boolean context
+- Split measure references in other expressions must be rewritten after all measures converted
+- Registry pattern tracks which measures were split for later reference rewriting
+
+---
+
+## NEW PRD: Dual-Purpose Column Metrics
+
+**Started:** 2026-01-30
+
+This PRD addresses the test_bim.json and PFM_from_Daniel_bim.json scenarios where columns are used as both dimension level keys AND in DAX aggregation expressions.
+
+### Problem Statement
+- Dimension level keys in SML are structural (for joins), not aggregated
+- Current converter skips metric creation for columns "used" by dimensions
+- DAX expressions like `Sum('Table'[Col])` fail with "Measure X is not a measure"
+
+### Solution Approach
+- Scan DAX expressions to detect aggregation functions on columns
+- Track which columns are dimension keys
+- Create metrics with `{column}_{aggregation}` naming for dual-purpose columns
+- Update DAX-to-MDX resolution to find aggregation-specific metrics
+
+### User Stories
+- US-001: Extract aggregation contexts from DAX expressions
+- US-002: Track dimension key columns
+- US-003: Identify dual-purpose columns (intersection)
+- US-004: Create metrics for dual-purpose columns
+- US-005: Update DAX-to-MDX resolution
+- US-006: Test with test_bim.json
+- US-007: Test with PFM_from_Daniel_bim.json
+
+---

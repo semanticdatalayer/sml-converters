@@ -55,7 +55,7 @@ import {
   removeComments,
 } from "./tools";
 import { MeasureDependencyTracker } from "./measure-dependency-tracker";
-import { UsageContext, createUsageContext, getUsageTypes, isDualContext, getDualContextMeasures, MdxType } from "./type-inference";
+import { UsageContext, createUsageContext, getUsageTypes, isDualContext, getDualContextMeasures, MdxType, rewriteSplitMeasureReferences } from "./type-inference";
 // import { Tools } from "../../../shared/tools";
 
 export class MeasureConverter {
@@ -193,6 +193,9 @@ export class MeasureConverter {
       format: originalCalc.format,
       expression: `(1 = 1) /* TODO (boolean context): ${escapeForComment(daxExpression)} - Split from '${measureName}' which is used in both numeric and boolean contexts */`,
     };
+
+    // Register the split for later reference rewriting
+    this.registerSplitMeasure(measureName, numericUniqueName, booleanUniqueName);
 
     return [numericCalc, booleanCalc];
   }
@@ -351,6 +354,97 @@ export class MeasureConverter {
 
     if (resolvedCount > 0 || unresolvedCount > 0) {
       this.logger.info(`Resolved ${resolvedCount} measure references, ${unresolvedCount} could not be resolved`);
+    }
+  }
+
+  /**
+   * Tracks split measures created during conversion.
+   * Maps original measure name → [numericUniqueName, booleanUniqueName]
+   */
+  private splitMeasureRegistry: Map<string, [string, string]> = new Map();
+
+  /**
+   * Register a split measure pair for later reference rewriting.
+   * @param originalName - Original measure name (without suffix)
+   * @param numericUniqueName - Unique name of the _num variant
+   * @param booleanUniqueName - Unique name of the _bool variant
+   */
+  registerSplitMeasure(originalName: string, numericUniqueName: string, booleanUniqueName: string): void {
+    this.splitMeasureRegistry.set(originalName, [numericUniqueName, booleanUniqueName]);
+  }
+
+  /**
+   * Get all registered split measures.
+   * @returns Set of original measure names that were split
+   */
+  getSplitMeasureNames(): Set<string> {
+    return new Set(this.splitMeasureRegistry.keys());
+  }
+
+  /**
+   * Rewrite references to split measures in all calculated metric expressions.
+   * After identifying dual-context measures and creating split versions (_num and _bool),
+   * this method updates references in OTHER expressions to use the appropriate version
+   * based on context.
+   *
+   * @param result - SML converter result containing all calculated metrics
+   * @param bim - BIM root for looking up original DAX expressions
+   */
+  rewriteSplitMeasureReferences(
+    result: SmlConverterResult,
+    bim: BimRoot,
+  ): void {
+    const splitMeasures = this.getSplitMeasureNames();
+
+    if (splitMeasures.size === 0) {
+      return; // No split measures to rewrite
+    }
+
+    this.logger.info(`Rewriting references to ${splitMeasures.size} split measure(s): ${Array.from(splitMeasures).join(', ')}`);
+
+    let rewriteCount = 0;
+
+    // Build a map of measure name → original DAX expression for type inference
+    const measureDaxMap = new Map<string, string>();
+    for (const table of bim.model?.tables || []) {
+      for (const measure of table.measures || []) {
+        measureDaxMap.set(measure.name, removeComments(expressionAsString(measure.expression)));
+      }
+    }
+
+    for (const calc of result.measuresCalculated) {
+      if (!calc.expression) continue;
+
+      // Skip split measures themselves (they don't reference other split measures)
+      if (calc.label?.endsWith('_num') || calc.label?.endsWith('_bool')) {
+        continue;
+      }
+
+      // Get the original DAX expression for this measure for type inference
+      const originalDax = measureDaxMap.get(calc.label || '') || calc.expression;
+
+      // Rewrite references using type-aware logic
+      const rewriteResult = rewriteSplitMeasureReferences(
+        calc.expression,
+        splitMeasures,
+        originalDax,
+      );
+
+      if (rewriteResult.modified) {
+        // Add a comment preserving the original expression if not already present
+        const todoMatch = calc.expression.match(/\/\* TODO[^*]*\*\//);
+        if (!todoMatch) {
+          calc.expression = `${rewriteResult.expression} /* References to split measures rewritten from: ${escapeForComment(rewriteResult.originalExpression)} */`;
+        } else {
+          calc.expression = rewriteResult.expression;
+        }
+        rewriteCount++;
+        this.logger.debug?.(`Rewrote split measure references in '${calc.label}': ${calc.expression}`);
+      }
+    }
+
+    if (rewriteCount > 0) {
+      this.logger.info(`Rewrote references in ${rewriteCount} expression(s) to use split measures`);
     }
   }
 

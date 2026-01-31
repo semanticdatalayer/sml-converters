@@ -100,11 +100,11 @@ This feature adds expression tree type inference to detect usage context and gen
 **Description:** As a developer, I need references to split measures updated to use the appropriate version so the generated MDX is valid.
 
 **Acceptance Criteria:**
-- [ ] After identifying dual-context measures, do second pass over expressions
-- [ ] Replace `[MeasureName]` with `[MeasureName_num]` in numeric contexts
-- [ ] Replace `[MeasureName]` with `[MeasureName_bool]` in boolean contexts
-- [ ] Preserve original expression in TODO comment for user reference
-- [ ] Typecheck passes
+- [x] After identifying dual-context measures, do second pass over expressions
+- [x] Replace `[MeasureName]` with `[MeasureName_num]` in numeric contexts
+- [x] Replace `[MeasureName]` with `[MeasureName_bool]` in boolean contexts
+- [x] Preserve original expression in TODO comment for user reference
+- [x] Typecheck passes
 
 ---
 

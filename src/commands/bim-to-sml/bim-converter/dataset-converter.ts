@@ -80,6 +80,10 @@ export class DatasetConverter {
     // This handles cases where measure A references measure B but B was converted after A
     this.measureConverter.resolveUnresolvedReferences(result, attrMaps);
 
+    // Rewrite references to split measures in all expressions
+    // This replaces [MeasureName] with [MeasureName_num] or [MeasureName_bool] based on context
+    this.measureConverter.rewriteSplitMeasureReferences(result, bim);
+
     if (messagesMap.customMsgs.size > 0)
       this.logger.info(
         `The following dataset(s) are defined using a custom calculation. They will be treated as tables that need to be materialized: ${setToStringAlphabetical(
