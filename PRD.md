@@ -97,24 +97,34 @@ Fix remaining bugs in the BIM-to-SML converter that cause deployment failures. T
 **Description:** As a converter developer, I need to identify why the NOT/ISBLANK conversion produces incorrect type handling.
 
 **Acceptance Criteria:**
-- [ ] Find "ETC Pre-Discretionary Net Income" calculation in generated SML
-- [ ] Examine the MDX expression containing NOT operator
-- [ ] Trace back to original DAX to understand the pattern
-- [ ] Document why NOT is receiving IntType instead of Boolean
-- [ ] Typecheck passes
+- [x] Find "ETC Pre-Discretionary Net Income" calculation in generated SML
+- [x] Examine the MDX expression containing NOT operator
+- [x] Trace back to original DAX to understand the pattern
+- [x] Document why NOT is receiving IntType instead of Boolean
+- [x] Typecheck passes
+
+**Root Cause (documented):**
+- DAX: `NOT([IsTaskLevelFiltered]) && NOT([IsResourceFiltered]) && [HasOneCurrency]`
+- `IsTaskLevelFiltered`, `IsResourceFiltered`, `HasOneCurrency` are TODO stubs with value `1` (IntType)
+- MDX `NOT` requires BooleanType but receives IntType from measure stub
+- MDX `AND` requires BooleanType operands but bare measure refs are IntType
 
 ### US-006: Fix ISBLANK/NOT conversion for PFM_from_Daniel
 
 **Description:** As a converter user, I want PFM_from_Daniel_bim.json to deploy with correct boolean handling.
 
 **Acceptance Criteria:**
-- [ ] Fix ISBLANK template to produce boolean-compatible output
-- [ ] Or: skip unconvertible pattern with TODO placeholder
-- [ ] Re-convert PFM_from_Daniel_bim.json
-- [ ] Deploy using `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/PFM_from_Daniel_bim.json --keep`
-- [ ] Deployment succeeds (or reveals next error to fix)
-- [ ] Run `npm run test-custom-calcs` - tests pass
-- [ ] Typecheck passes
+- [x] Fix ISBLANK template to produce boolean-compatible output
+- [x] Or: skip unconvertible pattern with TODO placeholder
+- [x] Re-convert PFM_from_Daniel_bim.json
+- [x] Deploy using `pnpm pbi-deploy /Users/dianne/Downloads/bim/fails/PFM_from_Daniel_bim.json --keep`
+- [x] Deployment succeeds (or reveals next error to fix) - **Revealed: "Level Month not found in dimension_Dates"**
+- [x] Run `npm run test-custom-calcs` - tests pass
+- [x] Typecheck passes
+
+**Fixes Applied:**
+1. `NOT(measure)` → `(1 = 0) /* TODO: NOT(measure) */` (false boolean stub)
+2. DIVIDE with boolean denom containing bare measures → TODO stub fallback
 
 ### US-007: Iterate on remaining errors
 

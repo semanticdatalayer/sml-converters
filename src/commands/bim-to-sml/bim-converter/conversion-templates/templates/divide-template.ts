@@ -162,6 +162,17 @@ export class DivideTemplate extends ConversionTemplate {
         // Check if denominator is a boolean expression (DAX idiom for conditional display)
         // DIVIDE(value, boolean) in DAX means: if boolean is TRUE, return value; if FALSE, return BLANK
         if (isBooleanExpression(argGroups[1])) {
+          // Check if converted boolean expression contains bare measure references
+          // that would cause MDX type errors (measure stubs are IntType, AND/OR require BooleanType)
+          // Pattern: [Measures].[X] not followed by comparison operator or preceded by NOT
+          // Bare measure refs in boolean context are invalid - reject and fallback to TODO
+          if (this.hasBooleanTypeMismatch(denominatorMdx)) {
+            return failedConversion(
+              `DIVIDE boolean denominator contains measure references in AND/OR context - MDX AND/OR requires BooleanType but measures are IntType`,
+              "DIVIDE",
+            );
+          }
+
           // Convert to: IIF(boolean, numerator, NULL)
           const mdxExpression = `IIF(${denominatorMdx}, ${numeratorMdx}, NULL)`;
 
@@ -293,5 +304,48 @@ export class DivideTemplate extends ConversionTemplate {
     }
 
     return groups;
+  }
+
+  /**
+   * Check if a converted MDX boolean expression has type mismatch issues.
+   * Detects bare measure references used in AND/OR context without comparison operators.
+   * MDX AND/OR require BooleanType, but measure stubs are IntType (1 or 0).
+   *
+   * Valid patterns (measure in comparison):
+   * - [Measures].[X] > 0
+   * - [Measures].[X] = 1
+   * - NOT([Measures].[X]) - handled separately with TODO stub
+   *
+   * Invalid patterns (bare measure in boolean context):
+   * - ... AND [Measures].[X]
+   * - [Measures].[X] AND ...
+   * - ... OR [Measures].[X]
+   */
+  private hasBooleanTypeMismatch(mdxExpression: string): boolean {
+    // Look for measure references followed by AND/OR (not preceded by comparison)
+    // Patterns that indicate bare measure used as boolean operand:
+    // - [Measures].[X]] AND  (note: double ]] from MDX syntax)
+    // - AND [Measures].[X]
+    // - OR [Measures].[X]
+    // - [Measures].[X]] OR
+
+    // Check for pattern: [Measures].[...] immediately followed by AND or OR
+    // This regex looks for measure reference followed by ] then AND/OR
+    const measureBeforeAndOr = /\[Measures\]\.\[[^\]]+\]\s*(AND|OR)\s/i;
+    if (measureBeforeAndOr.test(mdxExpression)) {
+      return true;
+    }
+
+    // Check for pattern: AND or OR immediately followed by [Measures]
+    // But NOT if it's part of (1 = 0) which is our TODO stub for NOT(measure)
+    // First, remove our TODO stubs from consideration
+    const withoutTodoStubs = mdxExpression.replace(/\(1 = 0\)\s*\/\*[^*]*\*\//g, "TRUE");
+
+    const andOrBeforeMeasure = /\b(AND|OR)\s+\[Measures\]\./i;
+    if (andOrBeforeMeasure.test(withoutTodoStubs)) {
+      return true;
+    }
+
+    return false;
   }
 }

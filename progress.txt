@@ -380,3 +380,36 @@ New deployment errors detected (different from previous session):
 - test_bim still blocked by "dimension key as measure" architectural issue
 
 ---
+
+## Iteration 9 - US-005/US-006: Fix PFM_from_Daniel boolean type issues
+
+**What was implemented:**
+1. `NOT(measure)` → `(1 = 0) /* TODO */` - returns FALSE boolean instead of invalid MDX
+2. DIVIDE with boolean denom containing bare measure refs → fallback to TODO stub
+
+**Files changed:**
+- `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - NOT on measure → boolean TODO stub
+- `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/divide-template.ts` - Detect and reject boolean type mismatch
+
+**Result:** Fixed "NOT operator requires Boolean" error, revealed new error: "Level Month not found in dimension_Dates"
+
+**Analysis:**
+- First error: `NOT operator requires Boolean argument, found IntType`
+  - Caused by `NOT([Measures].[IsTaskLevelFiltered])` where stub is `1` (IntType)
+  - Fixed by converting `NOT(measure)` → `(1 = 0) /* TODO */`
+- Second error: `AND operator requires Boolean, found IntType`
+  - Caused by `... AND [Measures].[HasOneCurrency]` - bare measure in boolean context
+  - Fixed by detecting in DIVIDE template and falling back to TODO
+- New error: `Level [dimension_Dates].[Dates_Hierarchy].[Month] not found`
+  - Different bug - time intelligence conversion generating invalid hierarchy refs
+  - Dates dimension has only `Date` level, no `Month` level
+  - PARALLELPERIOD template generating `[Month]` level that doesn't exist
+
+**Learnings:**
+- MDX is type-strict: AND/OR/NOT require BooleanType, not IntType
+- DAX allows numeric/boolean interop (truthy/falsy), MDX doesn't
+- `NOT(measure)` → `(1 = 0) /* TODO */` provides valid FALSE boolean stub
+- Detecting bare measures in boolean context requires post-conversion regex
+- Time intelligence templates may reference hierarchy levels that don't exist in converted model
+
+---

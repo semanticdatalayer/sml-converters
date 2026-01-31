@@ -140,6 +140,20 @@ export class FunctionToken extends DaxToken {
           return `0 /* TODO: ${originalDax.replace(/\*\//g, "* /")} - DAX aggregate over expression has no MDX equivalent */`;
         }
 
+        // Special handling for NOT operator - MDX NOT requires boolean argument
+        // If NOT is applied to a measure reference, MDX will fail with type error
+        // because measure stubs are IntType (1 or 0), not BooleanType
+        if (daxFuncUpper === "NOT") {
+          const actualArgs = convertedArgs.filter((_, i) =>
+            !(this.args[i] instanceof CommaToken)
+          );
+          if (actualArgs.length === 1 && actualArgs[0].includes("[Measures].")) {
+            // NOT on a measure reference - will fail in MDX, produce TODO stub
+            const originalDax = this.toString();
+            return `(1 = 0) /* TODO: ${originalDax.replace(/\*\//g, "* /")} - NOT on measure requires boolean, measure is IntType */`;
+          }
+        }
+
         // args array includes CommaTokens, so join with "" not ", "
         return `${mdxFuncName}(${convertedArgs.join("")})`;
       }
