@@ -62,6 +62,7 @@
     "validate-conversion": "tsx scripts/validate-bim-conversion.ts",
     "test-custom-calcs": "tsx scripts/test-custom-calcs.ts",
     "deploy-test": "tsx scripts/deploy-test.ts",
+    "test-deploy": "tsx scripts/test-deploy.ts",
     "postpack": "shx rm -f oclif.manifest.json",
     "prepack": "oclif manifest && oclif readme",
     "version": "oclif readme && git add README.md"

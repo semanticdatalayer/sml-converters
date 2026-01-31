@@ -124,16 +124,16 @@ Fix BIM-to-SML conversion and deployment errors identified in `/Users/dianne/Dow
 
 **Acceptance Criteria:**
 
-- [ ] Create `scripts/test-deploy.ts` that:
+- [x] Create `scripts/test-deploy.ts` that:
   - Takes input BIM file path as argument
   - Runs conversion via existing bim-to-sml command
   - Validates SML output using sml-sdk validation (if available) or file checks
   - Runs `pnpm pbi-deploy <file>` from correct directory
   - Reports clear pass/fail status with error details
-- [ ] Add npm script: `"test-deploy": "npx ts-node scripts/test-deploy.ts"`
-- [ ] Script handles errors gracefully and reports deployment failures
-- [ ] Document usage in script header comments
-- [ ] Typecheck passes
+- [x] Add npm script: `"test-deploy": "npx ts-node scripts/test-deploy.ts"`
+- [x] Script handles errors gracefully and reports deployment failures
+- [x] Document usage in script header comments
+- [x] Typecheck passes
 
 ### US-007: Run test-deploy on all error files and document results
 
