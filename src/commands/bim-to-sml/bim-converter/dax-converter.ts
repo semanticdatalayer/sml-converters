@@ -375,6 +375,39 @@ export class ColumnReference extends DaxToken {
           return `[Measures].[${metricInfo.uniqueName}]`;
         }
       }
+
+      // Base metric doesn't exist - try to find and create one
+      // Search all tables for a column with this name and create a metric if found
+      if (info.measureConverter) {
+        for (const table of info.bim.model?.tables || []) {
+          const bimColumn = (table.columns || []).find(
+            (c: any) => c.name === this.columnName || c.name?.toLowerCase() === this.columnName.toLowerCase()
+          );
+          if (bimColumn) {
+            // Determine aggregation function:
+            // 1. Use parentAggFn if passed from enclosing aggregate function (e.g., SUM, MIN)
+            // 2. Fall back to column's summarizeBy property
+            // 3. Default to 'sum'
+            const aggFn = info.parentAggFn?.toLowerCase() ||
+                          bimColumn.summarizeBy?.toLowerCase() ||
+                          'sum';
+
+            // Create the base metric
+            const measureUniqueName = info.measureConverter.createAndAddMeasureFromColumn(
+              bimColumn,
+              table.name,
+              aggFn,
+              info.result,
+              info.attrMaps,
+              info.unusedTables,
+            );
+
+            if (measureUniqueName) {
+              return `[Measures].[${measureUniqueName}]`;
+            }
+          }
+        }
+      }
     }
 
     // Fallback: use column name as-is
