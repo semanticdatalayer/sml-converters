@@ -25,3 +25,6 @@ package-lock.json
 /test-baseline*.json
 /test-diff.json
 /test-bim
+/test-output
+/.old_prds_plans
+

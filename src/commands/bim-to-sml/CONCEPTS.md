@@ -6,11 +6,11 @@ This document explains the core abstractions you need to understand the codebase
 
 **DAX** (Power BI) and **MDX** (AtScale) are fundamentally different:
 
-| Aspect | DAX | MDX |
-|--------|-----|-----|
-| Engine | In-memory Vertipaq | SQL generation to DW |
-| Context | Filter context + row context | Tuple/cell context |
-| Iteration | Row-by-row (SUMX, FILTER) | Set-based operations |
+| Aspect    | DAX                          | MDX                  |
+| --------- | ---------------------------- | -------------------- |
+| Engine    | In-memory Vertipaq           | SQL generation to DW |
+| Context   | Filter context + row context | Tuple/cell context   |
+| Iteration | Row-by-row (SUMX, FILTER)    | Set-based operations |
 
 **Key insight:** DAX can iterate row-by-row. MDX generates SQL that runs on databases. Many DAX patterns simply have no SQL equivalent.
 
@@ -62,21 +62,22 @@ DAX: DIVIDE([Sales], [Units])
 
 ### Token Types
 
-| Token | DAX Syntax | Example |
-|-------|------------|---------|
-| `FunctionToken` | `FUNC(args)` | `SUM(...)`, `IF(...)` |
-| `ColumnReference` | `[Name]` | `[Sales]` |
-| `TableColumnReference` | `'Table'[Col]` | `'Sales'[Amount]` |
-| `LiteralToken` | numbers/strings | `100`, `"text"` |
-| `OperatorToken` | math/logic ops | `+`, `-`, `&&`, `||` |
-| `VarToken` | `VAR x = expr` | Variable declarations |
-| `ReturnToken` | `RETURN expr` | Return statements |
-| `BraceToken` | `{val1, val2}` | Set literals for IN |
-| `ParenToken` | `(expr)` | Grouped expressions |
+| Token                  | DAX Syntax      | Example               |
+| ---------------------- | --------------- | --------------------- | --- | --- |
+| `FunctionToken`        | `FUNC(args)`    | `SUM(...)`, `IF(...)` |
+| `ColumnReference`      | `[Name]`        | `[Sales]`             |
+| `TableColumnReference` | `'Table'[Col]`  | `'Sales'[Amount]`     |
+| `LiteralToken`         | numbers/strings | `100`, `"text"`       |
+| `OperatorToken`        | math/logic ops  | `+`, `-`, `&&`, `     |     | `   |
+| `VarToken`             | `VAR x = expr`  | Variable declarations |
+| `ReturnToken`          | `RETURN expr`   | Return statements     |
+| `BraceToken`           | `{val1, val2}`  | Set literals for IN   |
+| `ParenToken`           | `(expr)`        | Grouped expressions   |
 
 ### Token Methods
 
 Each token implements:
+
 - `toMdx(info)` - Convert to MDX string
 - `toString()` - Original DAX representation
 
@@ -94,7 +95,10 @@ abstract class ConversionTemplate {
   abstract match(tokens: DaxToken[]): boolean;
 
   // Convert to MDX (only called if match() returns true)
-  abstract convert(tokens: DaxToken[], context: ConversionContext): ConversionResult;
+  abstract convert(
+    tokens: DaxToken[],
+    context: ConversionContext,
+  ): ConversionResult;
 
   // Priority (higher = tried first)
   abstract get priority(): number;
@@ -106,15 +110,15 @@ abstract class ConversionTemplate {
 
 ### Available Templates
 
-| Template | DAX Pattern | MDX Output |
-|----------|-------------|------------|
-| `DivideTemplate` | `DIVIDE(a, b)` | `(a) / (b)` |
-| `IfTemplate` | `IF(cond, t, f)` | `CASE WHEN cond THEN t ELSE f END` |
-| `SwitchTemplate` | `SWITCH(expr, ...)` | Nested `CASE WHEN` |
-| `IsBlankTemplate` | `ISBLANK([X])` | `ISEMPTY([X])` |
-| `TotalYtdTemplate` | `TOTALYTD([M], date)` | `Sum(YTD(...), [M])` |
-| `CalculateTemplate` | `CALCULATE([M], ...)` | Context-dependent |
-| `InOperatorTemplate` | `col IN {vals}` | `col = v1 OR col = v2` |
+| Template             | DAX Pattern           | MDX Output                         |
+| -------------------- | --------------------- | ---------------------------------- |
+| `DivideTemplate`     | `DIVIDE(a, b)`        | `(a) / (b)`                        |
+| `IfTemplate`         | `IF(cond, t, f)`      | `CASE WHEN cond THEN t ELSE f END` |
+| `SwitchTemplate`     | `SWITCH(expr, ...)`   | Nested `CASE WHEN`                 |
+| `IsBlankTemplate`    | `ISBLANK([X])`        | `ISEMPTY([X])`                     |
+| `TotalYtdTemplate`   | `TOTALYTD([M], date)` | `Sum(YTD(...), [M])`               |
+| `CalculateTemplate`  | `CALCULATE([M], ...)` | Context-dependent                  |
+| `InOperatorTemplate` | `col IN {vals}`       | `col = v1 OR col = v2`             |
 
 ### Template Registry
 
@@ -122,10 +126,10 @@ Templates register with priority. Pipeline tries highest priority first:
 
 ```typescript
 TemplateRegistry.getInstance()
-  .register(new DivideTemplate())      // priority: 100
-  .register(new IfTemplate())          // priority: 90
-  .register(new SwitchTemplate())      // priority: 80
-  // ...
+  .register(new DivideTemplate()) // priority: 100
+  .register(new IfTemplate()) // priority: 90
+  .register(new SwitchTemplate()); // priority: 80
+// ...
 ```
 
 ---
@@ -150,6 +154,7 @@ IF([IsHighValue], [Sales], 0)
 ```
 
 If `IsHighValue` can't convert, what stub do we use?
+
 - Boolean stub: `(1 = 1)` - valid for IF condition
 - Numeric stub: `0` - valid for multiplication
 
@@ -159,13 +164,14 @@ If `IsHighValue` can't convert, what stub do we use?
 
 ```typescript
 interface UsageContext {
-  measureTypes: Map<string, Set<MdxType>>;  // measure → {BOOLEAN, NUMERIC}
+  measureTypes: Map<string, Set<MdxType>>; // measure → {BOOLEAN, NUMERIC}
 }
 ```
 
 ### Dual-Context Measures
 
 When a measure is used in BOTH contexts, we create TWO calculated metrics:
+
 1. Original name → numeric stub
 2. `{name}_bool` → boolean stub
 
@@ -198,12 +204,12 @@ RETURN CALCULATE(x, FILTER(...))  // FILTER is unconvertible
 
 ### VAR Analysis Components
 
-| Component | Purpose |
-|-----------|---------|
-| `VarAnalyzer` | Detect VAR patterns |
-| `VarScopeTracker` | Track variable scope |
+| Component          | Purpose                 |
+| ------------------ | ----------------------- |
+| `VarAnalyzer`      | Detect VAR patterns     |
+| `VarScopeTracker`  | Track variable scope    |
 | `VarSafetyChecker` | Check if safe to inline |
-| `VarInliner` | Perform substitution |
+| `VarInliner`       | Perform substitution    |
 
 ---
 
@@ -224,19 +230,45 @@ Dimension Table:
   - Gets converted to SML Dimension with Levels
 ```
 
+### Classification Order Matters
+
+The order of operations is critical:
+
+1. **First:** `prePopulateMeasTables()` marks tables with BIM measures
+2. **Then:** `populateTableLists()` classifies based on relationships
+
+This ensures tables with measures are **always** fact tables, even if on the right side of relationships.
+
 ### TableLists Structure
 
 ```typescript
 interface TableLists {
-  factTables: BimTable[];      // → Datasets + Metrics
-  dimTables: BimTable[];       // → Dimensions
-  measTables: Set<string>;     // Tables with measures
-  unusedTables: Set<string>;   // No relationships, no measures
+  factTables: BimTable[]; // → Datasets + Metrics
+  dimTables: BimTable[]; // → Dimensions
+  measTables: Set<string>; // Tables with measures (populated FIRST)
+  unusedTables: Set<string>; // No relationships, no measures
   calcGroupTables: Set<string>; // Calculation group tables
-  leftTables: Set<string>;     // Left side of relationships
-  rightTables: Set<string>;    // Right side of relationships
+  leftTables: Set<string>; // Left side of relationships
+  rightTables: Set<string>; // Right side of relationships
 }
 ```
+
+### Tables That Are BOTH Fact and Dimension
+
+A table can appear in BOTH `factTables` and `dimTables` simultaneously when it is on the right side of relationships AND has measures (e.g., `Product` table with a `Product Count` measure). In this case a single dataset is used for both purposes and a relationship is created between them:
+
+```yaml
+# In model.yml relationships section
+- unique_name: dataset.product.dimension.product
+  from:
+    dataset: dataset.product
+    join_columns: [ProductKey] # Key column
+  to:
+    dimension: dimension.product
+    level: dimension.product.attr.ProductKey
+```
+
+This self-referential relationship allows the dataset's metrics to be filtered by the dimension's attributes.
 
 ---
 
@@ -247,6 +279,7 @@ Maps track how BIM names translate to SML unique_names.
 ### attrNameMap
 
 Two mappings in one:
+
 ```typescript
 // Type 1: friendly name → [type, table]
 "sales" → ["metric", "FactSales"]
@@ -258,6 +291,7 @@ Two mappings in one:
 ### metricLookup
 
 Maps aggregation patterns to created metrics:
+
 ```typescript
 // Key: aggFn + tableName[colName]
 "sumfactsales[amount]" → {
@@ -275,13 +309,13 @@ Maps aggregation patterns to created metrics:
 
 ```typescript
 interface SmlConverterResult {
-  catalog: SMLCatalog;           // Root catalog file
-  connections: SMLConnection[];  // DB connections
-  datasets: SMLDataset[];        // Fact table datasets
-  dimensions: SMLDimension[];    // Dimension definitions
-  measures: SMLMetric[];         // Base metrics (SUM, COUNT, etc.)
-  measuresCalculated: SMLMetricCalculated[];  // Calculated metrics
-  models: SMLModel[];            // Model tying it all together
+  catalog: SMLCatalog; // Root catalog file
+  connections: SMLConnection[]; // DB connections
+  datasets: SMLDataset[]; // Fact table datasets
+  dimensions: SMLDimension[]; // Dimension definitions
+  measures: SMLMetric[]; // Base metrics (SUM, COUNT, etc.)
+  measuresCalculated: SMLMetricCalculated[]; // Calculated metrics
+  models: SMLModel[]; // Model tying it all together
   rowSecurity: SMLRowSecurity[]; // Security rules
   compositeModels: SMLCompositeModel[];
 }
@@ -365,18 +399,18 @@ output/
 
 ## 10. Glossary
 
-| Term | Definition |
-|------|------------|
-| **BIM** | Power BI model file (JSON format) |
-| **SML** | Semantic Modeling Language (AtScale) |
-| **DAX** | Data Analysis Expressions (Power BI formula language) |
-| **MDX** | Multidimensional Expressions (OLAP query language) |
-| **Token** | Parsed unit of a DAX expression |
-| **Template** | Pattern matcher for complex DAX patterns |
-| **Pipeline** | 6-stage conversion flow |
-| **Confidence** | 0.0-1.0 score of conversion correctness |
-| **TODO stub** | Placeholder when conversion fails |
-| **Dual-context** | Measure used in both boolean and numeric contexts |
-| **VAR inlining** | Substituting variable values at usage sites |
-| **Fact table** | Table with measures (→ Dataset) |
-| **Dimension table** | Table for filtering/grouping (→ Dimension) |
+| Term                | Definition                                            |
+| ------------------- | ----------------------------------------------------- |
+| **BIM**             | Power BI model file (JSON format)                     |
+| **SML**             | Semantic Modeling Language (AtScale)                  |
+| **DAX**             | Data Analysis Expressions (Power BI formula language) |
+| **MDX**             | Multidimensional Expressions (OLAP query language)    |
+| **Token**           | Parsed unit of a DAX expression                       |
+| **Template**        | Pattern matcher for complex DAX patterns              |
+| **Pipeline**        | 6-stage conversion flow                               |
+| **Confidence**      | 0.0-1.0 score of conversion correctness               |
+| **TODO stub**       | Placeholder when conversion fails                     |
+| **Dual-context**    | Measure used in both boolean and numeric contexts     |
+| **VAR inlining**    | Substituting variable values at usage sites           |
+| **Fact table**      | Table with measures (→ Dataset)                       |
+| **Dimension table** | Table for filtering/grouping (→ Dimension)            |
