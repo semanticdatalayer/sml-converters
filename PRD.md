@@ -1,199 +1,125 @@
-# PRD: High-Impact Code Simplifications for BIM Converter
+# PRD: Fix BIM-to-SML Conversion Regressions
 
 ## Introduction
 
-Simplify the BIM-to-SML converter codebase by consolidating related files, merging similar templates, and extracting concerns from oversized files. Goal: reduce cognitive load and file count without changing functionality.
+Four BIM-to-SML conversion regressions need fixing. These files previously converted successfully but now fail. The fixes must not break any other conversions in the test suite.
 
 ## Goals
 
-- Reduce time template files from 6 → 2 via parameterization
-- Split measure-converter.ts (1,613 lines) into focused modules (~800 lines core)
-- Consolidate VAR analysis files from 4 → 2 while preserving separation of concerns
-- Inline small utility files into their consumers
-- Zero functional changes (all tests must pass identically)
-
-## Testing Protocol
-
-**Every story must:**
-1. Run `npm run test-custom-calcs` after changes
-2. Compare output against baseline captured in US-001
-3. Verify no conversion/validation/deployment differences
-
----
+- Fix DataMgt_bim: Warning should not cause conversion failure
+- Fix Magellan_bim: Resolve truncated metric reference `_MagellanDataset Booking Amt [$`
+- Fix PFM_bim: Generate TODO stub for date arithmetic expressions
+- Fix Ulta_bim: Handle "Sell Through" parsing error (end of input expected)
+- Maintain backward compatibility - no regressions in other BIM files
 
 ## User Stories
 
-### US-001: Capture baseline test results
+### US-001: Warning should not fail conversion
 
-**Description:** As a developer, I need a baseline snapshot of all test outputs before refactoring so I can verify no functionality changes.
+**Description:** As a user, I want unique name warnings to log but not stop conversion, so that DataMgt_bim converts successfully.
 
-**Acceptance Criteria:**
-- [x] Run `npm run test-custom-calcs` and capture full output to `test-output/baseline.txt`
-- [x] Record pass/fail counts and any error messages
-- [x] Document the baseline in progress.txt for reference
-- [x] Typecheck passes (`npm run build`)
-
----
-
-### US-002: Create parameterized TotalPeriodTemplate (YTD/MTD/QTD)
-
-**Description:** As a developer, I want to merge totalytd, totalmtd, totalqtd templates into one parameterized template so we reduce duplication.
+**Root Cause:** The `[WARN] Unique name 'CalendarMonth' is already being used...` message is logged at `tools.ts:433` but somewhere the conversion is treating this as a failure.
 
 **Acceptance Criteria:**
-- [x] Create `total-period-template.ts` with period type parameter ('year' | 'month' | 'quarter')
-- [x] Template handles all three functions: TOTALYTD, TOTALMTD, TOTALQTD
-- [x] Register template in template-registry.ts replacing the three individual templates
-- [x] Delete totalytd-template.ts, totalmtd-template.ts, totalqtd-template.ts
-- [x] Run `npm run test-custom-calcs` - output matches baseline
+
+- [x] Identify where warning status is propagated as error
+- [x] Ensure `handleNameExists()` in tools.ts returns valid unique_name and conversion continues
+- [x] DataMgt_bim.json converts without error
+- [x] Run `npm run test-custom-calcs` - no new failures
 - [x] Typecheck passes
 
----
+### US-002: Fix DAX bracket escaping for metric references
 
-### US-003: Create parameterized PeriodShiftTemplate (ParallelPeriod family)
+**Description:** As a user, I want DAX expressions with escaped brackets like `[Booking Amt [$]]]` to resolve correctly, so that Magellan_bim converts successfully.
 
-**Description:** As a developer, I want to merge parallelperiod, sameperiodlastyear, previousmonth templates into one parameterized template.
-
-**Acceptance Criteria:**
-- [x] Create `period-shift-template.ts` handling PARALLELPERIOD, SAMEPERIODLASTYEAR, PREVIOUSMONTH patterns
-- [x] Use shared logic for CALCULATE wrapping and ParallelPeriod MDX generation
-- [x] Register template in template-registry.ts replacing the three individual templates
-- [x] Delete parallelperiod-template.ts, sameperiodlastyear-template.ts, previousmonth-template.ts
-- [x] Run `npm run test-custom-calcs` - output matches baseline
-- [x] Typecheck passes
-
----
-
-### US-004: Extract type inference from measure-converter.ts
-
-**Description:** As a developer, I want type inference logic in a dedicated file so measure-converter.ts is more focused.
+**Root Cause:** DAX expression `SUM('_MagellanDataset'[Booking Amt [$]]])` has triple brackets. The column name is `Booking Amt [$]` (double `]]` = escaped `]`). The tokenizer parses this correctly but the metric lookup/creation in `TableColumnReference.toMdx()` is producing invalid reference `_MagellanDataset Booking Amt [$"`.
 
 **Acceptance Criteria:**
-- [x] Create `measure-type-inference.ts` with type inference logic
-- [x] Move `usageContext` management, `getMeasureUsageTypes()`, `isDualContextMeasure()` to new file
-- [x] Export `MeasureTypeInference` class or functions
-- [x] Update measure-converter.ts to import and use the extracted module
-- [x] Run `npm run test-custom-calcs` - output matches baseline
-- [x] Typecheck passes
 
----
+- [ ] Trace `TableColumnReference.toMdx()` logic for this specific pattern
+- [ ] Fix metric lookup to handle column names containing special chars like `[$]`
+- [ ] Add fuzzy matching fallback if exact match fails
+- [ ] Magellan_bim.json and Magellan_RLS_Test_-_12-11-24_bim.json convert without "non-existing metric" error
+- [ ] Run `npm run test-custom-calcs` - no new failures
+- [ ] Typecheck passes
 
-### US-005: Extract reference resolution from measure-converter.ts
+### US-003: Generate TODO stub for date arithmetic
 
-**Description:** As a developer, I want reference resolution logic in a dedicated file so measure-converter.ts handles only core conversion.
+**Description:** As a user, I want DAX date arithmetic expressions to produce TODO stubs instead of type errors, so that PFM_bim converts successfully.
 
-**Acceptance Criteria:**
-- [x] Create `measure-reference-resolver.ts` with reference resolution logic
-- [x] Move `resolveUnresolvedReferences()`, `buildMeasureTableMap()`, `getMeasureTable()` to new file
-- [x] Move `splitMeasureRegistry` handling for reference rewriting
-- [x] Export `MeasureReferenceResolver` class
-- [x] Update measure-converter.ts to import and use the extracted module
-- [x] measure-converter.ts now ~800 lines or less (actual: 1440 lines - target was overestimated; 173 lines extracted)
-- [x] Run `npm run test-custom-calcs` - output matches baseline
-- [x] Typecheck passes
-
----
-
-### US-006: Consolidate var-scope-tracker + var-analyzer → var-analysis.ts
-
-**Description:** As a developer, I want to merge scope tracking and dependency analysis into one file since they're tightly coupled.
+**Root Cause:** DAX `[PFM Processed On (date time)]-1` subtracts 1 from datetime (valid in DAX, subtracts 1 day). The MDX conversion produces an expression that AtScale rejects with "Function Minus requires arguments of type NumericType".
 
 **Acceptance Criteria:**
-- [x] Create `var-analysis.ts` combining VarScopeTracker and VarAnalyzer classes
-- [x] Keep both classes distinct within the file (same APIs)
-- [x] Update imports in var-inliner.ts, var-safety-checker.ts, dax-expression.ts
-- [x] Delete var-scope-tracker.ts and var-analyzer.ts
-- [x] Run `npm run test-custom-calcs` - output matches baseline
-- [x] Typecheck passes
 
----
+- [ ] Detect when OperatorToken `-` has a measure reference that returns DateTimeType
+- [ ] Generate TODO stub: `0 /* TODO: [measure]-1 - date arithmetic requires DATEADD */`
+- [ ] PFM_bim.json and PFM_from_Daniel_bim.json convert without "Function Minus requires NumericType" error
+- [ ] Run `npm run test-custom-calcs` - no new failures
+- [ ] Typecheck passes
 
-### US-007: Consolidate var-safety-checker + var-inliner → var-inliner.ts
+### US-004: Fix "end of input expected" parsing error
 
-**Description:** As a developer, I want to merge safety checking into the inliner since they're sequential steps in the same operation.
+**Description:** As a user, I want the "Sell Through" measure to parse correctly, so that Ulta_bim converts successfully.
 
-**Acceptance Criteria:**
-- [x] Move VarSafetyChecker class into var-inliner.ts
-- [x] Keep VarSafetyChecker as distinct class (same API)
-- [x] Update imports in conversion-pipeline.ts and any other consumers
-- [x] Delete var-safety-checker.ts
-- [x] var-analysis/ now has 2 files: var-analysis.ts, var-inliner.ts
-- [x] Run `npm run test-custom-calcs` - output matches baseline
-- [x] Typecheck passes
-
----
-
-### US-008: Inline conversion-result.ts into conversion-pipeline.ts
-
-**Description:** As a developer, I want conversion result types colocated with the pipeline that uses them.
+**Root Cause:** The "Sell Through" measure DAX is:
+```dax
+DIVIDE (
+    [Sales (Week Entered)],
+    ( CALCULATE(SUM ( 'Daily'[WEB_STOCK_EB_UNITS] ),Daily[WEEKLY_FLAG] = TRUE()) + [Store OH Stock] + [Sales (Week Entered)] )
+)
+```
+The "end of input expected" error suggests tokenizer issue with this specific pattern.
 
 **Acceptance Criteria:**
-- [x] Move `ConversionResult`, `ConversionCategory`, `failedConversion()`, `successfulConversion()` into conversion-pipeline.ts
-- [x] Update all imports (templates, AI converter, etc.) to import from conversion-pipeline.ts
-- [x] Delete conversion-result.ts
-- [x] Run `npm run test-custom-calcs` - output matches baseline
-- [x] Typecheck passes
 
----
+- [ ] Reproduce the parsing error with the specific DAX expression
+- [ ] Identify root cause in tokenizer (likely parenthesis/comma handling)
+- [ ] Fix tokenizer to handle this pattern
+- [ ] Add fallback: if parsing fails, generate TODO stub instead of error
+- [ ] Ulta_bim.json converts without "end of input expected" error
+- [ ] Run `npm run test-custom-calcs` - no new failures
+- [ ] Typecheck passes
 
-### US-009: Inline connection-converter.ts into bim-to-sml-converter.ts
+### US-005: Run smoke tests to verify no regressions
 
-**Description:** As a developer, I want connection conversion logic in the main orchestrator since it's only 94 lines and used in one place.
-
-**Acceptance Criteria:**
-- [x] Move `createConnections()`, `listUsedConnections()`, `parseConnectionString()` into bim-to-sml-converter.ts
-- [x] Functions can remain standalone or become private methods
-- [x] Delete connection-converter.ts
-- [x] Run `npm run test-custom-calcs` - output matches baseline
-- [x] Typecheck passes
-
----
-
-### US-010: Final verification and cleanup
-
-**Description:** As a developer, I want to verify all refactoring preserved functionality and update documentation.
+**Description:** As a developer, I want to verify the full test suite passes after all fixes.
 
 **Acceptance Criteria:**
-- [x] Run full `npm run test-custom-calcs` and compare against baseline
-- [x] All outputs identical to baseline (no functional changes)
-- [x] Update any imports in files outside bim-converter/ if needed
-- [x] Verify file count reduction: ~8 fewer files total
-- [x] Typecheck passes
-- [x] Build succeeds (`npm run build`)
 
----
+- [ ] Run `npm run test-custom-calcs` - all previously passing files still pass
+- [ ] Run `pnpm run test:pbi-smoke` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter/src/test-suites/pbi-smoke` - suite passes
+- [ ] No new warnings or errors introduced
+- [ ] Typecheck passes
 
 ## Non-Goals
 
-- No changes to conversion logic or output
-- No new features or capabilities
-- No changes to public APIs consumed by other commands
-- No refactoring of dax-converter.ts (tokenizer) - it's large but cohesive
-- No inlining of dax-expression.ts - it provides useful abstraction layer
+- Not adding new DAX function support beyond these specific fixes
+- Not changing the overall conversion architecture
+- Not optimizing performance
+- Not fixing warnings that don't cause failures
 
 ## Technical Considerations
 
-- VAR analysis files have clean sequential dependencies - preserve this in merged files
-- Time templates share `resolveDimensionHierarchy()` from converter-utils.ts - continue using it
-- measure-converter.ts uses `SplitMeasureRegistry` for dual-context - keep registry accessible to extracted modules
-- Template registration order may matter - maintain same registration order in template-registry.ts
+**Key Files:**
+- `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - DAX tokenizer, `TableColumnReference.toMdx()`
+- `src/commands/bim-to-sml/bim-converter/tools.ts` - `handleNameExists()`, unique name handling
+- `src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts` - Pipeline stages, error handling
+- `src/commands/bim-to-sml/bim-converter/measure-converter.ts` - Metric creation/lookup
 
-## File Change Summary
+**Testing Commands:**
+```bash
+# Test single file
+node bin/run.js bim-to-sml --source /Users/dianne/Downloads/bim/succeeds/DataMgt_bim.json --output ./test-output
 
-| Before | After | Change |
-|--------|-------|--------|
-| totalytd-template.ts | total-period-template.ts | Merged 3 → 1 |
-| totalmtd-template.ts | (deleted) | |
-| totalqtd-template.ts | (deleted) | |
-| parallelperiod-template.ts | period-shift-template.ts | Merged 3 → 1 |
-| sameperiodlastyear-template.ts | (deleted) | |
-| previousmonth-template.ts | (deleted) | |
-| measure-converter.ts | measure-converter.ts (~800 lines) | Split |
-| (new) | measure-type-inference.ts | Extracted |
-| (new) | measure-reference-resolver.ts | Extracted |
-| var-scope-tracker.ts | var-analysis.ts | Merged 2 → 1 |
-| var-analyzer.ts | (deleted) | |
-| var-safety-checker.ts | var-inliner.ts | Merged 2 → 1 |
-| conversion-result.ts | (inlined to conversion-pipeline.ts) | Deleted |
-| connection-converter.ts | (inlined to bim-to-sml-converter.ts) | Deleted |
+# Run custom calcs test
+npm run test-custom-calcs
 
-**Net change:** -8 files (from ~20 to ~12 in bim-converter/)
+# Run smoke tests (from SML repo)
+cd /Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter/src/test-suites/pbi-smoke
+pnpm run test:pbi-smoke
+```
+
+**Regression Prevention:**
+- After each fix, run `npm run test-custom-calcs` before moving to next story
+- Keep changes minimal and focused
+- These files worked before, so look for recent changes that may have broken them

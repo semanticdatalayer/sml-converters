@@ -194,8 +194,8 @@ export function uniqueNameForCreatedMeas(
   logger: Logger,
 ): string | undefined {
   const meas = findMeasure(measName, bim);
-  if (meas?.expression /*  && !Array.isArray(meas.expression)*/) {
-    const exprLowerNoSpace = lowerNoSpace(meas.expression);
+  if (meas?.expression) {
+    const exprLowerNoSpace = lowerNoSpace(expressionAsString(meas.expression));
     const aggFn = aggFunctionAtStart(exprLowerNoSpace);
     if (aggFn !== "none" && isSimpleFunctionWithCol(exprLowerNoSpace)) {
       const tbl = bim.model.tables.find((t) =>
