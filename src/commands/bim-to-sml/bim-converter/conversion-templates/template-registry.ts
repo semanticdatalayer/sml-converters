@@ -10,9 +10,7 @@ import { IteratorAggregateTemplate } from "./templates/iterator-aggregate-templa
 import { InOperatorTemplate } from "./templates/in-operator-template";
 import { ConcatenateTemplate } from "./templates/concatenate-template";
 import { TotalPeriodTemplate } from "./templates/total-period-template";
-import { SamePeriodLastYearTemplate } from "./templates/sameperiodlastyear-template";
-import { PreviousMonthTemplate } from "./templates/previousmonth-template";
-import { ParallelPeriodTemplate } from "./templates/parallelperiod-template";
+import { PeriodShiftTemplate } from "./templates/period-shift-template";
 // Disabled: ClosingPeriod, Lag tuple, and .Item(0) not supported by AtScale
 // import { ClosingBalanceMonthTemplate } from "./templates/closingbalancemonth-template";
 // import { DateAddTemplate } from "./templates/dateadd-template";
@@ -80,9 +78,9 @@ export class TemplateRegistry {
     this.registerTemplate(new TotalPeriodTemplate("year"));
     this.registerTemplate(new TotalPeriodTemplate("month"));
     this.registerTemplate(new TotalPeriodTemplate("quarter"));
-    this.registerTemplate(new SamePeriodLastYearTemplate());
-    this.registerTemplate(new PreviousMonthTemplate());
-    this.registerTemplate(new ParallelPeriodTemplate());
+    this.registerTemplate(new PeriodShiftTemplate("sameperiodlastyear"));
+    this.registerTemplate(new PeriodShiftTemplate("previousmonth"));
+    this.registerTemplate(new PeriodShiftTemplate("parallel"));
     // Disabled: ClosingPeriod, Lag tuple, and .Item(0) not supported by AtScale
     // this.registerTemplate(new ClosingBalanceMonthTemplate());
     // this.registerTemplate(new DateAddTemplate());

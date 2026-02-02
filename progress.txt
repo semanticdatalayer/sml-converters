@@ -40,7 +40,7 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
 
 - [x] US-001: Capture baseline test results
 - [x] US-002: Create parameterized TotalPeriodTemplate (YTD/MTD/QTD)
-- [ ] US-003: Create parameterized PeriodShiftTemplate (ParallelPeriod family)
+- [x] US-003: Create parameterized PeriodShiftTemplate (ParallelPeriod family)
 - [ ] US-004: Extract type inference from measure-converter.ts
 - [ ] US-005: Extract reference resolution from measure-converter.ts
 - [ ] US-006: Consolidate var-scope-tracker + var-analyzer → var-analysis.ts
@@ -89,4 +89,24 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
 - Learnings:
   - Template name must remain unique per instance (TotalYearTemplate, TotalMonthTemplate, TotalQuarterTemplate)
   - Config pattern works well - all differences captured in PERIOD_CONFIGS object
+---
+
+## Iteration 3 - US-003: Create parameterized PeriodShiftTemplate (ParallelPeriod family)
+- Created period-shift-template.ts with ShiftType parameter ('parallel' | 'sameperiodlastyear' | 'previousmonth')
+- Handles PARALLELPERIOD, SAMEPERIODLASTYEAR, PREVIOUSMONTH via SHIFT_CONFIGS object
+- Key differences handled:
+  - PARALLELPERIOD: offset and interval from args, dynamic time unit
+  - SAMEPERIODLASTYEAR: fixed offset=1, year level, requires simple measure ref for tuple
+  - PREVIOUSMONTH: fixed offset=1, month level
+- Updated template-registry.ts to register 3 PeriodShiftTemplate instances
+- Deleted parallelperiod-template.ts, sameperiodlastyear-template.ts, previousmonth-template.ts
+- Files changed:
+  - Added: conversion-templates/templates/period-shift-template.ts
+  - Modified: conversion-templates/template-registry.ts
+  - Deleted: parallelperiod-template.ts, sameperiodlastyear-template.ts, previousmonth-template.ts
+- Tests pass, output matches baseline: 70 metrics, 38 converted, 32 TODO, 54%
+- Learnings:
+  - Config pattern for extraction methods (extractParallelPeriodParams vs extractSimpleShiftParams)
+  - levelExistsInDimension validation preserved from original templates
+  - SAMEPERIODLASTYEAR has unique constraint: requiresSimpleMeasureRef for MDX tuple syntax
 ---

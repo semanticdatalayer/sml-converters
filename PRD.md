@@ -54,12 +54,12 @@ Simplify the BIM-to-SML converter codebase by consolidating related files, mergi
 **Description:** As a developer, I want to merge parallelperiod, sameperiodlastyear, previousmonth templates into one parameterized template.
 
 **Acceptance Criteria:**
-- [ ] Create `period-shift-template.ts` handling PARALLELPERIOD, SAMEPERIODLASTYEAR, PREVIOUSMONTH patterns
-- [ ] Use shared logic for CALCULATE wrapping and ParallelPeriod MDX generation
-- [ ] Register template in template-registry.ts replacing the three individual templates
-- [ ] Delete parallelperiod-template.ts, sameperiodlastyear-template.ts, previousmonth-template.ts
-- [ ] Run `npm run test-custom-calcs` - output matches baseline
-- [ ] Typecheck passes
+- [x] Create `period-shift-template.ts` handling PARALLELPERIOD, SAMEPERIODLASTYEAR, PREVIOUSMONTH patterns
+- [x] Use shared logic for CALCULATE wrapping and ParallelPeriod MDX generation
+- [x] Register template in template-registry.ts replacing the three individual templates
+- [x] Delete parallelperiod-template.ts, sameperiodlastyear-template.ts, previousmonth-template.ts
+- [x] Run `npm run test-custom-calcs` - output matches baseline
+- [x] Typecheck passes
 
 ---
 
