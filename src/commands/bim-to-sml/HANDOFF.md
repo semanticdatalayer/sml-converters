@@ -123,6 +123,30 @@ npm run test-deploy
 | Boolean type errors    | Measure used in wrong context          | Check type-inference.ts   |
 | Missing metrics        | Table classified as dimension          | Check table-converter.ts  |
 
+## Deploy Errors (API Side)
+
+When deploying converted SML to AtScale, you may hit XML parsing errors in the API:
+
+| Error                                                 | Cause                                      | Fix Location                         |
+| ----------------------------------------------------- | ------------------------------------------ | ------------------------------------ |
+| `data-set.map is not a function`                      | Single dataset parsed as object, not array | API: `project-xml-parser.service.ts` |
+| `Cannot read properties of undefined (reading 'map')` | Missing datasets/cubes/annotations         | API: `project-xml-parser.service.ts` |
+
+**Root cause:** Some converted BIM models have only one dataset/cube/annotation (parsed as object instead of array) or are missing these sections entirely.
+
+**API fixes needed** (in `apps/api/src/public/catalog/project-xml-parser.service.ts`):
+
+1. Add `'annotation'` to `arrayProps`
+2. Add optional chaining (`?.`) and fallbacks (`|| []`) for `data-sets.data-set`, `cubes.cube`, `annotations.annotation`
+3. Add `.filter(Boolean)` to remove undefined connection IDs
+
+**After fixing:** Rebuild and redeploy the API:
+
+```bash
+pnpm build --filter=api
+# Then restart/redeploy the API service
+```
+
 ## What's NOT Supported
 
 DAX patterns that cannot convert to MDX:
