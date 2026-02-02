@@ -270,6 +270,8 @@ A table can appear in BOTH `factTables` and `dimTables` simultaneously when it i
 
 This self-referential relationship allows the dataset's metrics to be filtered by the dimension's attributes.
 
+**_Note_** Metrical attributes will be better supported in the future so could be used for this conversion instead of having datasets that are used for both fact datasets and dimensions. This will simplify the conversion and models.
+
 ---
 
 ## 7. AttributeMaps: Name Resolution

@@ -59,6 +59,7 @@ Options:
 ```
 
 **Use this script:**
+
 - After code changes to validate SML generation quality
 - To debug specific conversion issues
 - To see SML validation errors/warnings
@@ -272,15 +273,18 @@ Add to GitHub Actions:
 ## Troubleshooting
 
 **No BIM files found**
+
 - Ensure directory contains `.json` or `.bim` files
 - Script recursively scans subdirectories
 
 **Conversion failures**
+
 - Check error messages in failed summaries
 - Run with `--verbose` for detailed logs
 - Validate BIM file structure
 
 **Baseline comparison fails**
+
 - Ensure baseline format matches current report structure
 - Regenerate baseline if schema changed
 
@@ -322,8 +326,8 @@ Deploy/validate converted SML with AtScale and capture errors.
 # Validate SML without deploying (no AtScale required)
 npm run deploy-test -- --validate-only
 
-# Deploy to AtScale (requires running AtScale instance)
-ATSCALE_API_URL=http://localhost:10500/api ATSCALE_API_TOKEN=<token> npm run deploy-test
+# Deploy to AtScale (requires running AtScale instance and setting ATSCALE_API_TOKEN and ATSCALE_API_URL)
+npm run deploy-test -- --input ./path/to/file.bim
 
 # Save errors to JSON file
 npm run deploy-test -- --validate-only --output-errors ./errors.json
@@ -356,12 +360,14 @@ ATSCALE_API_TOKEN=<token>                      # AtScale authentication token
 ### Output
 
 The script reports:
+
 - Conversion success/failure
 - Validation/deployment errors and warnings
 - Unconverted expressions (TODOs) with categorization
 - Summary with pass/fail result
 
 JSON error report includes:
+
 ```json
 {
   "timestamp": "2025-01-22T...",
@@ -379,6 +385,7 @@ JSON error report includes:
 ### Use Cases
 
 **Testing converter changes:**
+
 ```bash
 # Before changes
 npm run deploy-test -- --validate-only --output-errors before.json
@@ -392,6 +399,7 @@ npm run deploy-test -- --validate-only --output-errors after.json
 ```
 
 **CI/CD validation:**
+
 ```bash
 npm run deploy-test -- --validate-only
 # Exits with code 0 if validation passes, 1 if fails
@@ -400,11 +408,13 @@ npm run deploy-test -- --validate-only
 ## Limitations
 
 ### validate-conversion
+
 - Requires local SML CLI installation
 - SML CLI must have dependencies installed (run `npm install` in SML repo)
 - Exits with error code 1 if validation fails
 
 ### test-conversion
+
 - Does not validate SML output (use validate-conversion for that)
 - Does not write SML files to disk (analyzes in-memory)
 - Does not track individual measure names (only counts)

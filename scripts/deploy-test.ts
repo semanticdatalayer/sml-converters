@@ -18,10 +18,13 @@
 import fs from "fs/promises";
 import path from "path";
 import { execSync, spawnSync } from "child_process";
+import dotenv from "dotenv";
 import { BimFileParser } from "../src/commands/bim-to-sml/bim-file-parser";
 import { BimToYamlConverter } from "../src/commands/bim-to-sml/bim-converter/bim-to-sml-converter";
 import { SmlResultWriter } from "../src/shared/sml-result-writer";
 import { Logger } from "../src/shared/logger";
+
+dotenv.config();
 
 // Simple logger implementation
 class DeployLogger implements Logger {
@@ -96,8 +99,8 @@ async function initGitRepo(outputDir: string): Promise<void> {
 
   // Add a remote origin (SML CLI requires this)
   execSync(
-    'git remote add origin https://github.com/test/sml-deploy-test.git',
-    { cwd: outputDir, stdio: "pipe" }
+    "git remote add origin https://github.com/test/sml-deploy-test.git",
+    { cwd: outputDir, stdio: "pipe" },
   );
 
   // Create initial commit
@@ -114,7 +117,7 @@ async function initGitRepo(outputDir: string): Promise<void> {
 async function convertBimToSml(
   inputFile: string,
   outputDir: string,
-  logger: Logger
+  logger: Logger,
 ): Promise<void> {
   const parser = BimFileParser.create(logger);
   const bim = await parser.parseFile(inputFile);
@@ -139,7 +142,8 @@ function parseCliOutput(output: string): DeployError[] {
     // Match [ERROR] or [WARNING] prefixed lines
     const severityMatch = trimmed.match(/^\[(ERROR|WARNING|INFO)\]\s*(.+)$/i);
     if (severityMatch) {
-      const severity = severityMatch[1].toLowerCase() as DeployError["severity"];
+      const severity =
+        severityMatch[1].toLowerCase() as DeployError["severity"];
       let message = severityMatch[2];
 
       // Try to extract context if present
@@ -166,7 +170,7 @@ function parseCliOutput(output: string): DeployError[] {
  */
 async function validateSml(
   outputDir: string,
-  smlCliPath: string
+  smlCliPath: string,
 ): Promise<DeployResult> {
   const result = spawnSync(smlCliPath, ["validate", outputDir], {
     encoding: "utf-8",
@@ -181,8 +185,11 @@ async function validateSml(
   for (const line of lines) {
     const trimmed = line.trim();
     // Match error patterns like "[ERROR]" or error messages
-    if (trimmed.toLowerCase().includes("error") && !trimmed.includes("No errors found")) {
-      const existing = errors.find(e => e.message === trimmed);
+    if (
+      trimmed.toLowerCase().includes("error") &&
+      !trimmed.includes("No errors found")
+    ) {
+      const existing = errors.find((e) => e.message === trimmed);
       if (!existing) {
         errors.push({ severity: "error", message: trimmed });
       }
@@ -190,7 +197,10 @@ async function validateSml(
   }
 
   const hasErrors = errors.filter((e) => e.severity === "error").length > 0;
-  const success = result.status === 0 && !hasErrors && rawOutput.includes("Validation SUCCESSFUL");
+  const success =
+    result.status === 0 &&
+    !hasErrors &&
+    rawOutput.includes("Validation SUCCESSFUL");
 
   return {
     success,
@@ -204,7 +214,7 @@ async function validateSml(
  */
 async function deployToAtScale(
   outputDir: string,
-  smlCliPath: string
+  smlCliPath: string,
 ): Promise<DeployResult> {
   // Check required env vars
   const apiUrl = process.env.ATSCALE_API_URL;
@@ -248,13 +258,16 @@ async function deployToAtScale(
     if (statusMatch || messageMatch) {
       errors.push({
         severity: "error",
-        message: `API Error: ${statusMatch?.[0] || ""} ${messageMatch?.[1] || ""}`.trim(),
+        message:
+          `API Error: ${statusMatch?.[0] || ""} ${messageMatch?.[1] || ""}`.trim(),
       });
     }
   }
 
   return {
-    success: result.status === 0 && errors.filter((e) => e.severity === "error").length === 0,
+    success:
+      result.status === 0 &&
+      errors.filter((e) => e.severity === "error").length === 0,
     errors,
     rawOutput,
   };
@@ -265,7 +278,7 @@ async function deployToAtScale(
  */
 async function enrichErrorsWithDax(
   errors: DeployError[],
-  outputDir: string
+  outputDir: string,
 ): Promise<MetricError[]> {
   const metricErrors: MetricError[] = [];
 
@@ -287,7 +300,9 @@ async function enrichErrorsWithDax(
     }
 
     // Try to find metric name in error message
-    const metricMatch = error.message.match(/metric[:\s]+['"]?([^'":\s]+)['"]?/i);
+    const metricMatch = error.message.match(
+      /metric[:\s]+['"]?([^'":\s]+)['"]?/i,
+    );
     if (metricMatch && metricError.metricName === "unknown") {
       metricError.metricName = metricMatch[1];
     }
@@ -308,7 +323,9 @@ interface UnconvertedExpression {
 /**
  * Scan SML output directory for TODO markers in calculation expressions
  */
-async function scanForTodos(outputDir: string): Promise<UnconvertedExpression[]> {
+async function scanForTodos(
+  outputDir: string,
+): Promise<UnconvertedExpression[]> {
   const unconverted: UnconvertedExpression[] = [];
 
   // Look for yaml files in metrics/ and calculations/ folders
@@ -323,7 +340,8 @@ async function scanForTodos(outputDir: string): Promise<UnconvertedExpression[]>
         const content = await fs.readFile(filePath, "utf-8");
 
         // Find TODO markers in expressions
-        const todoPattern = /unique_name:\s*([^\n]+)[\s\S]*?expression:\s*0\s*\/\*\s*TODO:\s*([^*]+)\*\//g;
+        const todoPattern =
+          /unique_name:\s*([^\n]+)[\s\S]*?expression:\s*0\s*\/\*\s*TODO:\s*([^*]+)\*\//g;
         let match;
         while ((match = todoPattern.exec(content)) !== null) {
           const name = match[1].trim();
@@ -337,13 +355,18 @@ async function scanForTodos(outputDir: string): Promise<UnconvertedExpression[]>
         }
 
         // Also look for simpler TODO format
-        const simpleTodoPattern = /name:\s*([^\n]+)[\s\S]*?expression:\s*['"]?0\s*\/\*\s*TODO/g;
+        const simpleTodoPattern =
+          /name:\s*([^\n]+)[\s\S]*?expression:\s*['"]?0\s*\/\*\s*TODO/g;
         while ((match = simpleTodoPattern.exec(content)) !== null) {
           // Skip if already matched above
           const name = match[1].trim();
           if (!unconverted.find((u) => u.name === name)) {
             // Re-read to get full expression
-            const exprMatch = content.match(new RegExp(`name:\\s*${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?expression:\\s*([^\\n]+)`));
+            const exprMatch = content.match(
+              new RegExp(
+                `name:\\s*${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?expression:\\s*([^\\n]+)`,
+              ),
+            );
             if (exprMatch) {
               unconverted.push({
                 name,
@@ -368,18 +391,35 @@ async function scanForTodos(outputDir: string): Promise<UnconvertedExpression[]>
  */
 function categorizeExpression(expr: string): string {
   const upperExpr = expr.toUpperCase();
-  if (upperExpr.includes("TOTALYTD") || upperExpr.includes("TOTALMTD") || upperExpr.includes("TOTALQTD") ||
-      upperExpr.includes("SAMEPERIODLASTYEAR") || upperExpr.includes("PREVIOUSMONTH") ||
-      upperExpr.includes("PARALLELPERIOD") || upperExpr.includes("CLOSINGBALANCE") ||
-      upperExpr.includes("DATESBETWEEN") || upperExpr.includes("DATEDIFF") || upperExpr.includes("EOMONTH")) {
+  if (
+    upperExpr.includes("TOTALYTD") ||
+    upperExpr.includes("TOTALMTD") ||
+    upperExpr.includes("TOTALQTD") ||
+    upperExpr.includes("SAMEPERIODLASTYEAR") ||
+    upperExpr.includes("PREVIOUSMONTH") ||
+    upperExpr.includes("PARALLELPERIOD") ||
+    upperExpr.includes("CLOSINGBALANCE") ||
+    upperExpr.includes("DATESBETWEEN") ||
+    upperExpr.includes("DATEDIFF") ||
+    upperExpr.includes("EOMONTH")
+  ) {
     return "time-intelligence";
   }
-  if (upperExpr.includes("SUMX") || upperExpr.includes("AVERAGEX") || upperExpr.includes("MAXX") ||
-      upperExpr.includes("MINX") || upperExpr.includes("COUNTX")) {
+  if (
+    upperExpr.includes("SUMX") ||
+    upperExpr.includes("AVERAGEX") ||
+    upperExpr.includes("MAXX") ||
+    upperExpr.includes("MINX") ||
+    upperExpr.includes("COUNTX")
+  ) {
     return "iterator-aggregate";
   }
-  if (upperExpr.includes("ISFILTERED") || upperExpr.includes("ISCROSSFILTERED") ||
-      upperExpr.includes("HASONEVALUE") || upperExpr.includes("VALUES")) {
+  if (
+    upperExpr.includes("ISFILTERED") ||
+    upperExpr.includes("ISCROSSFILTERED") ||
+    upperExpr.includes("HASONEVALUE") ||
+    upperExpr.includes("VALUES")
+  ) {
     return "filter-context";
   }
   if (upperExpr.includes("CALCULATE") && upperExpr.includes("FILTER")) {
@@ -400,7 +440,9 @@ function categorizeExpression(expr: string): string {
 /**
  * Categorize all unconverted expressions and return counts
  */
-function categorizeUnconverted(unconverted: UnconvertedExpression[]): Record<string, number> {
+function categorizeUnconverted(
+  unconverted: UnconvertedExpression[],
+): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const expr of unconverted) {
     counts[expr.category] = (counts[expr.category] || 0) + 1;
@@ -411,15 +453,19 @@ function categorizeUnconverted(unconverted: UnconvertedExpression[]): Record<str
 function printSummary(
   inputFile: string,
   deployResult: DeployResult,
-  metricErrors: MetricError[]
+  metricErrors: MetricError[],
 ): void {
   console.log("\n" + "=".repeat(60));
   console.log("Deploy Test Summary");
   console.log("=".repeat(60));
   console.log(`Input: ${inputFile}`);
 
-  const errorCount = deployResult.errors.filter((e) => e.severity === "error").length;
-  const warningCount = deployResult.errors.filter((e) => e.severity === "warning").length;
+  const errorCount = deployResult.errors.filter(
+    (e) => e.severity === "error",
+  ).length;
+  const warningCount = deployResult.errors.filter(
+    (e) => e.severity === "warning",
+  ).length;
 
   console.log(`\n--- Results ---`);
   console.log(`  Errors: ${errorCount}`);
@@ -428,7 +474,9 @@ function printSummary(
 
   if (errorCount > 0) {
     console.log(`\n--- Errors ---`);
-    for (const error of deployResult.errors.filter((e) => e.severity === "error")) {
+    for (const error of deployResult.errors.filter(
+      (e) => e.severity === "error",
+    )) {
       console.log(`  - ${error.message}`);
       if (error.context) {
         console.log(`    Context: ${JSON.stringify(error.context)}`);
@@ -455,9 +503,14 @@ async function main() {
   const args = process.argv.slice(2);
 
   // Default input file
-  let inputFile = path.join(process.cwd(), "test-files", "pbi_dw_test_model.bim");
+  let inputFile = path.join(
+    process.cwd(),
+    "test-files",
+    "pbi_dw_test_model.bim",
+  );
   let outputDir: string | undefined;
-  let smlCliPath = "/Users/dianne/go/src/github.com/AtScaleInc/SML/apps/cli/bin/dev.js";
+  let smlCliPath =
+    "/Users/dianne/go/src/github.com/AtScaleInc/SML/apps/cli/bin/dev.js";
   let outputErrorsFile: string | undefined;
   let verbose = false;
   let validateOnly = false;
@@ -483,7 +536,9 @@ async function main() {
     await fs.access(inputFile);
   } catch {
     console.error(`Error: Input file not found: ${inputFile}`);
-    console.error("\nUsage: npm run deploy-test -- [--input <file.bim>] [--output <dir>] [--output-errors <file.json>] [--verbose] [--validate-only]");
+    console.error(
+      "\nUsage: npm run deploy-test -- [--input <file.bim>] [--output <dir>] [--output-errors <file.json>] [--verbose] [--validate-only]",
+    );
     process.exit(1);
   }
 
@@ -527,7 +582,10 @@ async function main() {
   }
 
   // Enrich errors with metric info
-  const metricErrors = await enrichErrorsWithDax(deployResult.errors, outputDir);
+  const metricErrors = await enrichErrorsWithDax(
+    deployResult.errors,
+    outputDir,
+  );
 
   // Scan SML output for unconverted expressions
   const unconvertedExpressions = await scanForTodos(outputDir);
@@ -536,7 +594,9 @@ async function main() {
   printSummary(inputFile, deployResult, metricErrors);
 
   if (unconvertedExpressions.length > 0) {
-    console.log(`\n--- Unconverted Expressions (${unconvertedExpressions.length}) ---`);
+    console.log(
+      `\n--- Unconverted Expressions (${unconvertedExpressions.length}) ---`,
+    );
     for (const expr of unconvertedExpressions.slice(0, 10)) {
       console.log(`  ${expr.name}: ${expr.expression.substring(0, 60)}...`);
     }

@@ -19,7 +19,7 @@ npm run test-custom-calcs
 
 ## Affected Repositories
 
-All changes have been added to a branch call bim2sml in the following repositories.
+All changes have been added to a branch call **bim2sml** in the following repositories.
 
 Conversion -- https://github.com/semanticdatalayer/sml-converters/tree/bim2sml/src/commands/bim-to-sml
 
@@ -27,18 +27,7 @@ Smoke tests -- https://github.com/AtScaleInc/SML/tree/bim2sml/tests/snowflake-co
 
 ## What This Converter Does
 
-Converts Power BI models (`.bim` files) to AtScale SML (Semantic Modeling Language):
-
-| BIM Object         | SML Object            |
-| ------------------ | --------------------- |
-| Tables (fact)      | Datasets + Metrics    |
-| Tables (dimension) | Dimensions + Levels   |
-| Measures           | Calculated Metrics    |
-| Relationships      | Model Relationships   |
-| Hierarchies        | Dimension Hierarchies |
-| Perspectives       | Model Perspectives    |
-
-**Key challenge:** DAX expressions must be converted to MDX. Many DAX patterns have no MDX equivalent.
+Converts Power BI models (`.bim` files) to AtScale SML (Semantic Modeling Language). The **Key challenge:** is that DAX expressions must be converted to MDX. Many DAX patterns have no MDX equivalent.
 
 ## Architecture Overview
 
@@ -117,6 +106,9 @@ npm run test-custom-calcs
 
 # Batch test multiple BIM files
 npm run test-conversion -- --input ./bim-files --output results.json
+
+# Validate sml after converting
+pnpm sml-cli validate <bim file>
 
 # Deploy test (validates SML works in AtScale)
 npm run test-deploy
