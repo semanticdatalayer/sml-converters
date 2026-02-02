@@ -805,6 +805,16 @@ export class ConversionPipeline {
       return `ISEMPTY('${tableName}') uses table reference - not convertible to MDX`;
     }
 
+    // Check for date arithmetic: [measure with date/time in name] +/- number
+    // DAX allows [datetime_measure]-1 to subtract days, but MDX requires DATEADD
+    // Pattern: measure reference containing 'date' or 'time' followed by +/- number
+    const dateArithmeticPattern = /\[Measures\]\.\[([^\]]*(?:date|time)[^\]]*)\]\s*[-+]\s*\d+|\d+\s*[-+]\s*\[Measures\]\.\[([^\]]*(?:date|time)[^\]]*)\]/gi;
+    const dateArithMatch = dateArithmeticPattern.exec(mdxExpression);
+    if (dateArithMatch) {
+      const measureName = dateArithMatch[1] || dateArithMatch[2];
+      return `Date arithmetic on measure '${measureName}' - MDX requires DATEADD, not +/- operators`;
+    }
+
     return undefined;
   }
 

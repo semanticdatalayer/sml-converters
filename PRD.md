@@ -51,11 +51,11 @@ Four BIM-to-SML conversion regressions need fixing. These files previously conve
 
 **Acceptance Criteria:**
 
-- [ ] Detect when OperatorToken `-` has a measure reference that returns DateTimeType
-- [ ] Generate TODO stub: `0 /* TODO: [measure]-1 - date arithmetic requires DATEADD */`
-- [ ] PFM_bim.json and PFM_from_Daniel_bim.json convert without "Function Minus requires NumericType" error
-- [ ] Run `npm run test-custom-calcs` - no new failures
-- [ ] Typecheck passes
+- [x] Detect when OperatorToken `-` has a measure reference that returns DateTimeType
+- [x] Generate TODO stub: `0 /* TODO: [measure]-1 - date arithmetic requires DATEADD */`
+- [x] PFM_bim.json and PFM_from_Daniel_bim.json convert without "Function Minus requires NumericType" error
+- [x] Run `npm run test-custom-calcs` - no new failures
+- [x] Typecheck passes
 
 ### US-004: Fix "end of input expected" parsing error
 

@@ -254,8 +254,8 @@ Four BIM files that previously converted are now failing. Fix regressions withou
 ### User Stories Progress
 
 - [x] US-001: Warning should not fail conversion (DataMgt)
-- [ ] US-002: Fix DAX bracket escaping for metric references (Magellan)
-- [ ] US-003: Generate TODO stub for date arithmetic (PFM)
+- [x] US-002: Fix DAX bracket escaping for metric references (Magellan)
+- [x] US-003: Generate TODO stub for date arithmetic (PFM)
 - [ ] US-004: Fix "end of input expected" parsing error (Ulta)
 - [ ] US-005: Run smoke tests to verify no regressions
 
@@ -286,4 +286,19 @@ Four BIM files that previously converted are now failing. Fix regressions withou
   - Issue may have been fixed in a prior session or resolved by related changes
   - DAX escaped brackets `[col[$]]]` (where `]]` escapes `]`) being handled correctly
   - Warnings for dimension column references and selector tables are expected non-fatal behavior
+---
+
+## Iteration 13 - US-003: Generate TODO stub for date arithmetic (PFM)
+- Issue: DAX `[PFM Processed On (date time)]-1` subtracts 1 day from datetime, producing invalid MDX
+- Fix: Added date arithmetic detection in validateMdxOutput() in conversion-pipeline.ts
+- Pattern detects: `[Measures].[...date or time...] +/- number` and generates TODO stub
+- Expression like `[Measures].[PFM Processed On (date time)]-1` now produces `0 /* TODO: [PFM Processed On (date time)]-1 */`
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts (added ~10 lines for date arithmetic validation)
+- Both PFM_bim.json and PFM_from_Daniel_bim.json convert successfully with TODO stubs
+- Tests pass, matches baseline: 70 metrics, 38 converted, 32 TODO, 54%
+- Learnings:
+  - DAX allows date arithmetic with simple +/- operators (subtracting days)
+  - MDX requires DATEADD function for date arithmetic - no simple operator equivalent
+  - Validation in validateMdxOutput() is a good place for semantic checks after conversion
 ---
