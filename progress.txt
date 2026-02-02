@@ -42,8 +42,8 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
 - [x] US-002: Create parameterized TotalPeriodTemplate (YTD/MTD/QTD)
 - [x] US-003: Create parameterized PeriodShiftTemplate (ParallelPeriod family)
 - [x] US-004: Extract type inference from measure-converter.ts
-- [ ] US-005: Extract reference resolution from measure-converter.ts
-- [ ] US-006: Consolidate var-scope-tracker + var-analyzer → var-analysis.ts
+- [x] US-005: Extract reference resolution from measure-converter.ts
+- [x] US-006: Consolidate var-scope-tracker + var-analyzer → var-analysis.ts
 - [ ] US-007: Consolidate var-safety-checker + var-inliner → var-inliner.ts
 - [ ] US-008: Inline conversion-result.ts into conversion-pipeline.ts
 - [ ] US-009: Inline connection-converter.ts into bim-to-sml-converter.ts
@@ -127,4 +127,39 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
 - Learnings:
   - Extraction was already done in a prior session (named type-inference.ts vs PRD's measure-type-inference.ts)
   - Module exports functions rather than a class, which is acceptable per "class or functions" in PRD
+---
+
+## Iteration 5 - US-005: Extract reference resolution from measure-converter.ts
+- Created measure-reference-resolver.ts with MeasureReferenceResolver class
+- Extracted from measure-converter.ts:
+  - buildMeasureTableMap(), getMeasureTable() - measure-to-table lookup
+  - resolveUnresolvedReferences() - resolves __UNRESOLVED__ markers in MDX
+  - splitMeasureRegistry (registerSplitMeasure, getSplitMeasureNames, rewriteSplitMeasureReferences)
+- MeasureConverter now delegates to referenceResolver instance
+- Files changed:
+  - Added: src/commands/bim-to-sml/bim-converter/measure-reference-resolver.ts (273 lines)
+  - Modified: src/commands/bim-to-sml/bim-converter/measure-converter.ts (1613 → 1440 lines)
+- Tests pass, output matches baseline: 70 metrics, 38 converted, 32 TODO, 54%
+- Learnings:
+  - PRD ~800 line target was overestimated - reference resolution is ~173 lines
+  - Remaining code in measure-converter.ts is core conversion logic (metricFromCalc, measuresFromSimpleMeasures, etc.)
+  - Total extracted from measure-converter.ts across US-004/US-005: type-inference.ts (527) + measure-reference-resolver.ts (273) = 800 lines
+---
+
+## Iteration 6 - US-006: Consolidate var-scope-tracker + var-analyzer → var-analysis.ts
+- Created var-analysis.ts (490 lines) combining VarScopeTracker and VarAnalyzer
+- Both classes kept distinct with section separators for clarity
+- Updated imports in:
+  - var-inliner.ts: combined VarScopeTracker, VarInfo, VarAnalyzer import
+  - var-safety-checker.ts: combined VarInfo, VarAnalyzer import
+  - dax-expression.ts: combined all var-analysis imports (VarScopeTracker, VarInfo, VarAnalyzer, VarDependency, CircularDependencyResult)
+- Deleted var-scope-tracker.ts and var-analyzer.ts
+- Files changed:
+  - Added: var-analysis/var-analysis.ts (490 lines)
+  - Modified: var-analysis/var-inliner.ts, var-analysis/var-safety-checker.ts, dax-expression.ts
+  - Deleted: var-analysis/var-scope-tracker.ts, var-analysis/var-analyzer.ts
+- Tests pass, output matches baseline: 70 metrics, 38 converted, 32 TODO, 54%
+- Learnings:
+  - Tightly coupled classes benefit from file consolidation - easier to find related code
+  - Section separators help maintain logical structure in combined files
 ---

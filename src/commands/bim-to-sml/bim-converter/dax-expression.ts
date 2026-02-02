@@ -1,6 +1,11 @@
 import { DaxToken, DaxTokenizer, VarToken, ReturnToken } from "./dax-converter";
-import { VarScopeTracker, VarInfo } from "./var-analysis/var-scope-tracker";
-import { VarAnalyzer, VarDependency, CircularDependencyResult } from "./var-analysis/var-analyzer";
+import {
+  VarScopeTracker,
+  VarInfo,
+  VarAnalyzer,
+  VarDependency,
+  CircularDependencyResult,
+} from "./var-analysis/var-analysis";
 
 /**
  * DaxExpression wraps a DAX expression with analyzed metadata.

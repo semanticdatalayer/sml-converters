@@ -1,6 +1,5 @@
 import { VarToken, DaxToken, FunctionToken } from "../dax-converter";
-import { VarInfo } from "./var-scope-tracker";
-import { VarAnalyzer } from "./var-analyzer";
+import { VarInfo, VarAnalyzer } from "./var-analysis";
 import { DaxExpression } from "../dax-expression";
 import { Logger } from "../../../../shared/logger";
 

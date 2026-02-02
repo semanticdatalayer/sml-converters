@@ -7,8 +7,7 @@ import {
   ParenToken,
 } from "../dax-converter";
 import { DaxExpression } from "../dax-expression";
-import { VarScopeTracker, VarInfo } from "./var-scope-tracker";
-import { VarAnalyzer } from "./var-analyzer";
+import { VarScopeTracker, VarInfo, VarAnalyzer } from "./var-analysis";
 import {
   VarSafetyChecker,
   SafetyCheckResult,
