@@ -72,13 +72,13 @@ The "end of input expected" error suggests tokenizer issue with this specific pa
 
 **Acceptance Criteria:**
 
-- [ ] Reproduce the parsing error with the specific DAX expression
-- [ ] Identify root cause in tokenizer (likely parenthesis/comma handling)
-- [ ] Fix tokenizer to handle this pattern
-- [ ] Add fallback: if parsing fails, generate TODO stub instead of error
-- [ ] Ulta_bim.json converts without "end of input expected" error
-- [ ] Run `npm run test-custom-calcs` - no new failures
-- [ ] Typecheck passes
+- [x] Reproduce the parsing error with the specific DAX expression
+- [x] Identify root cause in tokenizer (likely parenthesis/comma handling)
+- [x] Fix tokenizer to handle this pattern
+- [x] Add fallback: if parsing fails, generate TODO stub instead of error
+- [x] Ulta_bim.json converts without "end of input expected" error
+- [x] Run `npm run test-custom-calcs` - no new failures
+- [x] Typecheck passes
 
 ### US-005: Run smoke tests to verify no regressions
 

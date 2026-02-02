@@ -302,3 +302,16 @@ Four BIM files that previously converted are now failing. Fix regressions withou
   - MDX requires DATEADD function for date arithmetic - no simple operator equivalent
   - Validation in validateMdxOutput() is a good place for semantic checks after conversion
 ---
+
+## Iteration 14 - US-004: Fix "end of input expected" parsing error (Ulta)
+- Issue: PRD indicated "Sell Through" measure caused "end of input expected" parsing error
+- Investigation: Tested Ulta_bim.json - converts successfully without the error
+- "Sell Through" measure converts via template_conversion without issues
+- All 403 calculations processed, 113 converted, 289 TODO stubs generated
+- No parsing errors, no "end of input expected" error anywhere in output
+- Files changed: None (issue already resolved by prior work)
+- Tests pass, matches baseline: 70 metrics, 38 converted, 32 TODO, 54%
+- Learnings:
+  - Issue may have been fixed by prior tokenizer/parser improvements in an earlier session
+  - The DIVIDE template handles complex nested expressions correctly
+---
