@@ -21,14 +21,14 @@ npm run test-custom-calcs
 
 Converts Power BI models (`.bim` files) to AtScale SML (Semantic Modeling Language):
 
-| BIM Object | SML Object |
-|------------|------------|
-| Tables (fact) | Datasets + Metrics |
-| Tables (dimension) | Dimensions + Levels |
-| Measures | Calculated Metrics |
-| Relationships | Model Relationships |
-| Hierarchies | Dimension Hierarchies |
-| Perspectives | Model Perspectives |
+| BIM Object         | SML Object            |
+| ------------------ | --------------------- |
+| Tables (fact)      | Datasets + Metrics    |
+| Tables (dimension) | Dimensions + Levels   |
+| Measures           | Calculated Metrics    |
+| Relationships      | Model Relationships   |
+| Hierarchies        | Dimension Hierarchies |
+| Perspectives       | Model Perspectives    |
 
 **Key challenge:** DAX expressions must be converted to MDX. Many DAX patterns have no MDX equivalent.
 
@@ -64,13 +64,13 @@ Converts Power BI models (`.bim` files) to AtScale SML (Semantic Modeling Langua
 
 ## Key Files (read these first)
 
-| File | Purpose | Lines |
-|------|---------|-------|
-| `bim-to-sml-converter.ts` | Main orchestrator - start here | ~250 |
-| `conversion-pipeline.ts` | 6-stage DAX→MDX pipeline | ~730 |
-| `dax-converter.ts` | DAX tokenizer and token types | ~1,380 |
-| `measure-converter.ts` | Measure → metric conversion + type inference | ~1,600 |
-| `table-converter.ts` | Classify tables as fact vs dimension | ~390 |
+| File                      | Purpose                                      | Lines  |
+| ------------------------- | -------------------------------------------- | ------ |
+| `bim-to-sml-converter.ts` | Main orchestrator - start here               | ~250   |
+| `conversion-pipeline.ts`  | 6-stage DAX→MDX pipeline                     | ~730   |
+| `dax-converter.ts`        | DAX tokenizer and token types                | ~1,380 |
+| `measure-converter.ts`    | Measure → metric conversion + type inference | ~1,600 |
+| `table-converter.ts`      | Classify tables as fact vs dimension         | ~390   |
 
 ## Conversion Pipeline Deep Dive
 
@@ -96,6 +96,7 @@ MDX: ([Measures].[Sales]) / ([Measures].[Units])
 ```
 
 **Stage confidence thresholds:**
+
 - Stages 1-3: confidence >= 0.95 → accept
 - Stage 5 (AI): confidence >= 0.3 → accept
 - Stage 6: always produces TODO stub
@@ -115,21 +116,31 @@ npm run test-deploy
 
 ## Common Issues
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| `TODO: CALCULATE(...)` | DAX CALCULATE has no MDX equivalent | Manual MDX rewrite needed |
-| `TODO: FILTER(...)` | Row-by-row filtering impossible in MDX | Rethink measure logic |
-| Boolean type errors | Measure used in wrong context | Check type-inference.ts |
-| Missing metrics | Table classified as dimension | Check table-converter.ts |
+| Issue                  | Cause                                  | Solution                  |
+| ---------------------- | -------------------------------------- | ------------------------- |
+| `TODO: CALCULATE(...)` | DAX CALCULATE has no MDX equivalent    | Manual MDX rewrite needed |
+| `TODO: FILTER(...)`    | Row-by-row filtering impossible in MDX | Rethink measure logic     |
+| Boolean type errors    | Measure used in wrong context          | Check type-inference.ts   |
+| Missing metrics        | Table classified as dimension          | Check table-converter.ts  |
 
 ## What's NOT Supported
 
 DAX patterns that cannot convert to MDX:
+
 - `CALCULATE` with complex filters
 - `FILTER`, `ALL`, `ALLEXCEPT`
 - Row context functions (`RELATED`, `RELATEDTABLE`)
 - Iterator functions (`SUMX`, `AVERAGEX` with expressions)
-- Calculation groups referencing other calc groups
+
+### Calculation Groups
+
+Calculation groups can be defined on tables in bim files. Currently they are only seen in models from Mol and Hilcorp. This converter Currently bypasses them altogether. Here's the behavior:
+
+1. Calculation group tables are skipped - Identified via table.calculationGroup property, added to both calcGroupTables and unusedTables sets, so they don't become dimensions or datasets
+2. Measures referencing calc groups produce TODO stubs - detectCalculationGroupUsage() in measure-converter.ts
+3. Transitive dependencies are tracked - MeasureDependencyTracker marks measures that depend on other measures that use calc groups, so they also get TODO stubs.
+
+There's a plan that's been created for this functionality but it's not implemented: calculation-group-conversion-plan.md describes future support for converting simple calc group items (like TOTALYTD(SELECTEDMEASURE(), ...)) to SML templates like "Year to Date". The field (Daniel's team) is working with Mol to determine whether this functionality is needed, and if so, how they would migrate it manually to SML.
 
 ## Directory Structure
 
@@ -149,32 +160,3 @@ bim-to-sml/
 ├── bim-file-parser.ts             # BIM JSON parser
 └── bim-to-sml-command.ts          # CLI command
 ```
-
-## Demo Script (30 min)
-
-1. **Show input/output** (5 min)
-   - Open a simple BIM file in VS Code
-   - Run conversion, show generated SML YAML files
-
-2. **Walk through pipeline** (10 min)
-   - Open `conversion-pipeline.ts`
-   - Trace a simple measure through stages 1-3
-   - Show how template matching works
-
-3. **Show one template** (5 min)
-   - Open `divide-template.ts`
-   - Explain `match()` and `convert()` methods
-
-4. **Explain type inference** (5 min)
-   - Open `type-inference.ts`
-   - Show how boolean vs numeric context is tracked
-
-5. **Run tests** (5 min)
-   - Run `npm run test-custom-calcs`
-   - Show validation output
-
-## Contacts & Resources
-
-- **Codebase docs:** `CLAUDE.md` in this directory
-- **Calculation groups plan:** `calculation-group-conversion-plan.md`
-- **SML SDK docs:** See `sml-sdk` package

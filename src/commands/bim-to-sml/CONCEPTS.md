@@ -357,3 +357,55 @@ Maps aggregation patterns to created metrics:
 │ • Confidence: 0.0                                             │
 └───────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 9. TODO Stubs: Handling Unconvertible Expressions
+
+When a DAX expression cannot be converted to MDX, the converter produces a **TODO stub** - a placeholder that compiles but requires manual intervention.
+
+### TODO Syntax
+
+```
+<fallback_value> /* TODO: <original_dax> */
+```
+
+**Fallback values are type-aware:**
+
+| Context                        | Fallback Value | Example                           |
+| ------------------------------ | -------------- | --------------------------------- |
+| Numeric (default)              | `0`            | `0 /* TODO: SUMX(...) */`         |
+| Boolean-returning function     | `1`            | `1 /* TODO: HASONEVALUE(...) */`  |
+| Boolean context (IF condition) | `(1 = 1)`      | `(1 = 1) /* TODO: FILTER(...) */` |
+
+The type is determined by:
+
+1. **Usage context** - How the measure is referenced in other expressions
+2. **Function return type** - Whether the top-level DAX function returns boolean
+
+### What Triggers a TODO
+
+- **Unconvertible functions:** `CALCULATE`, `FILTER`, `SUMX`, `RELATED`, etc.
+- **DAX parse errors:** Malformed expressions
+- **Dimension column references:** `'DimTable'[Column]` in calculations
+- **Calculation group usage:** `SELECTEDMEASURE()`, `SELECTEDVALUE()`, or references to calc group tables
+- **VAR expressions that can't be fully inlined**
+
+### Transitive Dependencies
+
+The converter tracks measure dependencies to handle **transitive unconvertibility**.
+
+**Example:**
+
+```dax
+// Measure A - directly uses calc group (unconvertible)
+[A] = CALCULATE([Sales], 'Time Calc'[Type] = "YTD")
+
+// Measure B - references A (transitively unconvertible)
+[B] = [A] * 1.1
+
+// Measure C - references B (also transitively unconvertible)
+[C] = [B] + 100
+```
+
+**Result:** All three measures get TODO stubs, even though B and C don't directly use unconvertible patterns.
