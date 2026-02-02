@@ -39,7 +39,7 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
 ### User Stories Progress
 
 - [x] US-001: Capture baseline test results
-- [ ] US-002: Create parameterized TotalPeriodTemplate (YTD/MTD/QTD)
+- [x] US-002: Create parameterized TotalPeriodTemplate (YTD/MTD/QTD)
 - [ ] US-003: Create parameterized PeriodShiftTemplate (ParallelPeriod family)
 - [ ] US-004: Extract type inference from measure-converter.ts
 - [ ] US-005: Extract reference resolution from measure-converter.ts
@@ -74,4 +74,19 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
 - Learnings:
   - Test takes ~90ms to run
   - Test file is dw_test_model.bim with 29 tables, 341 columns, 70 measures
+---
+
+## Iteration 2 - US-002: Create parameterized TotalPeriodTemplate (YTD/MTD/QTD)
+- Created total-period-template.ts with PeriodType parameter ('year' | 'month' | 'quarter')
+- Handles TOTALYTD, TOTALMTD, TOTALQTD via config object
+- Updated template-registry.ts to register 3 TotalPeriodTemplate instances
+- Deleted totalytd-template.ts, totalmtd-template.ts, totalqtd-template.ts
+- Files changed:
+  - Added: conversion-templates/templates/total-period-template.ts
+  - Modified: conversion-templates/template-registry.ts
+  - Deleted: totalytd-template.ts, totalmtd-template.ts, totalqtd-template.ts
+- Tests pass, output matches baseline: 70 metrics, 38 converted, 32 TODO, 54%
+- Learnings:
+  - Template name must remain unique per instance (TotalYearTemplate, TotalMonthTemplate, TotalQuarterTemplate)
+  - Config pattern works well - all differences captured in PERIOD_CONFIGS object
 ---

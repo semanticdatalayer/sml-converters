@@ -40,12 +40,12 @@ Simplify the BIM-to-SML converter codebase by consolidating related files, mergi
 **Description:** As a developer, I want to merge totalytd, totalmtd, totalqtd templates into one parameterized template so we reduce duplication.
 
 **Acceptance Criteria:**
-- [ ] Create `total-period-template.ts` with period type parameter ('year' | 'month' | 'quarter')
-- [ ] Template handles all three functions: TOTALYTD, TOTALMTD, TOTALQTD
-- [ ] Register template in template-registry.ts replacing the three individual templates
-- [ ] Delete totalytd-template.ts, totalmtd-template.ts, totalqtd-template.ts
-- [ ] Run `npm run test-custom-calcs` - output matches baseline
-- [ ] Typecheck passes
+- [x] Create `total-period-template.ts` with period type parameter ('year' | 'month' | 'quarter')
+- [x] Template handles all three functions: TOTALYTD, TOTALMTD, TOTALQTD
+- [x] Register template in template-registry.ts replacing the three individual templates
+- [x] Delete totalytd-template.ts, totalmtd-template.ts, totalqtd-template.ts
+- [x] Run `npm run test-custom-calcs` - output matches baseline
+- [x] Typecheck passes
 
 ---
 

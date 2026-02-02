@@ -13,16 +13,63 @@ import { ConversionContext } from "../conversion-context";
 import { resolveDimensionHierarchy, extractDimUniqueName, resolveTimeLevelByUnit } from "../../converter-utils";
 
 /**
- * TotalYtdTemplate converts DAX TOTALYTD function to MDX.
+ * Period type for total period templates
+ */
+export type PeriodType = "year" | "month" | "quarter";
+
+/**
+ * Configuration for each period type
+ */
+interface PeriodConfig {
+  daxFunction: string;  // TOTALYTD, TOTALMTD, TOTALQTD
+  mdxFunction: string;  // YTD, MTD, QTD
+  levelUnit: PeriodType;
+  levelName: string;    // Year, Month, Quarter
+  description: string;
+}
+
+const PERIOD_CONFIGS: Record<PeriodType, PeriodConfig> = {
+  year: {
+    daxFunction: "TOTALYTD",
+    mdxFunction: "YTD",
+    levelUnit: "year",
+    levelName: "Year",
+    description: "Year-to-date",
+  },
+  month: {
+    daxFunction: "TOTALMTD",
+    mdxFunction: "MTD",
+    levelUnit: "month",
+    levelName: "Month",
+    description: "Month-to-date",
+  },
+  quarter: {
+    daxFunction: "TOTALQTD",
+    mdxFunction: "QTD",
+    levelUnit: "quarter",
+    levelName: "Quarter",
+    description: "Quarter-to-date",
+  },
+};
+
+/**
+ * TotalPeriodTemplate converts DAX TOTALYTD/TOTALMTD/TOTALQTD functions to MDX.
  *
  * DAX: TOTALYTD([Total Sales], DATE_DIM[D_DATE])
  * MDX: Sum(YTD([dimension.DATE_DIM].[DATE_DIM Hierarchy].CurrentMember), [Measures].[Total Sales])
  *
- * TOTALYTD evaluates an expression for the year-to-date value.
+ * Parameterized by period type: 'year' | 'month' | 'quarter'
  */
-export class TotalYtdTemplate extends ConversionTemplate {
-  readonly name = "TotalYtdTemplate";
+export class TotalPeriodTemplate extends ConversionTemplate {
+  readonly name: string;
   readonly confidence = 0.95;
+  private readonly config: PeriodConfig;
+
+  constructor(periodType: PeriodType) {
+    super();
+    this.config = PERIOD_CONFIGS[periodType];
+    this.name = `Total${this.config.levelName}Template`;
+  }
 
   canConvert(tokens: DaxToken[], context: ConversionContext): boolean {
     if (tokens.length !== 1) {
@@ -34,16 +81,16 @@ export class TotalYtdTemplate extends ConversionTemplate {
       return false;
     }
 
-    if (token.functionAgg.toUpperCase() !== "TOTALYTD") {
+    if (token.functionAgg.toUpperCase() !== this.config.daxFunction) {
       return false;
     }
 
     const argCount = this.countArguments(token.args);
-    // TOTALYTD requires at least 2 arguments: expression and dates column
+    // TOTAL*TD requires at least 2 arguments: expression and dates column
     // Optional 3rd argument: filter (year_end_date)
     if (argCount < 2) {
       this.warn(
-        `TOTALYTD function has ${argCount} arguments, expected at least 2`,
+        `${this.config.daxFunction} function has ${argCount} arguments, expected at least 2`,
         context,
       );
       return false;
@@ -53,7 +100,7 @@ export class TotalYtdTemplate extends ConversionTemplate {
     const argGroups = this.splitArguments(token.args);
     if (argGroups.length > 0 && this.containsUnconvertibleFunctions(argGroups[0], context)) {
       this.warn(
-        `TOTALYTD expression argument contains unconvertible functions - rejecting conversion`,
+        `${this.config.daxFunction} expression argument contains unconvertible functions - rejecting conversion`,
         context,
       );
       return false;
@@ -70,7 +117,7 @@ export class TotalYtdTemplate extends ConversionTemplate {
 
     if (argGroups.length < 2) {
       return failedConversion(
-        `TOTALYTD requires at least 2 arguments, got ${argGroups.length}`,
+        `${this.config.daxFunction} requires at least 2 arguments, got ${argGroups.length}`,
         token.functionAgg,
       );
     }
@@ -85,41 +132,40 @@ export class TotalYtdTemplate extends ConversionTemplate {
 
       if (!dimensionRef) {
         return failedConversion(
-          `TOTALYTD could not resolve dimension reference from date column`,
+          `${this.config.daxFunction} could not resolve dimension reference from date column`,
           token.functionAgg,
         );
       }
 
-      // MDX YTD() function requires a time dimension with a Year level
-      // Check if the dimension has a year level; if not, fail conversion
+      // MDX *TD() function requires a time dimension with the appropriate level
       const dimUniqueName = extractDimUniqueName(dimensionRef);
-      const yearLevel = dimUniqueName
-        ? resolveTimeLevelByUnit(dimUniqueName, "year", context.result, context.bim)
+      const requiredLevel = dimUniqueName
+        ? resolveTimeLevelByUnit(dimUniqueName, this.config.levelUnit, context.result, context.bim)
         : undefined;
 
-      if (!yearLevel) {
+      if (!requiredLevel) {
         return failedConversion(
-          `TOTALYTD requires Year level in time dimension hierarchy, but ${dimUniqueName || "unknown dimension"} has no Year level`,
+          `${this.config.daxFunction} requires ${this.config.levelName} level in time dimension hierarchy, but ${dimUniqueName || "unknown dimension"} has no ${this.config.levelName} level`,
           token.functionAgg,
         );
       }
 
-      // Build MDX: Sum(YTD([dimension].[hierarchy].CurrentMember), [Measures].[measure])
-      const mdxExpression = `Sum(YTD(${dimensionRef}.CurrentMember), ${measureMdx})`;
+      // Build MDX: Sum(*TD([dimension].[hierarchy].CurrentMember), [Measures].[measure])
+      const mdxExpression = `Sum(${this.config.mdxFunction}(${dimensionRef}.CurrentMember), ${measureMdx})`;
 
       return successfulConversion(
         mdxExpression,
         this.confidence,
         ConversionCategory.TEMPLATE_CONVERSION,
         {
-          originalDax: `TOTALYTD(...)`,
-          method: "totalytd_template",
-          note: "Year-to-date aggregation",
+          originalDax: `${this.config.daxFunction}(...)`,
+          method: `total${this.config.levelUnit}td_template`,
+          note: `${this.config.description} aggregation`,
         },
       );
     } catch (error) {
       return failedConversion(
-        `Failed to convert TOTALYTD: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to convert ${this.config.daxFunction}: ${error instanceof Error ? error.message : String(error)}`,
         token.functionAgg,
       );
     }
@@ -154,23 +200,27 @@ export class TotalYtdTemplate extends ConversionTemplate {
   }
 
   getExamples(): ConversionExample[] {
+    const fn = this.config.daxFunction;
+    const mdxFn = this.config.mdxFunction;
+    const desc = this.config.description.toLowerCase();
+
     return [
       {
-        dax: "TOTALYTD([Total Sales], DATE_DIM[D_DATE])",
-        mdx: "Sum(YTD([dimension.DATE_DIM].[DATE_DIM Hierarchy].CurrentMember), [Measures].[Total Sales])",
-        description: "Year-to-date sales calculation",
+        dax: `${fn}([Total Sales], DATE_DIM[D_DATE])`,
+        mdx: `Sum(${mdxFn}([dimension.DATE_DIM].[DATE_DIM Hierarchy].CurrentMember), [Measures].[Total Sales])`,
+        description: `${this.config.description} sales calculation`,
       },
       {
-        dax: "TOTALYTD(SUM(Sales[Amount]), 'Date'[Date])",
-        mdx: "Sum(YTD([dimension.Date].[Date Hierarchy].CurrentMember), [Measures].[Amount_sum])",
-        description: "YTD with aggregation expression",
+        dax: `${fn}(SUM(Sales[Amount]), 'Date'[Date])`,
+        mdx: `Sum(${mdxFn}([dimension.Date].[Date Hierarchy].CurrentMember), [Measures].[Amount_sum])`,
+        description: `${desc} with aggregation expression`,
       },
     ];
   }
 
   getDescription(): string {
     return (
-      "Converts DAX TOTALYTD function to MDX Sum(YTD()) pattern. " +
+      `Converts DAX ${this.config.daxFunction} function to MDX Sum(${this.config.mdxFunction}()) pattern. ` +
       "Maps dimension column reference to MDX hierarchy using resolveDimensionHierarchy."
     );
   }
@@ -207,3 +257,8 @@ export class TotalYtdTemplate extends ConversionTemplate {
     return groups;
   }
 }
+
+// Export convenience factory functions for each period type
+export const TotalYtdTemplate = () => new TotalPeriodTemplate("year");
+export const TotalMtdTemplate = () => new TotalPeriodTemplate("month");
+export const TotalQtdTemplate = () => new TotalPeriodTemplate("quarter");
