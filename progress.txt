@@ -46,8 +46,8 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
 - [x] US-006: Consolidate var-scope-tracker + var-analyzer → var-analysis.ts
 - [x] US-007: Consolidate var-safety-checker + var-inliner → var-inliner.ts
 - [x] US-008: Inline conversion-result.ts into conversion-pipeline.ts
-- [ ] US-009: Inline connection-converter.ts into bim-to-sml-converter.ts
-- [ ] US-010: Final verification and cleanup
+- [x] US-009: Inline connection-converter.ts into bim-to-sml-converter.ts
+- [x] US-010: Final verification and cleanup
 
 ---
 
@@ -195,4 +195,42 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
 - Learnings:
   - Inlining small utility types/functions into their primary consumer simplifies imports
   - When many files import from a utility, update order doesn't matter - all-or-nothing update
+---
+
+## Iteration 9 - US-009: Inline connection-converter.ts into bim-to-sml-converter.ts
+- Moved createConnections(), listUsedConnections(), parseConnectionString() as private methods in BimToYamlConverter
+- Added SMLConnection import to bim-to-sml-converter.ts
+- Removed ConnectionConverter import and instantiation
+- Deleted connection-converter.ts (94 lines)
+- Files changed:
+  - Modified: bim-to-sml-converter.ts (+84 lines for connection methods)
+  - Deleted: connection-converter.ts (94 lines)
+- Tests pass, output matches baseline: 70 metrics, 38 converted, 32 TODO, 54%
+- Learnings:
+  - Single-consumer utility classes inline cleanly as private methods
+  - Class methods using this.logger work identically to injected logger
+---
+
+## Iteration 10 - US-010: Final verification and cleanup
+- Ran `npm run test-custom-calcs` - PASSED, output matches baseline exactly
+  - 70 metrics, 38 converted, 32 TODO, 54% rate
+- Ran `npm run build` - SUCCESS, typecheck passed
+- Verified no stale imports to deleted files (grep found none)
+- File count verification:
+  - bim-converter/ now has 38 .ts files
+  - Deleted 11 files total: totalytd-template.ts, totalmtd-template.ts, totalqtd-template.ts,
+    parallelperiod-template.ts, sameperiodlastyear-template.ts, previousmonth-template.ts,
+    var-scope-tracker.ts, var-analyzer.ts, var-safety-checker.ts, conversion-result.ts, connection-converter.ts
+  - Added 4 files: total-period-template.ts, period-shift-template.ts, var-analysis.ts, measure-reference-resolver.ts
+  - Net change: -7 files (PRD estimated ~8, close enough)
+- All acceptance criteria met:
+  - [x] Tests pass and match baseline
+  - [x] No functional changes
+  - [x] No stale imports outside bim-converter/
+  - [x] File count reduced by 7
+  - [x] Typecheck passes
+  - [x] Build succeeds
+- Learnings:
+  - All refactoring preserved functionality - zero test regressions across 9 iterations
+  - PRD file reduction estimate (~8) was close to actual (-7)
 ---

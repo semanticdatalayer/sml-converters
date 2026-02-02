@@ -140,11 +140,11 @@ Simplify the BIM-to-SML converter codebase by consolidating related files, mergi
 **Description:** As a developer, I want connection conversion logic in the main orchestrator since it's only 94 lines and used in one place.
 
 **Acceptance Criteria:**
-- [ ] Move `createConnections()`, `listUsedConnections()`, `parseConnectionString()` into bim-to-sml-converter.ts
-- [ ] Functions can remain standalone or become private methods
-- [ ] Delete connection-converter.ts
-- [ ] Run `npm run test-custom-calcs` - output matches baseline
-- [ ] Typecheck passes
+- [x] Move `createConnections()`, `listUsedConnections()`, `parseConnectionString()` into bim-to-sml-converter.ts
+- [x] Functions can remain standalone or become private methods
+- [x] Delete connection-converter.ts
+- [x] Run `npm run test-custom-calcs` - output matches baseline
+- [x] Typecheck passes
 
 ---
 
@@ -153,12 +153,12 @@ Simplify the BIM-to-SML converter codebase by consolidating related files, mergi
 **Description:** As a developer, I want to verify all refactoring preserved functionality and update documentation.
 
 **Acceptance Criteria:**
-- [ ] Run full `npm run test-custom-calcs` and compare against baseline
-- [ ] All outputs identical to baseline (no functional changes)
-- [ ] Update any imports in files outside bim-converter/ if needed
-- [ ] Verify file count reduction: ~8 fewer files total
-- [ ] Typecheck passes
-- [ ] Build succeeds (`npm run build`)
+- [x] Run full `npm run test-custom-calcs` and compare against baseline
+- [x] All outputs identical to baseline (no functional changes)
+- [x] Update any imports in files outside bim-converter/ if needed
+- [x] Verify file count reduction: ~8 fewer files total
+- [x] Typecheck passes
+- [x] Build succeeds (`npm run build`)
 
 ---
 
