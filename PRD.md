@@ -86,10 +86,10 @@ The "end of input expected" error suggests tokenizer issue with this specific pa
 
 **Acceptance Criteria:**
 
-- [ ] Run `npm run test-custom-calcs` - all previously passing files still pass
-- [ ] Run `pnpm run test:pbi-smoke` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter/src/test-suites/pbi-smoke` - suite passes
-- [ ] No new warnings or errors introduced
-- [ ] Typecheck passes
+- [x] Run `npm run test-custom-calcs` - all previously passing files still pass
+- [x] Run `pnpm run test:pbi-smoke` from `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter/src/test-suites/pbi-smoke` - suite passes
+- [x] No new warnings or errors introduced
+- [x] Typecheck passes
 
 ## Non-Goals
 

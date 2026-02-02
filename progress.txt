@@ -315,3 +315,16 @@ Four BIM files that previously converted are now failing. Fix regressions withou
   - Issue may have been fixed by prior tokenizer/parser improvements in an earlier session
   - The DIVIDE template handles complex nested expressions correctly
 ---
+
+## Iteration 15 - US-005: Run smoke tests to verify no regressions
+- Ran `npm run test-custom-calcs` - PASSED (70 metrics, 38 converted, 32 TODO, 54%)
+- Ran `pnpm run test:pbi-smoke` - PASSED (29 passed, 7 skipped, 0 failed)
+- Typecheck via `npm run build` - PASSED
+- All 4 regression files now convert successfully:
+  - DataMgt_bim.json: fixed array expression handling
+  - Magellan_bim.json: bracket escaping working
+  - PFM_bim.json: date arithmetic generates TODO stubs
+  - Ulta_bim.json: no parsing errors
+- Files changed: None (verification only)
+- PRD fully complete: all 5 user stories completed
+---
