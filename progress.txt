@@ -16,242 +16,62 @@
 - BIM source files can have bugs (references to non-existent columns/measures) - converter should detect and produce TODO stubs
 - Time intelligence conversions (SAMEPERIODLASTYEAR, etc.) depend on dimensions existing - must validate before generating MDX
 - resolveDimensionHierarchy() should return undefined when table doesn't exist to trigger TODO fallback
+- DAX dotted function names (PERCENTILE.INC, PERCENTILE.EXC) need special tokenizer handling
+- Most deployment failures are AtScale server-side issues, not converter bugs
 
 ---
 
-## Iteration 1 - US-001: Pre-populate measTables for correct table classification
-- **Problem**: Tables with BIM measures but on "right" side of relationships were incorrectly classified as dimension-only tables
-- **Root cause**: `populateTableLists()` classified tables before measure conversion ran, so `measTables` was empty
-- **Fix**: Added `prePopulateMeasTables()` method to scan BIM tables for measures BEFORE table classification
-- **Files changed**:
-  - `src/commands/bim-to-sml/bim-converter/table-converter.ts` - Added `prePopulateMeasTables()` method
-  - `src/commands/bim-to-sml/bim-converter/bim-to-sml-converter.ts` - Call `prePopulateMeasTables()` before `populateTableLists()`
-- **Learnings for future iterations**:
-  - Table classification depends on `measTables` to know which tables have measures
-  - Order of operations matters: table classification must run AFTER measTables is populated
-  - Tables can be in BOTH factTables and dimTables (if they have measures AND are on "right" side)
-  - The `isDimensionOnlyTable()` check returns true only if table is in dimTables but NOT in factTables
-- **Verified**:
-  - FactPolicyLine_bim.json now shows "Fact Policy Line" in factTables
-  - Marketing_-_Advertising_bim.json conversion works
-  - RetailPolicyLine_bim.json conversion works
-  - npm run test-custom-calcs passes
-  - Typecheck passes
----
+## NEW PRD: High-Impact Code Simplifications for BIM Converter
 
-## Iteration 2 - US-001: Fix deployment errors for three test files
-- **Problem**: FactPolicyLine, RetailPolicyLine, and Marketing_-_Advertising failed to deploy
-- **Root causes**:
-  1. `NOW()` DAX function with date arithmetic produces invalid MDX (timestamp - number fails)
-  2. Column/measure references to non-existent objects fell back to invalid MDX
-  3. Time intelligence functions (SAMEPERIODLASTYEAR) for non-existent tables created invalid dimension references
-- **Fixes**:
-  1. Added NOW and TODAY to unconvertible list in function-mappings.json
-  2. Changed ColumnReference.toMdx() to throw error for unresolved references instead of fallback
-  3. Changed TableColumnReference.toMdx() to throw when column doesn't exist
-  4. Updated resolveDimensionHierarchy() to return undefined when table doesn't exist
-- **Files changed**:
-  - `src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json` - Added NOW, TODAY to unconvertible
-  - `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - Fixed fallback to throw errors
-  - `src/commands/bim-to-sml/bim-converter/converter-utils.ts` - Updated resolveDimensionHierarchy signature
-- **Learnings for future iterations**:
-  - NOW() in DAX commonly used with date arithmetic - no MDX equivalent, must produce TODO stub
-  - Source BIM files can have bugs (referencing non-existent columns/measures) - converter should detect and produce TODO stubs
-  - Time intelligence functions depend on dimensions existing - must validate before generating MDX
-  - "Failing safe" with TODO stubs is better than generating invalid MDX
-- **Verified**:
-  - FactPolicyLine_bim.json deploys successfully
-  - RetailPolicyLine_bim.json deploys successfully
-  - Marketing_-_Advertising_bim.json deploys successfully
-  - npm run test-custom-calcs passes
-  - Typecheck passes
----
+**Started:** 2026-02-02
 
-## NEW PRD: Fix BIM Conversion Deployment Errors (tests1 Directory)
+Simplify BIM converter codebase by consolidating files and extracting concerns. Zero functional changes - all tests must match baseline.
 
-**Started:** 2026-01-31
+### Planned Changes
 
-This PRD addresses errors in `/Users/dianne/Downloads/bim/tests1/` files as listed in `errors_to_address.txt`.
+| Area | Before | After | Reduction |
+|------|--------|-------|-----------|
+| Time templates | totalytd, totalmtd, totalqtd, parallelperiod, sameperiodlastyear, previousmonth | total-period-template.ts, period-shift-template.ts | 6 → 2 |
+| measure-converter.ts | 1,613 lines | ~800 lines + 2 extracted modules | Split |
+| VAR analysis | 4 files | 2 files | 4 → 2 |
+| Small utilities | conversion-result.ts, connection-converter.ts | Inlined into consumers | -2 files |
 
-### Error Categories
+### User Stories Progress
 
-| Category | Files | Error Message |
-|----------|-------|---------------|
-| Non-existing metric | FactPolicyLine, Marketing_-_Advertising, RetailPolicyLine | "expression contains a non-existing metric" |
-| Array undefined | Assembly_kpis, EU_Safety_Model, epm_mtd | "Cannot read properties of undefined (reading 'map')" |
-| Calc not a measure | PFM_bim | "Measure ProjectID in calculation is not a measure" (separate PRD) |
-| Special char parsing | Dealer_Performance_Dashboard, Global_Report, HDNA_Magellan_Report, Most_Loved | "Comma expected but OpenParen found", etc. |
-| Type mismatches | FactCoverage_Pivot, FactProduction, Machining_Performance | "Function Minus requires NumericType", "IIF requires same type" |
-| End of input | Magellan_-_Usage_Metrics_Report, Planogram_Integration_DataModel | "end of input expected" |
-
-### User Stories
-- US-001: Create base metrics for referenced measures
-- US-002: Re-verify array handling for tests1 files
-- US-003: Fix special character parsing errors
-- US-004: Fix data type mismatches
-- US-005: Fix "end of input expected" errors
-- US-006: Add automated test-deploy script
-- US-007: Test all files and document results
+- [x] US-001: Capture baseline test results
+- [ ] US-002: Create parameterized TotalPeriodTemplate (YTD/MTD/QTD)
+- [ ] US-003: Create parameterized PeriodShiftTemplate (ParallelPeriod family)
+- [ ] US-004: Extract type inference from measure-converter.ts
+- [ ] US-005: Extract reference resolution from measure-converter.ts
+- [ ] US-006: Consolidate var-scope-tracker + var-analyzer → var-analysis.ts
+- [ ] US-007: Consolidate var-safety-checker + var-inliner → var-inliner.ts
+- [ ] US-008: Inline conversion-result.ts into conversion-pipeline.ts
+- [ ] US-009: Inline connection-converter.ts into bim-to-sml-converter.ts
+- [ ] US-010: Final verification and cleanup
 
 ---
 
-## Iteration 3 - US-002: Re-verify array handling for tests1 files
-- **Problem**: Verify "Cannot read properties of undefined (reading 'map')" errors don't occur during conversion
-- **Tested files**: Assembly_KPI_bim.json, Assembly_KPIs_Model_bim.json, EU_Safety_Model_bim.json, epm_mtd_bim.json
-- **Result**: All four files convert successfully without undefined errors in converter code
-- **Deployment blockers (AtScale server-side issues)**:
-  - Assembly_KPI & Assembly_KPIs_Model: Models have no dimensions because relationships point to excluded LocalDateTable tables. Server returns "Cannot read properties of undefined (reading 'map')" for dimension-less models.
-  - EU_Safety_Model & epm_mtd: Single dataset models trigger "parsedXml.schema.data-sets.data-set.map is not a function" - server-side bug with single-element arrays.
-- **Files changed**: None (no converter bugs found)
-- **Learnings for future iterations**:
-  - BIM files with relationships only to LocalDateTable tables produce dimension-less SML models
-  - AtScale server has bugs with dimension-less models and single-dataset models
-  - Conversion success ≠ deployment success - server-side issues can still occur
-  - "Cannot read properties of undefined (reading 'map')" can be server-side, not just converter-side
-- **Verified**:
-  - All four files convert without "Cannot read properties of undefined" converter errors
-  - npm run test-custom-calcs passes
-  - Typecheck passes
-  - Deployment blockers documented as AtScale server-side issues
+## Baseline (captured in US-001)
+
+**Test command:** `npm run test-custom-calcs`
+**Output file:** `test-output/baseline.txt`
+
+**Key metrics:**
+- File: dw_test_model.bim
+- Total Calculated Metrics: 70
+- MDX Converted: 38
+- TODO Remaining: 32
+- Conversion Rate: 54%
+- SML Validation: PASSED
+- Result: PASS
+
 ---
 
-## Iteration 4 - US-003: Fix special character parsing errors in MDX expressions
-- **Problem**: Multiple BIM files failed deployment with parsing errors like "Comma expected but OpenParen found"
-- **Root causes**:
-  1. FIND function passed through literally (no MDX equivalent)
-  2. ISBLANK not being converted to ISEMPTY when nested in compound expressions
-  3. DAX table literals `{...}` passed through literally (no MDX equivalent in measures)
-  4. SAMEPERIODLASTYEAR generating tuple with arithmetic expressions (invalid MDX)
-- **Fixes**:
-  1. Added FIND, SEARCH, CONTAINSSTRING, SUBSTITUTE, REPLACE, REPT, PATH* to unconvertible list
-  2. Added ISBLANK → ISEMPTY to direct_mappings (handles nested ISBLANK in IF conditions)
-  3. Made BraceToken.toMdx() throw error to trigger TODO fallback
-  4. Added check in SAMEPERIODLASTYEAR template to fail when measure is not a simple reference
-- **Files changed**:
-  - `src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json` - Added unconvertible functions, ISBLANK mapping
-  - `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - BraceToken throws for TODO fallback
-  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/sameperiodlastyear-template.ts` - Check for simple measure ref
-- **Learnings for future iterations**:
-  - DAX string functions (FIND, SEARCH, etc.) have no MDX equivalent for measure expressions
-  - Direct function mappings handle nested cases better than templates (for simple 1:1 mappings)
-  - DAX table literals are not valid in MDX measure expressions
-  - MDX tuple syntax `(set, measure)` requires both parts to be members, not expressions
-- **Verified**:
-  - Dealer_Performance_Dashboard_bim.json deploys successfully
-  - Global_Report_-_Assembly_KPIs_bim.json deploys successfully
-  - HDNA_Magellan_Report_bim.json deploys successfully
-  - Most_Loved_bim.json deploys successfully
-  - npm run test-custom-calcs passes (54% conversion rate maintained)
-  - Typecheck passes
----
-
-## Iteration 5 - US-004: Fix data type mismatches in function arguments
-- **Problem**: Time intelligence functions (TOTALYTD, SAMEPERIODLASTYEAR, etc.) generated invalid MDX when dimension hierarchy lacks required time levels
-- **Root cause**: `resolveTimeLevelByUnit()` returned fallback string like "Year" when no matching level exists, causing MDX to reference non-existent hierarchy levels
-- **Fixes**:
-  1. Changed `resolveTimeLevelByUnit()` to return `undefined` instead of fallback when time level doesn't exist
-  2. Updated SAMEPERIODLASTYEAR, PREVIOUSMONTH, PARALLELPERIOD templates to fail conversion when required time level is missing
-  3. Updated TOTALYTD template to validate Year level exists before generating YTD() MDX
-  4. Updated TOTALMTD template to validate Month level exists before generating MTD() MDX
-  5. Updated TOTALQTD template to validate Quarter level exists before generating QTD() MDX
-- **Files changed**:
-  - `src/commands/bim-to-sml/bim-converter/converter-utils.ts` - resolveTimeLevelByUnit returns undefined
-  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/sameperiodlastyear-template.ts` - year level validation
-  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/previousmonth-template.ts` - month level validation
-  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/parallelperiod-template.ts` - time level validation
-  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/totalytd-template.ts` - year level validation
-  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/totalmtd-template.ts` - month level validation
-  - `src/commands/bim-to-sml/bim-converter/conversion-templates/templates/totalqtd-template.ts` - quarter level validation
-- **Learnings for future iterations**:
-  - Time intelligence MDX functions (YTD, MTD, QTD, ParallelPeriod) require specific hierarchy levels to exist
-  - Flat date dimensions with only a Day level don't support YTD/MTD/QTD patterns
-  - "Fail fast" by returning undefined from utility functions instead of fallback values
-  - Time level validation should happen before generating MDX, not during deployment
-- **Verified**:
-  - FactCoverage_Pivot_bim.json deploys successfully
-  - FactProduction_bim.json deploys successfully (was failing with "requires TimeYears level")
-  - Machining_Performance.Loss__Model_bim.json deploys successfully
-  - npm run test-custom-calcs passes (54% conversion rate maintained)
-  - Typecheck passes
----
-
-## Iteration 6 - US-005: Fix "end of input expected" parsing errors
-- **Problem**: Magellan_-_Usage_Metrics_Report and Planogram_Integration_DataModel failed deployment with "end of input expected" errors
-- **Root causes**:
-  1. DAX dotted function names (PERCENTILE.INC, PERCENTILE.EXC) were not parsed correctly by the tokenizer
-  2. `PERCENTILE` was parsed as an identifier, `.` was skipped, and `INC` was parsed as a separate function
-  3. When converted to MDX, this produced `PERCENTILEINC(...)` which is not a valid MDX function
-  4. Similarly, DISTINCTCOUNTNOBLANK has no MDX equivalent
-- **Fixes**:
-  1. Modified `parseIdentifierOrFunction()` in dax-converter.ts to consume dotted function names like `PERCENTILE.INC`
-  2. Added PERCENTILE.INC, PERCENTILE.EXC, PERCENTILEINC, PERCENTILEEXC, DISTINCTCOUNTNOBLANK to unconvertible list
-  3. Removed DISTINCTCOUNTNOBLANK from AGGREGATION_FUNCTIONS in template-base.ts
-- **Files changed**:
-  - `src/commands/bim-to-sml/bim-converter/dax-converter.ts` - Parse dotted function names
-  - `src/commands/bim-to-sml/bim-converter/conversion-templates/function-mappings.json` - Added unconvertible functions
-  - `src/commands/bim-to-sml/bim-converter/conversion-templates/template-base.ts` - Removed DISTINCTCOUNTNOBLANK from aggregation list
-- **Learnings for future iterations**:
-  - DAX has dotted function names (PERCENTILE.INC, PERCENTILE.EXC) that need special tokenizer handling
-  - The tokenizer only parsed letters, digits, and underscores - periods would break function names
-  - Functions without MDX equivalents should be in unconvertible list, not just passed through
-  - Always check how DAX expressions are tokenized before checking conversion logic
-- **Verified**:
-  - Magellan_-_Usage_Metrics_Report_bim.json deploys successfully
-  - Planogram_Integration_DataModel_bim.json deploys successfully
-  - npm run test-custom-calcs passes (54% conversion rate maintained)
-  - Typecheck passes
----
-
-## Iteration 7 - US-006: Add automated test-deploy script
-- **Problem**: Need an easy way to convert BIM files and deploy to AtScale for testing
-- **Solution**: Created `scripts/test-deploy.ts` wrapper that calls `pnpm pbi-deploy` from SML test directory
-- **Implementation**:
-  - Script validates input file/directory path
-  - Validates SML test directory exists
-  - Runs `pnpm pbi-deploy` with appropriate arguments
-  - Reports clear pass/fail status with exit codes
-  - Supports `--keep` flag to retain deployed catalogs
-- **Files changed**:
-  - `scripts/test-deploy.ts` - New wrapper script
-  - `package.json` - Added `test-deploy` npm script
-  - `PRD.md` - Marked US-006 acceptance criteria complete
-- **Learnings for future iterations**:
-  - `pbi-deploy` script in SML repo handles full convert-patch-deploy pipeline
-  - Wrapper scripts can run commands in different directories via `cwd` option
-  - Both `deploy-test` (inline) and `test-deploy` (wrapper) approaches now available
-  - The SML test directory has all required env vars in its .env file
-- **Verified**:
-  - npm run build passes (typecheck)
-  - npm run test-custom-calcs passes (54% conversion rate)
-  - Script created with full usage documentation
----
-
-## Iteration 8 - US-007: Run test-deploy on all error files and document results
-- **Problem**: Need comprehensive testing of all 41 BIM files in tests1 directory to document pass/fail status
-- **Result**: 19 PASS (46%), 22 FAIL (54%)
-- **Passing files (19)**:
-  - Commercial_KPIs, DaVinci_Usage_Metrics_Report, Dealer_Performance_Dashboard
-  - FactAutoCoverage_Pivot, FactCoverage_Pivot, FactPolicyLine, FactProduction
-  - Global_Report_-_Assembly_KPIs, HDNA_Magellan_Report, Machining_Performance.Loss__Model
-  - Magellan_-_Usage_Metrics_Report, Marketing_-_Advertising, Most_Loved
-  - Planogram_Informational_DataModel, Planogram_Integration_DataModel, POC
-  - Retail_Account_Policy, RetailPolicyLine, Usage_Metrics_Report
-- **Failure categories**:
-  1. **AtScale server: dimension-less model (11 files)** - Server bug with models having no dimensions
-  2. **AtScale server: single dataset (5 files)** - Server bug with parsedXml.schema.data-sets.data-set.map
-  3. **SML validation: hierarchy conflict (2 files)** - Hilcorp files have duplicate level issues
-  4. **Converter: multi-column relationship (1 file)** - BayerVital warning about multi-column relationships
-  5. **DAX parsing errors (3 files)** - magalu, Monthly_Sales_Dashboard, StateSt need converter work
-- **Files changed**:
-  - `PRD.md` - Updated US-007 with complete test results and documentation
-- **Learnings for future iterations**:
-  - Most failures (16 of 22) are AtScale server-side issues, not converter bugs
-  - Dimension-less models occur when all relationships point to excluded LocalDateTable tables
-  - Single-dataset models trigger server bug with XML parsing
-  - SML hierarchy generation needs separate PRD for handling complex multi-hierarchy cases
-  - DAX parsing edge cases (special characters in Portuguese, specific YTD patterns) need continued work
-- **Verified**:
-  - npm run test-custom-calcs passes (54% conversion rate maintained)
-  - npm run build passes (typecheck)
-  - All 41 files tested and documented
+## Iteration 1 - US-001: Capture baseline test results
+- Ran `npm run test-custom-calcs` and captured output to `test-output/baseline.txt`
+- Build passes (typecheck OK)
+- Key baseline: 70 metrics, 38 converted, 32 TODO, 54% rate, validation PASSED
+- Learnings:
+  - Test takes ~90ms to run
+  - Test file is dw_test_model.bim with 29 tables, 341 columns, 70 measures
 ---

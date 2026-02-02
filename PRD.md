@@ -1,241 +1,199 @@
-# PRD: Fix BIM Conversion Deployment Errors (tests1 Directory)
+# PRD: High-Impact Code Simplifications for BIM Converter
 
 ## Introduction
 
-Fix BIM-to-SML conversion and deployment errors identified in `/Users/dianne/Downloads/bim/tests1/` files. This PRD addresses systematic fixes for errors grouped by type from `errors_to_address.txt`. Each fix must pass validation and deploy successfully.
+Simplify the BIM-to-SML converter codebase by consolidating related files, merging similar templates, and extracting concerns from oversized files. Goal: reduce cognitive load and file count without changing functionality.
 
 ## Goals
 
-- Fix "expression contains a non-existing metric" errors by creating base metrics for referenced measures
-- Fix "Cannot read properties of undefined (reading 'map')" errors that re-appeared on tests1 files
-- Fix "Comma expected but OpenParen" and similar parsing errors in calculation expressions
-- Fix data type mismatches (NumericType vs StringType, IIF branch type mismatches)
-- Fix "end of input expected" parsing errors
-- Add automated test-deploy script for validation + deployment workflow
-- All fixes validated via deployment to AtScale
+- Reduce time template files from 6 → 2 via parameterization
+- Split measure-converter.ts (1,613 lines) into focused modules (~800 lines core)
+- Consolidate VAR analysis files from 4 → 2 while preserving separation of concerns
+- Inline small utility files into their consumers
+- Zero functional changes (all tests must pass identically)
+
+## Testing Protocol
+
+**Every story must:**
+1. Run `npm run test-custom-calcs` after changes
+2. Compare output against baseline captured in US-001
+3. Verify no conversion/validation/deployment differences
+
+---
 
 ## User Stories
 
-### US-001: Create base metrics for BIM measures referenced by other measures
+### US-001: Capture baseline test results
 
-**Description:** As a converter, I want to detect when a calculated measure references another BIM measure (like `SUM([Policy Estimated Monthly Commission])`), and create a base metric for the referenced measure first, so that "expression contains a non-existing metric" errors are eliminated.
-
-**Acceptance Criteria:**
-
-- [x] Scan all BIM measures to build a dependency map of which measures reference which other measures
-- [x] Identify BIM measures that have no DAX expression but ARE referenced by other measures
-- [x] Create base SML metrics for these referenced measures BEFORE converting calculated measures
-- [x] Add these base metrics to metricLookup so references resolve correctly
-- [x] Test FactPolicyLine_bim.json - "Total Policy Estimated Monthly Commission" resolves "Policy Estimated Monthly Commission"
-- [x] Test Marketing_-_Advertising_bim.json - "Total Spend Vs. PY" resolves "Total Spend PY"
-- [x] Test RetailPolicyLine_bim.json - same pattern resolves correctly
-- [x] Run `npm run test-custom-calcs` - no regressions
-- [x] Typecheck passes
-- [x] Deploy all three files via `pnpm pbi-deploy` - fix errors until successful
-
-### US-002: Re-verify and fix array handling for tests1 files
-
-**Description:** As a converter, I want to ensure the null-coalescing fixes for `.map()` on undefined arrays work correctly on the tests1 directory files, so that "Cannot read properties of undefined (reading 'map')" errors don't occur.
+**Description:** As a developer, I need a baseline snapshot of all test outputs before refactoring so I can verify no functionality changes.
 
 **Acceptance Criteria:**
+- [x] Run `npm run test-custom-calcs` and capture full output to `test-output/baseline.txt`
+- [x] Record pass/fail counts and any error messages
+- [x] Document the baseline in progress.txt for reference
+- [x] Typecheck passes (`npm run build`)
 
-- [x] Test Assembly_KPI_bim.json conversion and deployment
-- [x] Test Assembly_KPIs_Model_bim.json conversion and deployment
-- [x] Test EU_Safety_Model_bim.json conversion and deployment
-- [x] Test epm_mtd_bim.json conversion and deployment
-- [x] If errors occur, identify which arrays need additional null checks
-- [x] Run `npm run test-custom-calcs` - no regressions
-- [x] Typecheck passes
-- [x] Deploy all affected files or document specific blockers
+---
 
-**Deployment Blockers (AtScale Server-Side Issues):**
-- **Assembly_KPI_bim.json** and **Assembly_KPIs_Model_bim.json**: Models have no dimensions/datasets because all relationships point to excluded LocalDateTable tables. AtScale returns: "Invalid xml format. Error: Cannot read properties of undefined (reading 'map')" - this is a server-side error for dimension-less models.
-- **EU_Safety_Model_bim.json** and **epm_mtd_bim.json**: Single dataset models trigger AtScale server error: "parsedXml.schema.data-sets.data-set.map is not a function" - appears to be a server-side bug with single-element arrays.
+### US-002: Create parameterized TotalPeriodTemplate (YTD/MTD/QTD)
 
-**Note:** All four files convert successfully without "Cannot read properties of undefined" errors in our converter. The deployment errors are AtScale server-side issues, not converter bugs.
-
-### US-003: Fix special character parsing errors in MDX expressions
-
-**Description:** As a converter, I want to handle special characters in measure/column names when generating MDX expressions, so that parsing errors like "Comma expected but OpenParen found" don't occur during deployment.
+**Description:** As a developer, I want to merge totalytd, totalmtd, totalqtd templates into one parameterized template so we reduce duplication.
 
 **Acceptance Criteria:**
+- [ ] Create `total-period-template.ts` with period type parameter ('year' | 'month' | 'quarter')
+- [ ] Template handles all three functions: TOTALYTD, TOTALMTD, TOTALQTD
+- [ ] Register template in template-registry.ts replacing the three individual templates
+- [ ] Delete totalytd-template.ts, totalmtd-template.ts, totalqtd-template.ts
+- [ ] Run `npm run test-custom-calcs` - output matches baseline
+- [ ] Typecheck passes
 
-- [x] Analyze the specific DAX expressions causing parsing errors
-- [x] For Dealer_Performance_Dashboard "Average Unit Value of Ette" - identify and fix the parsing issue
-- [x] For Global_Report_-_Assembly_KPIs "K54_YTD_Var" - identify and fix the parsing issue
-- [x] For HDNA_Magellan_Report "Bookings Change"/"Bookings Prior Year" - fix CloseParen/Div error
-- [x] For Most_Loved "Plants_KPIs_K1toK19" - fix CloseBrace/StringLiteral error
-- [x] Create TODO stubs for expressions that can't be safely converted
-- [x] Run `npm run test-custom-calcs` - no regressions
-- [x] Typecheck passes
-- [x] Deploy affected files - fix errors until successful
+---
 
-**Implementation Notes:**
-- Added FIND, SEARCH, CONTAINSSTRING, SUBSTITUTE, REPLACE, REPT, PATH* to unconvertible functions list
-- Added ISBLANK → ISEMPTY to direct_mappings (fixes nested ISBLANK in IF conditions)
-- Made BraceToken throw error to trigger TODO fallback for DAX table literals like `{"val1", "val2"}`
-- Fixed SAMEPERIODLASTYEAR to fail when measure contains arithmetic (tuple syntax requires simple references)
+### US-003: Create parameterized PeriodShiftTemplate (ParallelPeriod family)
 
-### US-004: Fix data type mismatches in function arguments
-
-**Description:** As a converter, I want to detect and handle type mismatches in function arguments, so that errors like "Function Minus requires NumericType, has StringType" produce valid TODO stubs instead of invalid MDX.
+**Description:** As a developer, I want to merge parallelperiod, sameperiodlastyear, previousmonth templates into one parameterized template.
 
 **Acceptance Criteria:**
+- [ ] Create `period-shift-template.ts` handling PARALLELPERIOD, SAMEPERIODLASTYEAR, PREVIOUSMONTH patterns
+- [ ] Use shared logic for CALCULATE wrapping and ParallelPeriod MDX generation
+- [ ] Register template in template-registry.ts replacing the three individual templates
+- [ ] Delete parallelperiod-template.ts, sameperiodlastyear-template.ts, previousmonth-template.ts
+- [ ] Run `npm run test-custom-calcs` - output matches baseline
+- [ ] Typecheck passes
 
-- [x] For FactCoverage_Pivot "Data Date" - ensure NOW()/CURRENT_TIMESTAMP converts correctly or produces TODO stub
-- [x] For FactProduction "YTDSumOfPremium" - time dimension requirement - create clear TODO stub
-- [x] For Machining_Performance "OEE Text" - IIF branch type mismatch - detect and create TODO stub
-- [x] Add validation to detect common type mismatches before generating MDX
-- [x] Run `npm run test-custom-calcs` - no regressions
-- [x] Typecheck passes
-- [x] Deploy affected files - fix errors until successful
+---
 
-**Implementation Notes:**
-- Changed `resolveTimeLevelByUnit()` to return `undefined` instead of fallback string when time level doesn't exist
-- Updated SAMEPERIODLASTYEAR, PREVIOUSMONTH, PARALLELPERIOD templates to fail conversion when required time level is missing
-- Updated TOTALYTD, TOTALMTD, TOTALQTD templates to validate time dimension hierarchy levels exist
-- Time intelligence functions now produce TODO stubs when dimension lacks required Year/Quarter/Month levels
-- FactCoverage_Pivot and Machining_Performance already deployed successfully (NOW() and IIF fixes from prior work)
-- FactProduction now produces TODO stubs for YTD calculations instead of invalid MDX referencing non-existent levels
+### US-004: Extract type inference from measure-converter.ts
 
-### US-005: Fix "end of input expected" parsing errors
-
-**Description:** As a converter, I want to handle DAX expressions with unusual syntax that cause "end of input expected" errors during deployment, so that these produce valid TODO stubs.
+**Description:** As a developer, I want type inference logic in a dedicated file so measure-converter.ts is more focused.
 
 **Acceptance Criteria:**
+- [ ] Create `measure-type-inference.ts` with type inference logic
+- [ ] Move `usageContext` management, `getMeasureUsageTypes()`, `isDualContextMeasure()` to new file
+- [ ] Export `MeasureTypeInference` class or functions
+- [ ] Update measure-converter.ts to import and use the extracted module
+- [ ] Run `npm run test-custom-calcs` - output matches baseline
+- [ ] Typecheck passes
 
-- [x] Analyze Magellan_-_Usage_Metrics_Report "P-90" DAX expression (PERCENTILE.INC)
-- [x] Analyze Planogram_Integration_DataModel "Item Count" DAX expression
-- [x] Ensure PERCENTILE.INC and similar unsupported functions produce TODO stubs
-- [x] Strip trailing content that causes parsing issues
-- [x] Run `npm run test-custom-calcs` - no regressions
-- [x] Typecheck passes
-- [x] Deploy both files - fix errors until successful
+---
 
-**Implementation Notes:**
-- Modified DAX tokenizer to properly parse dotted function names like PERCENTILE.INC, PERCENTILE.EXC
-- Added PERCENTILE.INC, PERCENTILE.EXC, PERCENTILEINC, PERCENTILEEXC, DISTINCTCOUNTNOBLANK to unconvertible list
-- Removed DISTINCTCOUNTNOBLANK from AGGREGATION_FUNCTIONS in template-base.ts since it has no MDX equivalent
-- The "end of input expected" error was caused by invalid MDX function names being generated (e.g., `PERCENTILEINC` instead of a TODO stub)
+### US-005: Extract reference resolution from measure-converter.ts
 
-### US-006: Add automated test-deploy script
-
-**Description:** As a converter user, I want an npm script that converts a BIM file, validates the output, and deploys it, so that I can easily verify end-to-end conversion success.
+**Description:** As a developer, I want reference resolution logic in a dedicated file so measure-converter.ts handles only core conversion.
 
 **Acceptance Criteria:**
+- [ ] Create `measure-reference-resolver.ts` with reference resolution logic
+- [ ] Move `resolveUnresolvedReferences()`, `buildMeasureTableMap()`, `getMeasureTable()` to new file
+- [ ] Move `splitMeasureRegistry` handling for reference rewriting
+- [ ] Export `MeasureReferenceResolver` class
+- [ ] Update measure-converter.ts to import and use the extracted module
+- [ ] measure-converter.ts now ~800 lines or less
+- [ ] Run `npm run test-custom-calcs` - output matches baseline
+- [ ] Typecheck passes
 
-- [x] Create `scripts/test-deploy.ts` that:
-  - Takes input BIM file path as argument
-  - Runs conversion via existing bim-to-sml command
-  - Validates SML output using sml-sdk validation (if available) or file checks
-  - Runs `pnpm pbi-deploy <file>` from correct directory
-  - Reports clear pass/fail status with error details
-- [x] Add npm script: `"test-deploy": "npx ts-node scripts/test-deploy.ts"`
-- [x] Script handles errors gracefully and reports deployment failures
-- [x] Document usage in script header comments
-- [x] Typecheck passes
+---
 
-### US-007: Run test-deploy on all error files and document results
+### US-006: Consolidate var-scope-tracker + var-analyzer → var-analysis.ts
 
-**Description:** As a converter user, I want all files from errors_to_address.txt tested and either passing or documented with specific blockers.
+**Description:** As a developer, I want to merge scope tracking and dependency analysis into one file since they're tightly coupled.
 
 **Acceptance Criteria:**
+- [ ] Create `var-analysis.ts` combining VarScopeTracker and VarAnalyzer classes
+- [ ] Keep both classes distinct within the file (same APIs)
+- [ ] Update imports in var-inliner.ts, var-safety-checker.ts, dax-expression.ts
+- [ ] Delete var-scope-tracker.ts and var-analyzer.ts
+- [ ] Run `npm run test-custom-calcs` - output matches baseline
+- [ ] Typecheck passes
 
-- [x] Run test-deploy on FactPolicyLine_bim.json - document result
-- [x] Run test-deploy on Marketing_-_Advertising_bim.json - document result
-- [x] Run test-deploy on RetailPolicyLine_bim.json - document result
-- [x] Run test-deploy on Assembly files - document results
-- [x] Run test-deploy on files with parsing errors - document results
-- [x] Run test-deploy on files with type errors - document results
-- [x] Create summary table of pass/fail status for all files
-- [x] Document any files requiring manual intervention or separate PRD
+---
 
-**Test Results Summary (41 files tested):**
+### US-007: Consolidate var-safety-checker + var-inliner → var-inliner.ts
 
-| Status | Count | Percentage |
-|--------|-------|------------|
-| ✅ PASS | 19 | 46% |
-| ❌ FAIL | 22 | 54% |
+**Description:** As a developer, I want to merge safety checking into the inliner since they're sequential steps in the same operation.
 
-**Passing Files (19):**
-| File | Status |
-|------|--------|
-| Commercial_KPIs_bim.json | ✅ PASS |
-| DaVinci_Usage_Metrics_Report_bim.json | ✅ PASS |
-| Dealer_Performance_Dashboard_bim.json | ✅ PASS |
-| FactAutoCoverage_Pivot_bim.json | ✅ PASS |
-| FactCoverage_Pivot_bim.json | ✅ PASS |
-| FactPolicyLine_bim.json | ✅ PASS |
-| FactProduction_bim.json | ✅ PASS |
-| Global_Report_-_Assembly_KPIs_bim.json | ✅ PASS |
-| HDNA_Magellan_Report_bim.json | ✅ PASS |
-| Machining_Performance.Loss__Model_bim.json | ✅ PASS |
-| Magellan_-_Usage_Metrics_Report_bim.json | ✅ PASS |
-| Marketing_-_Advertising_bim.json | ✅ PASS |
-| Most_Loved_bim.json | ✅ PASS |
-| Planogram_Informational_DataModel_bim.json | ✅ PASS |
-| Planogram_Integration_DataModel_bim.json | ✅ PASS |
-| POC_bim.json | ✅ PASS |
-| Retail_Account_Policy_bim.json | ✅ PASS |
-| RetailPolicyLine_bim.json | ✅ PASS |
-| Usage_Metrics_Report_bim.json | ✅ PASS |
+**Acceptance Criteria:**
+- [ ] Move VarSafetyChecker class into var-inliner.ts
+- [ ] Keep VarSafetyChecker as distinct class (same API)
+- [ ] Update imports in conversion-pipeline.ts and any other consumers
+- [ ] Delete var-safety-checker.ts
+- [ ] var-analysis/ now has 2 files: var-analysis.ts, var-inliner.ts
+- [ ] Run `npm run test-custom-calcs` - output matches baseline
+- [ ] Typecheck passes
 
-**Failing Files by Category (22):**
+---
 
-| Category | Files | Root Cause |
-|----------|-------|------------|
-| AtScale server: dimension-less model | Assembly_KPI, Assembly_KPIs_Model, A&P_Pacing_VS_Budget, Interactive_PVM, Manual_Load_Tracking, Marketing, Most_Loved_Index, Price_Checker, Similarweb_Benchmark, Size_Heat_Map, Trade_Tracker | Server returns "Cannot read properties of undefined (reading 'map')" for models without dimensions |
-| AtScale server: single dataset | EU_Safety_Model, epm_mtd, External_Dashboard_Index, HDT07_Overview, Magellan_Refresh_Test | Server bug "parsedXml.schema.data-sets.data-set.map is not a function" |
-| SML validation: hierarchy conflict | Hilcorp, Hilcorp_SSAS_Model | "Level X is duplicated in hierarchies but levels below differ" |
-| Converter: multi-column relationship | BayerVital | Table has relationships to multiple columns (conversion warning) |
-| DAX parsing error | magalu, Monthly_Sales_Dashboard, StateSt | Specific DAX patterns not yet handled |
+### US-008: Inline conversion-result.ts into conversion-pipeline.ts
 
-**Files Requiring Separate PRD:**
-1. **Hilcorp files** - SML hierarchy generation produces duplicate level conflicts when BIM has multiple hierarchies sharing levels
-2. **magalu_bim** - DAX expression "% Abandono de Carrinho" contains unconverted pattern
-3. **Monthly_Sales_Dashboard** - "m_ytd Delta Dealers %" expression parse error
-4. **StateSt** - MDX generation issue with measure references
+**Description:** As a developer, I want conversion result types colocated with the pipeline that uses them.
 
-**Server-Side Issues (Not Converter Bugs):**
-- 11 files fail due to AtScale server not handling dimension-less models
-- 5 files fail due to AtScale server bug with single-dataset models
-- These are documented for AtScale engineering to address
+**Acceptance Criteria:**
+- [ ] Move `ConversionResult`, `ConversionCategory`, `failedConversion()`, `successfulConversion()` into conversion-pipeline.ts
+- [ ] Update all imports (templates, AI converter, etc.) to import from conversion-pipeline.ts
+- [ ] Delete conversion-result.ts
+- [ ] Run `npm run test-custom-calcs` - output matches baseline
+- [ ] Typecheck passes
+
+---
+
+### US-009: Inline connection-converter.ts into bim-to-sml-converter.ts
+
+**Description:** As a developer, I want connection conversion logic in the main orchestrator since it's only 94 lines and used in one place.
+
+**Acceptance Criteria:**
+- [ ] Move `createConnections()`, `listUsedConnections()`, `parseConnectionString()` into bim-to-sml-converter.ts
+- [ ] Functions can remain standalone or become private methods
+- [ ] Delete connection-converter.ts
+- [ ] Run `npm run test-custom-calcs` - output matches baseline
+- [ ] Typecheck passes
+
+---
+
+### US-010: Final verification and cleanup
+
+**Description:** As a developer, I want to verify all refactoring preserved functionality and update documentation.
+
+**Acceptance Criteria:**
+- [ ] Run full `npm run test-custom-calcs` and compare against baseline
+- [ ] All outputs identical to baseline (no functional changes)
+- [ ] Update any imports in files outside bim-converter/ if needed
+- [ ] Verify file count reduction: ~8 fewer files total
+- [ ] Typecheck passes
+- [ ] Build succeeds (`npm run build`)
+
+---
 
 ## Non-Goals
 
-- "Measure X is not a measure" errors where dimension keys are used as fact measures (requires separate PRD for architectural changes)
-- Converting all DAX functions to MDX (some remain as TODO stubs by design)
-- AI-powered DAX conversion improvements
-- Calculation group conversion
-- Performance optimization
+- No changes to conversion logic or output
+- No new features or capabilities
+- No changes to public APIs consumed by other commands
+- No refactoring of dax-converter.ts (tokenizer) - it's large but cohesive
+- No inlining of dax-expression.ts - it provides useful abstraction layer
 
 ## Technical Considerations
 
-### Base Metric Creation for Referenced Measures (US-001)
+- VAR analysis files have clean sequential dependencies - preserve this in merged files
+- Time templates share `resolveDimensionHierarchy()` from converter-utils.ts - continue using it
+- measure-converter.ts uses `SplitMeasureRegistry` for dual-context - keep registry accessible to extracted modules
+- Template registration order may matter - maintain same registration order in template-registry.ts
 
-The core issue: BIM measures like "Policy Estimated Monthly Commission" exist as measures with a sourceColumn but no DAX expression. When "Total Policy Estimated Monthly Commission" has `SUM([Policy Estimated Monthly Commission])`, the reference fails because no metric was created.
+## File Change Summary
 
-**Implementation approach:**
-1. In `buildMeasureTableMap()`, also identify measures that:
-   - Have a `sourceColumn` but no `expression`
-   - Are referenced by other measures (detected via DAX parsing)
-2. Create base SML metrics for these before processing calculated measures
-3. Add to `metricLookup` with key `agg + tableName[measureName]`
+| Before | After | Change |
+|--------|-------|--------|
+| totalytd-template.ts | total-period-template.ts | Merged 3 → 1 |
+| totalmtd-template.ts | (deleted) | |
+| totalqtd-template.ts | (deleted) | |
+| parallelperiod-template.ts | period-shift-template.ts | Merged 3 → 1 |
+| sameperiodlastyear-template.ts | (deleted) | |
+| previousmonth-template.ts | (deleted) | |
+| measure-converter.ts | measure-converter.ts (~800 lines) | Split |
+| (new) | measure-type-inference.ts | Extracted |
+| (new) | measure-reference-resolver.ts | Extracted |
+| var-scope-tracker.ts | var-analysis.ts | Merged 2 → 1 |
+| var-analyzer.ts | (deleted) | |
+| var-safety-checker.ts | var-inliner.ts | Merged 2 → 1 |
+| conversion-result.ts | (inlined to conversion-pipeline.ts) | Deleted |
+| connection-converter.ts | (inlined to bim-to-sml-converter.ts) | Deleted |
 
-### Array Handling (US-002)
-
-Previous fixes applied null-coalescing (`|| []`) to iterations. If errors recur:
-1. Check if the tests1 files have different structure than previous test files
-2. Look for new array access patterns not covered before
-3. Ensure `ensureArray()` helper is applied where needed
-
-### Deployment Command
-
-From `/Users/dianne/go/src/github.com/AtScaleInc/SML/tests/snowflake-converter`:
-```bash
-pnpm pbi-deploy /Users/dianne/Downloads/bim/tests1/<filename>_bim.json
-```
-
-### Test Script Location
-
-Create at `scripts/test-deploy.ts` following existing patterns in `scripts/` directory.
+**Net change:** -8 files (from ~20 to ~12 in bim-converter/)
