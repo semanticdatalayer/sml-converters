@@ -303,44 +303,7 @@ Maps aggregation patterns to created metrics:
 
 ---
 
-## 8. Conversion Result: What Gets Created
-
-### SmlConverterResult Structure
-
-```typescript
-interface SmlConverterResult {
-  catalog: SMLCatalog; // Root catalog file
-  connections: SMLConnection[]; // DB connections
-  datasets: SMLDataset[]; // Fact table datasets
-  dimensions: SMLDimension[]; // Dimension definitions
-  measures: SMLMetric[]; // Base metrics (SUM, COUNT, etc.)
-  measuresCalculated: SMLMetricCalculated[]; // Calculated metrics
-  models: SMLModel[]; // Model tying it all together
-  rowSecurity: SMLRowSecurity[]; // Security rules
-  compositeModels: SMLCompositeModel[];
-}
-```
-
-### Output Files
-
-```
-output/
-├── catalog.yml              # Root catalog
-├── models/
-│   └── model_name.yml       # Model definition
-├── dimensions/
-│   └── dim_name.yml         # Each dimension
-├── datasets/
-│   └── dataset_name.yml     # Each dataset
-├── metrics/
-│   └── metric_name.yml      # Base metrics
-└── calculations/
-    └── calc_name.yml        # Calculated metrics
-```
-
----
-
-## 9. Pipeline Stages: The Full Flow
+## 8. Pipeline Stages: The Full Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -394,23 +357,3 @@ output/
 │ • Confidence: 0.0                                             │
 └───────────────────────────────────────────────────────────────┘
 ```
-
----
-
-## 10. Glossary
-
-| Term                | Definition                                            |
-| ------------------- | ----------------------------------------------------- |
-| **BIM**             | Power BI model file (JSON format)                     |
-| **SML**             | Semantic Modeling Language (AtScale)                  |
-| **DAX**             | Data Analysis Expressions (Power BI formula language) |
-| **MDX**             | Multidimensional Expressions (OLAP query language)    |
-| **Token**           | Parsed unit of a DAX expression                       |
-| **Template**        | Pattern matcher for complex DAX patterns              |
-| **Pipeline**        | 6-stage conversion flow                               |
-| **Confidence**      | 0.0-1.0 score of conversion correctness               |
-| **TODO stub**       | Placeholder when conversion fails                     |
-| **Dual-context**    | Measure used in both boolean and numeric contexts     |
-| **VAR inlining**    | Substituting variable values at usage sites           |
-| **Fact table**      | Table with measures (→ Dataset)                       |
-| **Dimension table** | Table for filtering/grouping (→ Dimension)            |
