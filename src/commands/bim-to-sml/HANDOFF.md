@@ -17,6 +17,14 @@ node bin/run.js bim-to-sml --source ./model.bim --output ./output --llmName open
 npm run test-custom-calcs
 ```
 
+## Affected Repositories
+
+All changes have been added to a branch call bim2sml in the following repositories.
+
+Conversion -- https://github.com/semanticdatalayer/sml-converters/tree/bim2sml/src/commands/bim-to-sml
+
+Smoke tests -- https://github.com/AtScaleInc/SML/tree/bim2sml/tests/snowflake-converter/src/test-suites/pbi-smoke
+
 ## What This Converter Does
 
 Converts Power BI models (`.bim` files) to AtScale SML (Semantic Modeling Language):
