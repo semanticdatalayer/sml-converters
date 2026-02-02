@@ -41,7 +41,7 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
 - [x] US-001: Capture baseline test results
 - [x] US-002: Create parameterized TotalPeriodTemplate (YTD/MTD/QTD)
 - [x] US-003: Create parameterized PeriodShiftTemplate (ParallelPeriod family)
-- [ ] US-004: Extract type inference from measure-converter.ts
+- [x] US-004: Extract type inference from measure-converter.ts
 - [ ] US-005: Extract reference resolution from measure-converter.ts
 - [ ] US-006: Consolidate var-scope-tracker + var-analyzer → var-analysis.ts
 - [ ] US-007: Consolidate var-safety-checker + var-inliner → var-inliner.ts
@@ -109,4 +109,22 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
   - Config pattern for extraction methods (extractParallelPeriodParams vs extractSimpleShiftParams)
   - levelExistsInDimension validation preserved from original templates
   - SAMEPERIODLASTYEAR has unique constraint: requiresSimpleMeasureRef for MDX tuple syntax
+---
+
+## Iteration 4 - US-004: Extract type inference from measure-converter.ts
+- Type inference logic already extracted to type-inference.ts in prior work session
+- Verified extraction is complete:
+  - UsageContext interface and createUsageContext() in type-inference.ts
+  - getUsageTypes(), isDualContext(), getDualContextMeasures() all in type-inference.ts
+  - inferTypes(), rewriteSplitMeasureReferences() also extracted
+  - measure-converter.ts imports from ./type-inference (line 58)
+- Files involved:
+  - src/commands/bim-to-sml/bim-converter/type-inference.ts (528 lines) - type inference module
+  - src/commands/bim-to-sml/bim-converter/measure-converter.ts - uses type-inference module
+  - src/commands/bim-to-sml/bim-converter/conversion-pipeline.ts - also imports from type-inference
+  - src/commands/bim-to-sml/bim-converter/tools.ts - imports MdxType from type-inference
+- Tests pass, output matches baseline: 70 metrics, 38 converted, 32 TODO, 54%
+- Learnings:
+  - Extraction was already done in a prior session (named type-inference.ts vs PRD's measure-type-inference.ts)
+  - Module exports functions rather than a class, which is acceptable per "class or functions" in PRD
 ---

@@ -68,12 +68,12 @@ Simplify the BIM-to-SML converter codebase by consolidating related files, mergi
 **Description:** As a developer, I want type inference logic in a dedicated file so measure-converter.ts is more focused.
 
 **Acceptance Criteria:**
-- [ ] Create `measure-type-inference.ts` with type inference logic
-- [ ] Move `usageContext` management, `getMeasureUsageTypes()`, `isDualContextMeasure()` to new file
-- [ ] Export `MeasureTypeInference` class or functions
-- [ ] Update measure-converter.ts to import and use the extracted module
-- [ ] Run `npm run test-custom-calcs` - output matches baseline
-- [ ] Typecheck passes
+- [x] Create `measure-type-inference.ts` with type inference logic
+- [x] Move `usageContext` management, `getMeasureUsageTypes()`, `isDualContextMeasure()` to new file
+- [x] Export `MeasureTypeInference` class or functions
+- [x] Update measure-converter.ts to import and use the extracted module
+- [x] Run `npm run test-custom-calcs` - output matches baseline
+- [x] Typecheck passes
 
 ---
 
