@@ -233,4 +233,57 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
 - Learnings:
   - All refactoring preserved functionality - zero test regressions across 9 iterations
   - PRD file reduction estimate (~8) was close to actual (-7)
+
+---
+
+## NEW PRD: Fix BIM-to-SML Conversion Regressions
+
+**Started:** 2026-02-02
+
+Four BIM files that previously converted are now failing. Fix regressions without breaking other files.
+
+### Failing Files
+
+| File | Error | Root Cause |
+|------|-------|------------|
+| DataMgt_bim | Warning treated as error | `[WARN] Unique name 'CalendarMonth' already used` |
+| Magellan_bim | Non-existing metric | Truncated ref `_MagellanDataset Booking Amt [$"` |
+| PFM_bim | Type error on MINUS | Date arithmetic `[datetime]-1` |
+| Ulta_bim | end of input expected | Parsing error on "Sell Through" |
+
+### User Stories Progress
+
+- [x] US-001: Warning should not fail conversion (DataMgt)
+- [ ] US-002: Fix DAX bracket escaping for metric references (Magellan)
+- [ ] US-003: Generate TODO stub for date arithmetic (PFM)
+- [ ] US-004: Fix "end of input expected" parsing error (Ulta)
+- [ ] US-005: Run smoke tests to verify no regressions
+
+---
+
+## Iteration 11 - US-001: Warning should not fail conversion (DataMgt)
+- Root cause: `uniqueNameForCreatedMeas()` in converter-utils.ts was calling `lowerNoSpace(meas.expression)` where expression could be an array (multi-line DAX)
+- Fix: wrap with `expressionAsString()` to convert array to string before passing to lowerNoSpace
+- The PRD incorrectly attributed the error to tools.ts `handleNameExists()` - actual bug was in converter-utils.ts
+- Files changed:
+  - src/commands/bim-to-sml/bim-converter/converter-utils.ts (line 197-198)
+  - PRD.md (marked US-001 tasks complete)
+- Tests pass, matches baseline: 70 metrics, 38 converted, 32 TODO, 54%
+- Learnings:
+  - BIM expression fields can be string OR array - always use expressionAsString() before string operations
+  - Error message "name.toLowerCase is not a function" meant `name` was an array, not string
+  - Stack trace debugging via console.error in lowerNoSpace helped locate the actual call site
+---
+
+## Iteration 12 - US-002: Fix DAX bracket escaping for metric references (Magellan)
+- Issue: PRD indicated truncated metric ref `_MagellanDataset Booking Amt [$"` causing non-existing metric error
+- Investigation: Tested Magellan_bim.json and Magellan_RLS_Test_-_12-11-24_bim.json - both convert successfully
+- Metrics created correctly: `_MagellanDataset Booking Amt [$]` with proper unique_name
+- Calculations reference correctly: `[Measures].[_MagellanDataset Booking Amt [$]]/[Measures].[Order Count]`
+- All 7 Magellan files in /bim/succeeds/ convert without fatal errors
+- Tests pass, matches baseline: 70 metrics, 38 converted, 32 TODO, 54%
+- Learnings:
+  - Issue may have been fixed in a prior session or resolved by related changes
+  - DAX escaped brackets `[col[$]]]` (where `]]` escapes `]`) being handled correctly
+  - Warnings for dimension column references and selector tables are expected non-fatal behavior
 ---

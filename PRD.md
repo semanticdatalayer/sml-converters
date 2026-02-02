@@ -36,12 +36,12 @@ Four BIM-to-SML conversion regressions need fixing. These files previously conve
 
 **Acceptance Criteria:**
 
-- [ ] Trace `TableColumnReference.toMdx()` logic for this specific pattern
-- [ ] Fix metric lookup to handle column names containing special chars like `[$]`
-- [ ] Add fuzzy matching fallback if exact match fails
-- [ ] Magellan_bim.json and Magellan_RLS_Test_-_12-11-24_bim.json convert without "non-existing metric" error
-- [ ] Run `npm run test-custom-calcs` - no new failures
-- [ ] Typecheck passes
+- [x] Trace `TableColumnReference.toMdx()` logic for this specific pattern
+- [x] Fix metric lookup to handle column names containing special chars like `[$]`
+- [x] Add fuzzy matching fallback if exact match fails
+- [x] Magellan_bim.json and Magellan_RLS_Test_-_12-11-24_bim.json convert without "non-existing metric" error
+- [x] Run `npm run test-custom-calcs` - no new failures
+- [x] Typecheck passes
 
 ### US-003: Generate TODO stub for date arithmetic
 
