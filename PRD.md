@@ -112,13 +112,13 @@ Simplify the BIM-to-SML converter codebase by consolidating related files, mergi
 **Description:** As a developer, I want to merge safety checking into the inliner since they're sequential steps in the same operation.
 
 **Acceptance Criteria:**
-- [ ] Move VarSafetyChecker class into var-inliner.ts
-- [ ] Keep VarSafetyChecker as distinct class (same API)
-- [ ] Update imports in conversion-pipeline.ts and any other consumers
-- [ ] Delete var-safety-checker.ts
-- [ ] var-analysis/ now has 2 files: var-analysis.ts, var-inliner.ts
-- [ ] Run `npm run test-custom-calcs` - output matches baseline
-- [ ] Typecheck passes
+- [x] Move VarSafetyChecker class into var-inliner.ts
+- [x] Keep VarSafetyChecker as distinct class (same API)
+- [x] Update imports in conversion-pipeline.ts and any other consumers
+- [x] Delete var-safety-checker.ts
+- [x] var-analysis/ now has 2 files: var-analysis.ts, var-inliner.ts
+- [x] Run `npm run test-custom-calcs` - output matches baseline
+- [x] Typecheck passes
 
 ---
 
