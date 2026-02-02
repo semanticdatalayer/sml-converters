@@ -19,7 +19,7 @@ import { DaxToken, DaxTokenizer } from "../dax-converter";
 import {
   ConversionResult,
   failedConversion,
-} from "../conversion-result";
+} from "../conversion-pipeline";
 import { ConversionContext } from "./conversion-context";
 import { Logger } from "../../../../shared/logger";
 

@@ -8,7 +8,7 @@ import {
   ConversionCategory,
   successfulConversion,
   failedConversion,
-} from "../../conversion-result";
+} from "../../conversion-pipeline";
 import { ConversionContext } from "../conversion-context";
 import { resolveDimensionHierarchy, extractDimUniqueName, resolveTimeLevelByUnit } from "../../converter-utils";
 

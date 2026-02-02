@@ -31,7 +31,7 @@ import {
 import { DaxTokenizer, FunctionToken, getMeasureName } from "./dax-converter";
 import { ConversionPipeline } from "./conversion-pipeline";
 import { createConversionContext } from "./conversion-templates/conversion-context";
-import { ConversionCategory } from "./conversion-result";
+import { ConversionCategory } from "./conversion-pipeline";
 import { DimensionConverter } from "./dimension-converter";
 import {
   aggFunctionAtStart,

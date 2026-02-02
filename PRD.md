@@ -127,11 +127,11 @@ Simplify the BIM-to-SML converter codebase by consolidating related files, mergi
 **Description:** As a developer, I want conversion result types colocated with the pipeline that uses them.
 
 **Acceptance Criteria:**
-- [ ] Move `ConversionResult`, `ConversionCategory`, `failedConversion()`, `successfulConversion()` into conversion-pipeline.ts
-- [ ] Update all imports (templates, AI converter, etc.) to import from conversion-pipeline.ts
-- [ ] Delete conversion-result.ts
-- [ ] Run `npm run test-custom-calcs` - output matches baseline
-- [ ] Typecheck passes
+- [x] Move `ConversionResult`, `ConversionCategory`, `failedConversion()`, `successfulConversion()` into conversion-pipeline.ts
+- [x] Update all imports (templates, AI converter, etc.) to import from conversion-pipeline.ts
+- [x] Delete conversion-result.ts
+- [x] Run `npm run test-custom-calcs` - output matches baseline
+- [x] Typecheck passes
 
 ---
 

@@ -44,8 +44,8 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
 - [x] US-004: Extract type inference from measure-converter.ts
 - [x] US-005: Extract reference resolution from measure-converter.ts
 - [x] US-006: Consolidate var-scope-tracker + var-analyzer → var-analysis.ts
-- [ ] US-007: Consolidate var-safety-checker + var-inliner → var-inliner.ts
-- [ ] US-008: Inline conversion-result.ts into conversion-pipeline.ts
+- [x] US-007: Consolidate var-safety-checker + var-inliner → var-inliner.ts
+- [x] US-008: Inline conversion-result.ts into conversion-pipeline.ts
 - [ ] US-009: Inline connection-converter.ts into bim-to-sml-converter.ts
 - [ ] US-010: Final verification and cleanup
 
@@ -162,4 +162,37 @@ Simplify BIM converter codebase by consolidating files and extracting concerns. 
 - Learnings:
   - Tightly coupled classes benefit from file consolidation - easier to find related code
   - Section separators help maintain logical structure in combined files
+---
+
+## Iteration 7 - US-007: Consolidate var-safety-checker + var-inliner → var-inliner.ts
+- Moved VarSafetyChecker class into var-inliner.ts
+- Both classes kept distinct with section separators (SAFETY CHECKER, INLINER)
+- VarSafetyChecker was only imported by var-inliner.ts, so no other imports needed updating
+- Deleted var-safety-checker.ts
+- Files changed:
+  - Modified: var-analysis/var-inliner.ts (327 → 634 lines - added ~307 lines from safety checker)
+  - Deleted: var-analysis/var-safety-checker.ts (309 lines)
+- var-analysis/ directory now has exactly 2 files: var-analysis.ts, var-inliner.ts
+- Tests pass, output matches baseline: 70 metrics, 38 converted, 32 TODO, 54%
+- Learnings:
+  - Sequential steps (safety check → inline) benefit from colocation
+  - VarInliner instantiates VarSafetyChecker internally - no external consumers existed
+---
+
+## Iteration 8 - US-008: Inline conversion-result.ts into conversion-pipeline.ts
+- Moved ConversionResult interface, ConversionCategory enum, failedConversion(), successfulConversion() to top of conversion-pipeline.ts
+- Updated imports in 18 files to import from conversion-pipeline.ts instead of conversion-result.ts:
+  - measure-converter.ts
+  - template-registry.ts, template-base.ts
+  - direct-function-converter.ts
+  - All 14 template files in conversion-templates/templates/
+- Deleted conversion-result.ts
+- Files changed:
+  - Modified: conversion-pipeline.ts (added ~80 lines for conversion result types)
+  - Deleted: conversion-result.ts (92 lines)
+  - Modified: 18 import statements across codebase
+- Tests pass, output matches baseline: 70 metrics, 38 converted, 32 TODO, 54%
+- Learnings:
+  - Inlining small utility types/functions into their primary consumer simplifies imports
+  - When many files import from a utility, update order doesn't matter - all-or-nothing update
 ---

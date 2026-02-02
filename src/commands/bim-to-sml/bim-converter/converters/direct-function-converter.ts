@@ -5,7 +5,7 @@ import {
   ConversionCategory,
   successfulConversion,
   failedConversion,
-} from "../conversion-result";
+} from "../conversion-pipeline";
 import { DaxToken, FunctionToken } from "../dax-converter";
 import { Logger } from "../../../../shared/logger";
 

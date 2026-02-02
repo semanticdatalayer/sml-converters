@@ -1,5 +1,5 @@
 import { DaxToken, FunctionToken, getMeasureName, TableColumnReference, IdentifierToken } from "../dax-converter";
-import { ConversionResult } from "../conversion-result";
+import { ConversionResult } from "../conversion-pipeline";
 import { ConversionContext } from "./conversion-context";
 import { lowerNoSpace } from "../tools";
 import { Constants } from "../../bim-models/constants";

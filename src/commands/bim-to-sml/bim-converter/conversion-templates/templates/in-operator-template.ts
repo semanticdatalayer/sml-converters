@@ -18,7 +18,7 @@ import {
   ConversionCategory,
   successfulConversion,
   failedConversion,
-} from "../../conversion-result";
+} from "../../conversion-pipeline";
 import { ConversionContext } from "../conversion-context";
 
 /**
